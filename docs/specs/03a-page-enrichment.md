@@ -1,6 +1,6 @@
 # Spec 03a: Page enrichment
 
-Status: ready
+Status: done
 Stage: 3. Event grouping
 Owner: agent
 Depends on: 02a

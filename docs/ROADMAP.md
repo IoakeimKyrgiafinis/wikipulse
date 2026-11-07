@@ -39,7 +39,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 01 | Live stream consumer | done |
 | 02a | Spike detector | done |
 | 02b | Detection evaluation | done |
-| 03a | Page enrichment | ready |
+| 03a | Page enrichment | done |
 | 03b | Event grouping | ready |
 | 04a | LLM client | ready |
 | 04b | Knowledge graph extraction | ready |
