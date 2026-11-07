@@ -15,6 +15,12 @@ dependencies = [
     # directly only so that it comes from the CPU-only index below.
     "sentence-transformers>=3.3",
     "torch>=2.5",
+    "ollama>=0.6",
+]
+
+[project.optional-dependencies]
+anthropic = [
+    "anthropic>=0.40",
 ]
 
 [dependency-groups]
@@ -58,5 +64,5 @@ asyncio_default_fixture_loop_scope = "function"
 addopts = "-m 'not integration and not live'"
 markers = [
     "integration: needs the Docker services (Redis, Postgres) running",
-    "live: touches the real Wikimedia services over the network",
+    "live: touches real outside services (Wikimedia over the network, or the local Ollama)",
 ]

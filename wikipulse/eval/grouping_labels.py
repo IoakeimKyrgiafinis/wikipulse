@@ -16,12 +16,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-import httpx
 from pydantic import AwareDatetime, BaseModel
 
-from wikipulse.eval.label import LLM_TIMEOUT_S, NUM_CTX
+from wikipulse.llm import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -176,54 +175,40 @@ ANSWER_SCHEMA = {
 }
 
 
-def parse_pair_answer(content: str) -> tuple[str, str]:
-    """(label, reason) from the model's JSON answer; ValueError if it isn't valid."""
-    answer = json.loads(content)
+def pair_answer_from_data(answer: Any) -> tuple[str, str]:
+    """(label, reason) from the already parsed JSON answer; ValueError if it isn't valid."""
+    if not isinstance(answer, dict):
+        raise ValueError(f"answer is not a JSON object: {answer!r}")
     label = str(answer.get("label", "")).strip().lower()
     if label not in PAIR_LABELS:
         raise ValueError(f"unknown label {label!r}")
     return label, str(answer.get("reason", "")).strip()
 
 
-class OllamaPairLabeler:
-    """Asks a local Ollama model whether a pair is one story (temperature 0, JSON schema)."""
+class LLMPairLabeler:
+    """Asks an LLM whether a pair is one story (thinking off, temperature 0, JSON schema).
 
-    def __init__(self, host: str, model: str, transport: httpx.BaseTransport | None = None):
-        self.model = model
-        self.http = httpx.Client(base_url=host, timeout=LLM_TIMEOUT_S, transport=transport)
+    The client (`wikipulse.llm`) checks the answer against `ANSWER_SCHEMA` and asks once
+    more if it isn't valid, then raises `StructuredOutputError` (a ValueError).
+    """
+
+    def __init__(self, client: LLMClient) -> None:
+        self.client = client
 
     def close(self) -> None:
-        self.http.close()
-
-    def _chat(self, prompt: str) -> str:
-        response = self.http.post(
-            "/api/chat",
-            json={
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                "format": ANSWER_SCHEMA,
-                "think": False,
-                "stream": False,
-                "options": {"temperature": 0, "num_ctx": NUM_CTX},
-            },
-        )
-        if response.status_code == 404:
-            message = f"Ollama has no model {self.model!r}; run `ollama pull {self.model}`"
-            raise RuntimeError(message)
-        response.raise_for_status()
-        return response.json()["message"]["content"]
+        self.client.close()
 
     def label(self, a: PageView, b: PageView) -> tuple[str, str]:
-        """(label, reason). Retries once if the answer isn't valid, then raises."""
-        prompt = pair_text(a, b)
-        try:
-            return parse_pair_answer(self._chat(prompt))
-        except ValueError as error:
-            logger.warning("Invalid answer for %s / %s (%s); again", a.title, b.title, error)
-        return parse_pair_answer(self._chat(prompt))
+        """(label, reason) for one pair."""
+        response = self.client.chat(
+            pair_text(a, b),
+            system=SYSTEM_PROMPT,
+            json_schema=ANSWER_SCHEMA,
+            temperature=0,
+            think=False,
+        )
+        # The client already parsed and checked the JSON (a code fence included).
+        return pair_answer_from_data(response.data)
 
 
 # --- Labeling loops -----------------------------------------------------------------
@@ -281,7 +266,7 @@ def make_record(
 
 def label_pairs_with_llm(
     pairs: Sequence[PairToLabel],
-    labeler: OllamaPairLabeler,
+    labeler: LLMPairLabeler,
     model_setting: str,
     spike_run_id: str,
     sampled_for: str,

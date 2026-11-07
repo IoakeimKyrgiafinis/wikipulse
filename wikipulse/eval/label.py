@@ -7,9 +7,9 @@ The sample (default 50 spikes) is drawn with a fixed seed, so the LLM and a huma
 the same spikes. For each spike the labeler sees the page summary (Wikipedia REST API)
 and the edit comments of the burst (MediaWiki API), both cached in `data/cache/wikipedia/`.
 
-- Default: an LLM labels (`EVAL_LABEL_MODEL`, e.g. `ollama:qwen3:8b`), with temperature 0
-  and a JSON-schema answer. It skips spikes that already have a human label or a label
-  from the same model.
+- Default: an LLM labels (`EVAL_LABEL_MODEL`, e.g. `ollama:qwen3:8b`, through
+  `wikipulse.llm`), with temperature 0 and a JSON-schema answer. It skips spikes that
+  already have a human label or a label from the same model.
 - `--manual`: a terminal tool for a human. It skips spikes a human already labeled, and
   shows the LLM's label only *after* you answer, so it can't anchor you.
 
@@ -49,14 +49,13 @@ from wikipulse.eval.metrics import (
     spike_end,
 )
 from wikipulse.eval.wiki_client import WikiClient
+from wikipulse.llm import LLMClient, get_client
 from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
 
 MAX_COMMENTS = 30  # edit comments shown per spike
 MAX_EXTRACT_CHARS = 1500
-NUM_CTX = 8192  # Ollama silently truncates prompts beyond its context; always set it
-LLM_TIMEOUT_S = 180.0
 
 SYSTEM_PROMPT = """\
 You judge bursts of editing on English Wikipedia. A detector noticed that several
@@ -180,68 +179,45 @@ def fetch_context(client: WikiClient, settings: Settings, spike: SpikeRecord) ->
 # --- LLM labeler --------------------------------------------------------------------
 
 
-def parse_model_setting(setting: str) -> tuple[str, str]:
-    """`ollama:qwen3:8b` -> ("ollama", "qwen3:8b")."""
-    backend, _, model = setting.partition(":")
-    if backend != "ollama" or not model:
-        raise ValueError(f"Unsupported label model {setting!r}; use 'ollama:<model>'")
-    return backend, model
-
-
 def parse_answer(content: str) -> tuple[str, str]:
-    """(label, reason) from the model's JSON answer; ValueError if it isn't valid."""
-    answer = json.loads(content)
+    """(label, reason) from the model's JSON answer text; ValueError if it isn't valid."""
+    return answer_from_data(json.loads(content))
+
+
+def answer_from_data(answer: Any) -> tuple[str, str]:
+    """(label, reason) from the already parsed JSON answer; ValueError if it isn't valid."""
+    if not isinstance(answer, dict):
+        raise ValueError(f"answer is not a JSON object: {answer!r}")
     label = str(answer.get("label", "")).strip().lower()
     if label not in LABELS:
         raise ValueError(f"unknown label {label!r}")
     return label, str(answer.get("reason", "")).strip()
 
 
-class OllamaLabeler:
-    """Asks a local Ollama model for a label (thinking off, temperature 0, JSON schema).
+class LLMLabeler:
+    """Asks an LLM for a label: thinking off, temperature 0, a JSON-schema answer.
 
-    Spec 04a will add a general LLM client (`wikipulse.llm`); until then this talks to
-    Ollama's REST API directly with httpx.
+    The client (`wikipulse.llm`) checks the answer against `ANSWER_SCHEMA` and asks once
+    more if it isn't valid, then raises `StructuredOutputError` (a ValueError).
     """
 
-    def __init__(self, host: str, model: str, transport: httpx.BaseTransport | None = None):
-        self.model = model
-        self.http = httpx.Client(base_url=host, timeout=LLM_TIMEOUT_S, transport=transport)
+    def __init__(self, client: LLMClient) -> None:
+        self.client = client
 
     def close(self) -> None:
-        self.http.close()
-
-    def _chat(self, prompt: str) -> str:
-        response = self.http.post(
-            "/api/chat",
-            json={
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                "format": ANSWER_SCHEMA,
-                "think": False,
-                "stream": False,
-                "options": {"temperature": 0, "num_ctx": NUM_CTX},
-            },
-        )
-        if response.status_code == 404:
-            raise RuntimeError(
-                f"Ollama has no model {self.model!r}; run `ollama pull {self.model}` "
-                "or choose another with EVAL_LABEL_MODEL"
-            )
-        response.raise_for_status()
-        return response.json()["message"]["content"]
+        self.client.close()
 
     def label(self, context: SpikeContext) -> tuple[str, str]:
-        """(label, reason). Retries once if the answer isn't valid, then raises."""
-        prompt = context.as_text()
-        try:
-            return parse_answer(self._chat(prompt))
-        except ValueError as error:
-            logger.warning("Invalid answer for %s (%s); asking again", context.spike.title, error)
-        return parse_answer(self._chat(prompt))
+        """(label, reason) for one spike."""
+        response = self.client.chat(
+            context.as_text(),
+            system=SYSTEM_PROMPT,
+            json_schema=ANSWER_SCHEMA,
+            temperature=0,
+            think=False,
+        )
+        # The client already parsed and checked the JSON (a code fence included).
+        return answer_from_data(response.data)
 
 
 # --- Which spikes still need a label ------------------------------------------------
@@ -267,7 +243,7 @@ def llm_label_of(spike: SpikeRecord, records: Sequence[LabelRecord]) -> str | No
 def label_with_llm(
     sample: Sequence[SpikeRecord],
     contexts: Callable[[SpikeRecord], SpikeContext],
-    labeler: OllamaLabeler,
+    labeler: LLMLabeler,
     model_setting: str,
     run_id: str,
     path: Path,
@@ -373,8 +349,7 @@ def main(argv: list[str] | None = None) -> int:
             label_manually(sample, contexts, args.run_id, args.labels)
         else:
             model_setting = args.model or settings.eval_label_model
-            _, model = parse_model_setting(model_setting)
-            labeler = OllamaLabeler(settings.ollama_host, model)
+            labeler = LLMLabeler(get_client(model_setting, settings))
             try:
                 done = label_with_llm(
                     sample, contexts, labeler, model_setting, args.run_id, args.labels

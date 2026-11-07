@@ -8,22 +8,24 @@ import httpx
 import pytest
 
 from tests.eval.helpers import at, spike
+from tests.llm.helpers import ScriptedClient
 from wikipulse.config import Settings
 from wikipulse.eval.label import (
-    OllamaLabeler,
+    LLMLabeler,
     SpikeContext,
     fetch_context,
     label_manually,
     label_with_llm,
     parse_answer,
     parse_comments,
-    parse_model_setting,
     revisions_params,
     summary_url,
 )
 from wikipulse.eval.label_store import append_record, load_records, record_for
 from wikipulse.eval.metrics import sample_spikes
 from wikipulse.eval.wiki_client import WikiClient
+from wikipulse.llm import parse_model_setting
+from wikipulse.llm.ollama_backend import OllamaClient
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "eval"
 MODEL = "ollama:qwen3:4b"
@@ -49,7 +51,7 @@ def test_sample_is_reproducible_and_sized() -> None:
 def test_model_setting() -> None:
     assert parse_model_setting("ollama:qwen3:8b") == ("ollama", "qwen3:8b")
     with pytest.raises(ValueError):
-        parse_model_setting("anthropic:claude")
+        parse_model_setting("openai:gpt-4o")  # anthropic is a backend since spec 04a
 
 
 def test_parse_answer() -> None:
@@ -115,15 +117,20 @@ def ollama_transport(answers: list[str], requests: list[dict], status: int = 200
         requests.append(json.loads(request.content))
         if status != 200:
             return httpx.Response(status, json={"error": "model not found"})
-        return httpx.Response(200, json={"message": {"content": answers.pop(0)}})
+        message = {"role": "assistant", "content": answers.pop(0)}
+        return httpx.Response(200, json={"model": "m", "message": message, "done": True})
 
     return httpx.MockTransport(handler)
+
+
+def ollama_labeler(model: str, transport: httpx.MockTransport) -> LLMLabeler:
+    return LLMLabeler(OllamaClient(model, host="http://ollama", transport=transport))
 
 
 def test_ollama_request_has_schema_no_thinking_and_a_context_length() -> None:
     requests: list[dict] = []
     answers = ['{"label": "news", "reason": "an election"}']
-    labeler = OllamaLabeler("http://ollama", "qwen3:4b", ollama_transport(answers, requests))
+    labeler = ollama_labeler("qwen3:4b", ollama_transport(answers, requests))
     assert labeler.label(SpikeContext(soharwardy())) == ("news", "an election")
     body = requests[0]
     assert body["think"] is False and body["stream"] is False
@@ -135,7 +142,7 @@ def test_ollama_request_has_schema_no_thinking_and_a_context_length() -> None:
 def test_ollama_invalid_answer_is_retried_once() -> None:
     requests: list[dict] = []
     answers = ["oops", '{"label": "unsure", "reason": "?"}']
-    labeler = OllamaLabeler("http://ollama", "m", ollama_transport(answers, requests))
+    labeler = ollama_labeler("m", ollama_transport(answers, requests))
     assert labeler.label(SpikeContext(soharwardy()))[0] == "unsure"
     assert len(requests) == 2
     answers.extend(["oops", "still oops"])
@@ -144,7 +151,7 @@ def test_ollama_invalid_answer_is_retried_once() -> None:
 
 
 def test_missing_ollama_model_suggests_pulling_it() -> None:
-    labeler = OllamaLabeler("http://ollama", "qwen3:8b", ollama_transport([], [], status=404))
+    labeler = ollama_labeler("qwen3:8b", ollama_transport([], [], status=404))
     with pytest.raises(RuntimeError, match="ollama pull qwen3:8b"):
         labeler.label(SpikeContext(soharwardy()))
 
@@ -201,3 +208,9 @@ def test_manual_labeling_records_a_human_label_and_reports_agreement(tmp_path: P
     answers = iter(["u", ""])
     label_manually(SPIKES[:3], SpikeContext, "loose", path, ask=lambda _: next(answers), show=print)
     assert len([r for r in load_records(path) if r.labeler == "human"]) == 3
+
+
+def test_labeler_accepts_a_json_answer_in_a_code_fence() -> None:
+    client = ScriptedClient(['```json\n{"label": "news", "reason": "an election"}\n```'])
+    assert LLMLabeler(client).label(SpikeContext(soharwardy())) == ("news", "an election")
+    assert len(client.requests) == 1

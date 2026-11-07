@@ -45,7 +45,7 @@ from wikipulse.db.events import SpikeRow, event_membership, run_info, spikes_wit
 from wikipulse.eval.detection import git_commit, parse_overrides
 from wikipulse.eval.grouping_labels import (
     DEFAULT_PAIR_LABELS_PATH,
-    OllamaPairLabeler,
+    LLMPairLabeler,
     PageView,
     PairKey,
     PairLabelRecord,
@@ -56,11 +56,11 @@ from wikipulse.eval.grouping_labels import (
     load_pair_records,
     pair_key,
 )
-from wikipulse.eval.label import parse_model_setting
 from wikipulse.eval.metrics import day_start
 from wikipulse.events.embed import Embedder
 from wikipulse.events.run import to_pages
 from wikipulse.events.similarity import SpikePage
+from wikipulse.llm import get_client
 from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -472,8 +472,7 @@ def run_label(args: argparse.Namespace, settings: Settings, data: DayData) -> No
         label_pairs_manually(pairs, data.spike_run_id, args.run_id, args.labels, now)
         return
     model_setting = args.model or settings.eval_label_model
-    _, model = parse_model_setting(model_setting)
-    labeler = OllamaPairLabeler(settings.ollama_host, model)
+    labeler = LLMPairLabeler(get_client(model_setting, settings))
     try:
         done = label_pairs_with_llm(
             pairs, labeler, model_setting, data.spike_run_id, args.run_id, args.labels, now

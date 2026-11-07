@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from tests.events.helpers import ELECTION, ELECTION_ISH, FOOTBALL, T0, page, unit
+from tests.llm.helpers import ScriptedClient
 from wikipulse.eval.grouping import (
     DayData,
     GroupingMetrics,
@@ -22,7 +23,7 @@ from wikipulse.eval.grouping import (
     stratify,
 )
 from wikipulse.eval.grouping_labels import (
-    OllamaPairLabeler,
+    LLMPairLabeler,
     PageView,
     PairToLabel,
     append_pair_record,
@@ -34,6 +35,7 @@ from wikipulse.eval.grouping_labels import (
     needs_llm_label,
     pair_key,
 )
+from wikipulse.llm.ollama_backend import OllamaClient
 
 NOW = datetime(2026, 11, 7, 12, 0, tzinfo=UTC)
 
@@ -221,14 +223,19 @@ def ollama(answers: list[str], status: int = 200) -> tuple[httpx.MockTransport, 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(json.loads(request.content))
         content = answers[min(len(seen), len(answers)) - 1]
-        return httpx.Response(status, json={"message": {"content": content}})
+        message = {"role": "assistant", "content": content}
+        return httpx.Response(status, json={"model": "m", "message": message, "done": True})
 
     return httpx.MockTransport(handler), seen
 
 
+def pair_labeler(model: str, transport: httpx.MockTransport) -> LLMPairLabeler:
+    return LLMPairLabeler(OllamaClient(model, host="http://ollama", transport=transport))
+
+
 def test_llm_labeler_retries_an_invalid_answer() -> None:
     transport, seen = ollama(["not json", '{"label": "same", "reason": "One election."}'])
-    labeler = OllamaPairLabeler("http://ollama", "qwen3:4b", transport)
+    labeler = pair_labeler("qwen3:4b", transport)
     assert labeler.label(view("A"), view("B")) == ("same", "One election.")
     assert len(seen) == 2
     body = seen[0]
@@ -236,17 +243,23 @@ def test_llm_labeler_retries_an_invalid_answer() -> None:
     assert "Page A: A" in body["messages"][1]["content"]
 
 
+def test_llm_labeler_accepts_a_json_answer_in_a_code_fence() -> None:
+    client = ScriptedClient(['```json\n{"label": "same", "reason": "One election."}\n```'])
+    assert LLMPairLabeler(client).label(view("A"), view("B")) == ("same", "One election.")
+    assert len(client.requests) == 1
+
+
 def test_llm_labeler_explains_a_missing_model() -> None:
     transport, _ = ollama(["{}"], status=404)
     with pytest.raises(RuntimeError, match="ollama pull"):
-        OllamaPairLabeler("http://ollama", "nope", transport).label(view("A"), view("B"))
+        pair_labeler("nope", transport).label(view("A"), view("B"))
 
 
 def test_llm_labeling_skips_pairs_already_labeled_by_the_model(tmp_path: Path) -> None:
     path = tmp_path / "labels.jsonl"
     pairs = [PairToLabel(view("A"), view("B", 1), "near"), PairToLabel(view("C"), view("D"), "far")]
     transport, seen = ollama(['{"label": "different", "reason": "r"}'])
-    labeler = OllamaPairLabeler("http://ollama", "m", transport)
+    labeler = pair_labeler("m", transport)
     assert label_pairs_with_llm(pairs, labeler, "ollama:m", "run", "g", path, lambda: NOW) == 2
     assert label_pairs_with_llm(pairs, labeler, "ollama:m", "run", "g", path, lambda: NOW) == 0
     assert len(seen) == 2
