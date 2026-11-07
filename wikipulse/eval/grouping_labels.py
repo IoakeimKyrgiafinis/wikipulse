@@ -16,7 +16,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel
 
@@ -175,9 +175,10 @@ ANSWER_SCHEMA = {
 }
 
 
-def parse_pair_answer(content: str) -> tuple[str, str]:
-    """(label, reason) from the model's JSON answer; ValueError if it isn't valid."""
-    answer = json.loads(content)
+def pair_answer_from_data(answer: Any) -> tuple[str, str]:
+    """(label, reason) from the already parsed JSON answer; ValueError if it isn't valid."""
+    if not isinstance(answer, dict):
+        raise ValueError(f"answer is not a JSON object: {answer!r}")
     label = str(answer.get("label", "")).strip().lower()
     if label not in PAIR_LABELS:
         raise ValueError(f"unknown label {label!r}")
@@ -206,7 +207,8 @@ class LLMPairLabeler:
             temperature=0,
             think=False,
         )
-        return parse_pair_answer(response.text)
+        # The client already parsed and checked the JSON (a code fence included).
+        return pair_answer_from_data(response.data)
 
 
 # --- Labeling loops -----------------------------------------------------------------

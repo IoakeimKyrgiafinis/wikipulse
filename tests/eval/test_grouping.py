@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from tests.events.helpers import ELECTION, ELECTION_ISH, FOOTBALL, T0, page, unit
+from tests.llm.helpers import ScriptedClient
 from wikipulse.eval.grouping import (
     DayData,
     GroupingMetrics,
@@ -240,6 +241,12 @@ def test_llm_labeler_retries_an_invalid_answer() -> None:
     body = seen[0]
     assert body["think"] is False and body["options"]["temperature"] == 0
     assert "Page A: A" in body["messages"][1]["content"]
+
+
+def test_llm_labeler_accepts_a_json_answer_in_a_code_fence() -> None:
+    client = ScriptedClient(['```json\n{"label": "same", "reason": "One election."}\n```'])
+    assert LLMPairLabeler(client).label(view("A"), view("B")) == ("same", "One election.")
+    assert len(client.requests) == 1
 
 
 def test_llm_labeler_explains_a_missing_model() -> None:

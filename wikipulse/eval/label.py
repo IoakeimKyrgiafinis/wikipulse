@@ -180,8 +180,14 @@ def fetch_context(client: WikiClient, settings: Settings, spike: SpikeRecord) ->
 
 
 def parse_answer(content: str) -> tuple[str, str]:
-    """(label, reason) from the model's JSON answer; ValueError if it isn't valid."""
-    answer = json.loads(content)
+    """(label, reason) from the model's JSON answer text; ValueError if it isn't valid."""
+    return answer_from_data(json.loads(content))
+
+
+def answer_from_data(answer: Any) -> tuple[str, str]:
+    """(label, reason) from the already parsed JSON answer; ValueError if it isn't valid."""
+    if not isinstance(answer, dict):
+        raise ValueError(f"answer is not a JSON object: {answer!r}")
     label = str(answer.get("label", "")).strip().lower()
     if label not in LABELS:
         raise ValueError(f"unknown label {label!r}")
@@ -210,7 +216,8 @@ class LLMLabeler:
             temperature=0,
             think=False,
         )
-        return parse_answer(response.text)
+        # The client already parsed and checked the JSON (a code fence included).
+        return answer_from_data(response.data)
 
 
 # --- Which spikes still need a label ------------------------------------------------

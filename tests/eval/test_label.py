@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from tests.eval.helpers import at, spike
+from tests.llm.helpers import ScriptedClient
 from wikipulse.config import Settings
 from wikipulse.eval.label import (
     LLMLabeler,
@@ -207,3 +208,9 @@ def test_manual_labeling_records_a_human_label_and_reports_agreement(tmp_path: P
     answers = iter(["u", ""])
     label_manually(SPIKES[:3], SpikeContext, "loose", path, ask=lambda _: next(answers), show=print)
     assert len([r for r in load_records(path) if r.labeler == "human"]) == 3
+
+
+def test_labeler_accepts_a_json_answer_in_a_code_fence() -> None:
+    client = ScriptedClient(['```json\n{"label": "news", "reason": "an election"}\n```'])
+    assert LLMLabeler(client).label(SpikeContext(soharwardy())) == ("news", "an election")
+    assert len(client.requests) == 1

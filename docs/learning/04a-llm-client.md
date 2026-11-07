@@ -190,6 +190,14 @@ Measured on this machine (RTX 5060 Laptop GPU, 8 GB):
   no free text, so the labelers get no reasoning and stay fast (about 3 s per pair).
   The spec's default model `ollama:qwen3:4b` is the one installed; `qwen3:8b`
   (`EVAL_LABEL_MODEL`'s default) is still not pulled and was not pulled for this spec.
+- **Review fix: the labelers use `response.data`.** `LLMLabeler.label` (`eval/label.py`)
+  and `LLMPairLabeler.label` (`eval/grouping_labels.py`) used to re-parse
+  `response.text` with `json.loads`. The client's `parse_json` accepts JSON inside a
+  ```` ```json ```` fence, so a fenced answer passed the client's check and then crashed
+  the labeler with no retry. They now read the already validated `response.data`
+  through `answer_from_data` / `pair_answer_from_data` (which still lower-case and check
+  the label); the unused `parse_pair_answer` was removed. Tests with a `ScriptedClient`
+  returning fenced JSON cover both labelers.
 - **Out of scope, not built:** streaming, falling back from one model to another.
 
 ## Results
