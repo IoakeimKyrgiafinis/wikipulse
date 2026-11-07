@@ -1,0 +1,42 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "pages": [
+   {
+    "pageid": 45656556,
+    "ns": 0,
+    "title": "Syed Soharwardy",
+    "revisions": [
+     {
+      "timestamp": "2026-11-06T20:29:21Z",
+      "comment": "Reverting possible vandalism by [[Special:Contribs/~2026-59107-01|~2026-59107-01]] to version by ~2026-59090-79. [[WP:CBFP|Report False Positive?]] Thanks, [[WP:CBNG|ClueBot NG]]. (4567064) (Bot)"
+     },
+     {
+      "timestamp": "2026-11-06T20:29:19Z",
+      "comment": "/* Biography */"
+     },
+     {
+      "timestamp": "2026-11-06T20:18:42Z",
+      "comment": "added more info on his background"
+     },
+     {
+      "timestamp": "2026-11-06T20:11:38Z",
+      "comment": "[[WP:CVPI|Interceptor]]: Reverting non-constructive edits by [[Special:Contributions/~2026-59180-43|~2026-59180-43]]"
+     },
+     {
+      "timestamp": "2026-11-06T20:11:29Z",
+      "comment": "/* */"
+     },
+     {
+      "timestamp": "2026-11-06T20:10:26Z",
+      "comment": "Reverting possible vandalism by [[Special:Contribs/~2026-59180-43|~2026-59180-43]] to version by Ser Amantio di Nicolao. [[WP:CBFP|Report False Positive?]] Thanks, [[WP:CBNG|ClueBot NG]]. (4567051) (Bot)"
+     },
+     {
+      "timestamp": "2026-11-06T20:10:23Z",
+      "comment": "/* */"
+     }
+    ]
+   }
+  ]
+ }
+}

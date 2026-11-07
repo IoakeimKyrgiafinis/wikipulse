@@ -1,0 +1,560 @@
+{
+ "parse": {
+  "title": "Portal:Current events/2026 November 6",
+  "pageid": 84704564,
+  "redirects": [],
+  "links": [
+   {
+    "ns": 0,
+    "title": "1MDB scandal",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "2025 Tanzanian election protests",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "2025 Tanzanian general election",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "2026 European unrest",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "2026 Indonesia wildfires",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "2026 Paraguay banking crisis",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Ain",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Airstrike",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Allied Democratic Forces",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Allied Democratic Forces insurgency",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Amsterdam",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Antarctica",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Attorney General's Chambers of Malaysia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Au Kam San",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Australia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Australia–Indonesia relations",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Bart De Wever",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Belgium",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "C-130 Hercules",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Capital market",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Centers for Disease Control and Prevention",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Central Bank of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Cessna Citation family",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Chadema",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Child sexual abuse laws in the United States",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "China",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Chinese law",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Colombia Migration",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Conflicts of interest",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Congress of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Crime in Colombia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Crime in Turkey",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Data center",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Democratic Republic of Congo",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "East Kalimantan",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Environmental policy of China",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Fatma Betül Sayan Kaya",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Florida",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "France",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Good News International Ministries",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Grand National Assembly of Turkey",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "High Court of Tanzania",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "House arrest",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Houthi–Saudi conflict",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Illegal drug trade in Colombia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "In camera",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Incitement",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Inciting subversion of state power",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Indonesia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Investment fund",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Istanbul",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Judicial system of Turkey",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Kenyan",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Kivu conflict",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Legislative Assembly of Macau",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Lent, Ain",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Macau",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Macau National Security Law",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Malaysia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Malaysian ringgit",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Market manipulation",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Mass murder",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Measles",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Measles resurgence in the United States",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Meghan, Duchess of Sussex",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Microsoft",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Ministry of Family and Social Services",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Najib Razak",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "National People's Congress",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Netherlands",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "North Kivu",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Opposition to AI data centers",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Pedro Alliana",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Philippe of Belgium",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "President of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Prime Minister of Belgium",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Prime Minister of Malaysia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Pro-democracy camp (Macau)",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Public Ministry of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Royal pardon",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Santiago Peña",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Saudi Arabia",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Science and technology in China",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Senate of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Shakahola Forest incident",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Sloterdijk, Amsterdam",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Standing Committee of the National People's Congress",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "State health agency",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Taiz",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Tampa",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Tanzania",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Thomas Markle",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Tourism in Antarctica",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Transport in Antarctica",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Treason",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Tundu Lissu",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Turkey",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "UMNO",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "US$",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Ueno Bank",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "United States",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Venezuela",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Vice President of Paraguay",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Waste management",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Wildfire",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Yemen",
+    "exists": true
+   },
+   {
+    "ns": 100,
+    "title": "Portal:Current events/2026 November 5",
+    "exists": true
+   },
+   {
+    "ns": 100,
+    "title": "Portal:Current events/2026 November 7",
+    "exists": true
+   },
+   {
+    "ns": 100,
+    "title": "Portal:Current events/November 2026",
+    "exists": true
+   }
+  ],
+  "wikitext": "{{Current events|year=2026|month=11|day=6|top=yes}}\n<!-- All news items below this line -->\n'''Armed conflicts and attacks'''\n*[[Kivu conflict]]\n**[[Allied Democratic Forces insurgency]]\n***The death toll from an armed attack yesterday by suspected [[Allied Democratic Forces]] militants on several villages in [[North Kivu]], eastern [[Democratic Republic of Congo]], has risen to 33. [https://www.aa.com.tr/en/africa/death-toll-from-adf-attack-in-dr-congo-rises-to-33/4114820 (AA)]\n*[[Houthi–Saudi conflict]]\n**[[Saudi Arabia]] launches an [[airstrike]] against a market in [[Taiz]], [[Yemen]], killing 30 people and wounding eight more. [https://apnews.com/article/yemen-airstrikes-market-houthis-bcc2409ada0398125173d84261bd1fff (AP)]\n\n'''Disasters and accidents'''\n*[[2026 Indonesia wildfires]], [[Australia–Indonesia relations]]\n**[[Australia]] deploys a [[C-130 Hercules]] aircraft, a [[Cessna Citation family|Cessna Citation]] aircraft, and 20 personnel to help extinguish [[wildfire]]s in [[East Kalimantan]], [[Indonesia]]. [https://www.afp.com/en/australia-sends-military-aircraft-help-fight-indonesia-fires (AFP)]\n*Two people are killed and 16 injured in a bus crash in [[Lent, Ain|Lent]], [[Ain]], [[France]]. [https://apnews.com/article/france-bus-crash-e024a5428966dd6c3415c881bc503811 (AP)] [https://www.lemonde.fr/en/france/article/2026/11/06/at-least-two-people-killed-after-bus-carrying-schoolchildren-crashes-in-france_6773528_7.html (''Le Monde'')]\n\n'''Health and environment'''\n*[[Measles resurgence in the United States]]\n**The [[United States]] [[Centers for Disease Control and Prevention]] reports 5,182 [[measles]] cases in 2026, the country's highest annual total since 1991. [[State health agency|State health agencies]] report at least eight measles-related deaths. [https://www.france24.com/en/live-news/20261106-us-reports-highest-number-of-measles-cases-in-35-years (AFP via France 24)]\n*The [[Standing Committee of the National People's Congress|Standing Committee]] of the [[National People's Congress]] of [[China]] adopts a [[Chinese law|law]] regulating [[Science and technology in China|Chinese research]], [[Tourism in Antarctica|tourism]], [[Transport in Antarctica|shipping]], and other activities in [[Antarctica]], requiring [[Environmental policy of China|environmental safeguards]], [[waste management]], and permits subject to safety conditions. [https://www.reuters.com/legal/litigation/china-adopts-law-antarctic-activities-environmental-protection-2026-11-06/ (Reuters)]\n\n'''Law and crime'''\n*[[1MDB scandal]]\n**[[Malaysia]]'s [[UMNO]] party pays a [[Malaysian ringgit|RM]]50-million ([[US$]]12 million) fine for imprisoned former [[Prime Minister of Malaysia|prime minister]] [[Najib Razak]], fulfilling a condition of his [[royal pardon]]. The [[Attorney General's Chambers of Malaysia|Attorney-General's Chambers]] subsequently seeks to delay his transfer to [[house arrest]]. [https://www.france24.com/en/live-news/20261106-jailed-malaysian-ex-pm-najib-pays-fine-meeting-condition-for-house-arrest (AFP via France 24)]\n*[[2026 European unrest]]\n**Between 100 and 200 people are arrested by [[Netherlands|Dutch]] police after protesters break into and temporarily occupy a construction site for a [[Microsoft]] [[data center]] in [[Sloterdijk, Amsterdam|Sloterdijk]], [[Amsterdam]], during an [[Opposition to AI data centers|anti-data-center]] rally. [https://www.aljazeera.com/news/2026/11/6/protesters-break-into-microsoft-data-centre-site-in-amsterdam (Al Jazeera)] [https://www.reuters.com/world/europe/activists-breach-microsoft-data-centre-construction-site-protests-spread-europe-2026-11-06/ (Reuters)]\n*[[Shakahola Forest incident]]\n**[[Kenyan]] cult leader [[Good News International Ministries|Paul Mackenzie]] is sentenced to 200 years in prison for the [[mass murder]] of children. [https://www.reuters.com/world/africa/kenyan-court-sentences-cult-leader-200-years-prison-murder-190-children-2026-11-06/ (Reuters)]\n*[[United States|American]] cinematographer [[Thomas Markle]], the father of [[Meghan, Duchess of Sussex]], is arrested in [[Tampa]], [[Florida]], over allegations of possessing [[Child sexual abuse laws in the United States|child sexual abuse]] material. [https://www.bbc.co.uk/news/live/cwnv03203yvmt (BBC News)] [https://www.cbsnews.com/news/thomas-markle-sr-meghan-father-arrested-florida/ (CBS News)]\n*[[Colombia Migration]] expel 80 [[Venezuela]]n nationals suspected of [[Crime in Colombia|criminal]] activity, including theft, [[Illegal drug trade in Colombia|drug trafficking]], and extortion. [https://www.france24.com/en/live-news/20261106-colombia-expels-80-allegedly-criminal-venezuelans (AFP via France 24)]\n*[[Au Kam San]], a former [[Pro-democracy camp (Macau)|pro-democracy]] [[Legislative Assembly of Macau|legislator]] of [[Macau]], is convicted in a [[In camera|closed-door trial]] of \"[[Inciting subversion of state power|subversion against the political power of the state]]\" and sentenced to 12 years and 6 months<!-- MOS:NUM, all numbers here --> in prison. It is the first conviction under the [[Macau National Security Law]], which was revised by lawmakers in 2023 to broaden its scope and to allow for closed-door trials. [https://www.bbc.com/news/articles/cmdx33v9vvr2o (BBC News)]\n*The [[High Court of Tanzania|High Court]] of [[Tanzania]] acquits [[Chadema]] chairperson [[Tundu Lissu]] of [[treason]] but sentences him to four years in prison for [[incitement]] related to statements [[2025 Tanzanian election protests|opposing]] the [[2025 Tanzanian general election|2025 general election]] results. [https://www.france24.com/en/live-news/20261106-tanzania-opposition-leader-avoids-death-penalty-in-treason-trial (AFP via France 24)]\n*A [[Judicial system of Turkey|court]] in [[Istanbul]], [[Turkey]], orders the detention of [[Grand National Assembly of Turkey|legislator]] and former [[Ministry of Family and Social Services|family minister]] [[Fatma Betül Sayan Kaya]] pending trial on charges of violating [[capital market]]s legislation and membership in a [[Crime in Turkey|criminal]] organization amid an investigation into [[investment fund]] [[Market manipulation|manipulation]]. [https://apnews.com/article/turkey-ex-minister-arrested-fund-scandal-f8e9cbd71d20cce682ac2e3461b9e13a (AP)]\n\n'''Politics and elections'''\n*[[2026 Paraguay banking crisis]]\n**The [[Paraguay]]an [[Senate of Paraguay|Senate]] unanimously removes [[Santiago Peña]] as country's [[President of Paraguay|president]] over alleged [[conflicts of interest]] involving [[Ueno Bank]], whose accounts the [[Central Bank of Paraguay|central bank]] froze. [[Congress of Paraguay|Congress]] postpones consideration of Peña's resignation to allow impeachment proceedings. [https://www.afp.com/en/paraguay-senate-begins-president-impeachment-trial (AFP)] [https://www.reuters.com/world/americas/paraguay-senate-votes-impeach-president-pea-2026-11-06/ (Reuters)]\n**The [[Public Ministry of Paraguay|Public Prosecutor's Office]] orders the arrest of Santiago Peña, who is placed under [[house arrest]]. [https://www.upi.com/Top_News/World-News/2026/11/06/latam-paraguay-president-impached-arrested/1841794018965/ (UPI)]\n**[[Vice President of Paraguay|Vice President]] [[Pedro Alliana]] is sworn in as the interim president of Paraguay. [https://www.reuters.com/world/americas/paraguays-alliana-sworn-president-after-pea-impeachment-2026-11-06/ (Reuters)]\n*[[Philippe of Belgium|King Philippe]] of [[Belgium]] refuses [[Bart De Wever]]'s resignation as the [[Prime Minister of Belgium|prime minister]], telling him to continue with budget negotiations. [https://www.euronews.com/2026/11/06/belgian-king-refuses-pm-bart-de-wevers-resignation-and-asks-him-to-restart-budget-talks (Euronews)] [https://english.news.cn/20261106/5c03e1c1987748fc9d9df9925a23d7d6/c.html (Xinhua)]\n<!-- All news items above this line -->\n{{Current events|year=2026|month=11|day=6|bottom=yes}}"
+ }
+}

@@ -113,6 +113,17 @@ class Settings(BaseSettings):
     # spikes to Postgres and acknowledges the stream entries it has processed.
     detect_snapshot_interval_s: float = Field(default=60, gt=0)
 
+    # --- Stage 2: detection evaluation ---
+    # MediaWiki Action API and REST API of English Wikipedia (ground truth, label context).
+    wiki_api_url: str = "https://en.wikipedia.org/w/api.php"
+    wiki_rest_url: str = "https://en.wikipedia.org/api/rest_v1"
+    # Smallest pause between two requests to Wikimedia APIs, in seconds (be polite).
+    wiki_api_min_interval_s: float = Field(default=1.0, ge=0)
+    # Model that labels spikes as news / not news, as `backend:model` (only `ollama` so far).
+    eval_label_model: str = "ollama:qwen3:8b"
+    # Where the local Ollama server listens.
+    ollama_host: str = "http://localhost:11434"
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:
