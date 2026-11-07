@@ -8,7 +8,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      # Redis for the integration tests (`pytest -m integration`), same image as Compose.
+      # Redis and Postgres for the integration tests (`pytest -m integration`), same
+      # images as Compose.
       redis:
         image: redis:7-alpine
         ports:
@@ -18,8 +19,22 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wikipulse
+          POSTGRES_PASSWORD: wikipulse
+          POSTGRES_DB: wikipulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wikipulse -d wikipulse"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       REDIS_URL: redis://localhost:6379/0
+      POSTGRES_DSN: postgresql://wikipulse:wikipulse@localhost:5432/wikipulse
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -41,6 +56,9 @@ jobs:
 
       - name: Run unit tests
         run: uv run pytest
+
+      - name: Apply database migrations
+        run: uv run python -m wikipulse.db.migrate
 
       - name: Run integration tests
         run: uv run pytest -m integration
