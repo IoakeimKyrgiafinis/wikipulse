@@ -46,3 +46,12 @@ With the services running and `USER_AGENT` set in `.env`:
 | `uv run python scripts/compare_thresholds.py --file <recording> --set min_edits=4` | Tries threshold changes on a recording in seconds, offline. |
 
 All thresholds are `DETECT_*` settings (see `.env.example`).
+
+### Evaluating detection
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python scripts/detect_recordings.py --file <rec> [--file <rec>] --variant <run>:min_edits=4` | Detects spikes in days of recordings in about a minute (offline, same results as a replay) and stores them as run `<run>`. |
+| `uv run python -m wikipulse.eval.label --run-id <run> --from <date> --to <date>` | Labels a random sample of 50 spikes as news / not news / unsure with a local LLM (`EVAL_LABEL_MODEL`); `--manual` lets you label them yourself. Saved to `evals/labels/spike_labels.jsonl`. |
+| `uv run python -m wikipulse.eval.detection --from <date> --to <date> --name <run>` | Measures recall, precision and time to detection against Wikipedia's "Current events" portal; writes `evals/results/<today>_<run>.md` and `.json`. Pass the run's threshold changes with `--set`. |
+| `uv run python -m wikipulse.eval.detection --compare <run A> <run B>` | Prints how the metrics of two reports differ. |

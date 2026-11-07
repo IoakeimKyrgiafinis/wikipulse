@@ -1,0 +1,39 @@
+{
+ "type": "standard",
+ "title": "Syed Soharwardy",
+ "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Syed Soharwardy</span></span>",
+ "namespace": {
+  "id": 0,
+  "text": ""
+ },
+ "wikibase_item": "Q19898422",
+ "titles": {
+  "canonical": "Syed_Soharwardy",
+  "normalized": "Syed Soharwardy",
+  "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Syed Soharwardy</span></span>"
+ },
+ "pageid": 45656556,
+ "lang": "en",
+ "dir": "ltr",
+ "revision": "1384140843",
+ "tid": "bf63e775-da20-11f1-bb86-78bfb6309dab",
+ "timestamp": "2026-11-06T20:29:21Z",
+ "description": "Pakistani–Canadian Islamic scholar",
+ "description_source": "local",
+ "content_urls": {
+  "desktop": {
+   "page": "https://en.wikipedia.org/wiki/Syed_Soharwardy",
+   "revisions": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=history",
+   "edit": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=edit",
+   "talk": "https://en.wikipedia.org/wiki/Talk:Syed_Soharwardy"
+  },
+  "mobile": {
+   "page": "https://en.wikipedia.org/wiki/Syed_Soharwardy",
+   "revisions": "https://en.wikipedia.org/wiki/Special:History/Syed_Soharwardy",
+   "edit": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=edit",
+   "talk": "https://en.wikipedia.org/wiki/Talk:Syed_Soharwardy"
+  }
+ },
+ "extract": "Hazrat Al Imaam ul imams Allama Mufti Mulana Al Sheikh ul Islam Pir Syed Azaam Badiuddin Soharwardy Shaah Sahb D.B is a Pakistani–Canadian Islamic scholar, a sheikh of the Suhrawardi Sufi order, chairman of the Al-Madinah Calgary Islamic Assembly,\n and is the founder and current president of the Islamic Supreme Council of Canada. In January 1998, he founded the group Muslims Against Terrorism.",
+ "extract_html": "<p><b>Hazrat Al Imaam ul imams Allama Mufti Mulana Al Sheikh ul Islam Pir Syed Azaam Badiuddin Soharwardy Shaah Sahb D.B</b> is a Pakistani–Canadian Islamic scholar, a sheikh of the Suhrawardi Sufi order, chairman of the Al-Madinah Calgary Islamic Assembly,\n and is the founder and current president of the Islamic Supreme Council of Canada. In January 1998, he founded the group Muslims Against Terrorism.</p>"
+}

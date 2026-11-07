@@ -1,0 +1,275 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "redirects": [
+   {
+    "from": "Kenyan",
+    "to": "Demographics of Kenya"
+   },
+   {
+    "from": "US$",
+    "to": "United States dollar"
+   },
+   {
+    "from": "Royal pardon",
+    "to": "Royal prerogative of mercy"
+   },
+   {
+    "from": "Tampa",
+    "to": "Tampa, Florida"
+   }
+  ],
+  "pages": [
+   {
+    "pageid": 1279,
+    "ns": 0,
+    "title": "Transport in Antarctica"
+   },
+   {
+    "pageid": 16655,
+    "ns": 0,
+    "title": "Demographics of Kenya"
+   },
+   {
+    "pageid": 19001,
+    "ns": 0,
+    "title": "Microsoft"
+   },
+   {
+    "pageid": 19068,
+    "ns": 0,
+    "title": "Macau"
+   },
+   {
+    "pageid": 21148,
+    "ns": 0,
+    "title": "Netherlands"
+   },
+   {
+    "pageid": 23420,
+    "ns": 0,
+    "title": "Paraguay"
+   },
+   {
+    "pageid": 30118,
+    "ns": 0,
+    "title": "Tanzania"
+   },
+   {
+    "pageid": 31292,
+    "ns": 0,
+    "title": "Treason"
+   },
+   {
+    "pageid": 58911,
+    "ns": 0,
+    "title": "Measles"
+   },
+   {
+    "pageid": 72819,
+    "ns": 0,
+    "title": "Mass murder"
+   },
+   {
+    "pageid": 92995,
+    "ns": 0,
+    "title": "Tampa, Florida"
+   },
+   {
+    "pageid": 168868,
+    "ns": 0,
+    "title": "Philippe of Belgium"
+   },
+   {
+    "pageid": 204622,
+    "ns": 0,
+    "title": "Prime Minister of Belgium"
+   },
+   {
+    "pageid": 221564,
+    "ns": 0,
+    "title": "Standing Committee of the National People's Congress"
+   },
+   {
+    "pageid": 277914,
+    "ns": 0,
+    "title": "Science and technology in China"
+   },
+   {
+    "pageid": 349303,
+    "ns": 0,
+    "title": "Saudi Arabia"
+   },
+   {
+    "pageid": 360278,
+    "ns": 0,
+    "title": "Malaysian ringgit"
+   },
+   {
+    "pageid": 366318,
+    "ns": 0,
+    "title": "UMNO"
+   },
+   {
+    "pageid": 446958,
+    "ns": 0,
+    "title": "North Kivu"
+   },
+   {
+    "pageid": 496731,
+    "ns": 0,
+    "title": "Prime Minister of Malaysia"
+   },
+   {
+    "pageid": 523641,
+    "ns": 0,
+    "title": "Najib Razak"
+   },
+   {
+    "pageid": 545270,
+    "ns": 0,
+    "title": "Taiz"
+   },
+   {
+    "pageid": 720557,
+    "ns": 0,
+    "title": "President of Paraguay"
+   },
+   {
+    "pageid": 1620997,
+    "ns": 0,
+    "title": "Legislative Assembly of Macau"
+   },
+   {
+    "pageid": 2112621,
+    "ns": 0,
+    "title": "Sloterdijk, Amsterdam"
+   },
+   {
+    "pageid": 2176497,
+    "ns": 0,
+    "title": "Royal prerogative of mercy"
+   },
+   {
+    "pageid": 2963429,
+    "ns": 0,
+    "title": "Judicial system of Turkey"
+   },
+   {
+    "pageid": 3391396,
+    "ns": 0,
+    "title": "Istanbul"
+   },
+   {
+    "pageid": 3607937,
+    "ns": 0,
+    "title": "Malaysia"
+   },
+   {
+    "pageid": 4150338,
+    "ns": 0,
+    "title": "Lent, Ain"
+   },
+   {
+    "pageid": 4503410,
+    "ns": 0,
+    "title": "Senate of Paraguay"
+   },
+   {
+    "pageid": 11125639,
+    "ns": 0,
+    "title": "Turkey"
+   },
+   {
+    "pageid": 11214029,
+    "ns": 0,
+    "title": "Meghan, Duchess of Sussex"
+   },
+   {
+    "pageid": 12130673,
+    "ns": 0,
+    "title": "Market manipulation"
+   },
+   {
+    "pageid": 14687290,
+    "ns": 0,
+    "title": "Kivu conflict"
+   },
+   {
+    "pageid": 18717338,
+    "ns": 0,
+    "title": "United States dollar"
+   },
+   {
+    "pageid": 19892280,
+    "ns": 0,
+    "title": "Macau National Security Law"
+   },
+   {
+    "pageid": 20456639,
+    "ns": 0,
+    "title": "State health agency"
+   },
+   {
+    "pageid": 25700741,
+    "ns": 0,
+    "title": "Tourism in Antarctica"
+   },
+   {
+    "pageid": 38878740,
+    "ns": 0,
+    "title": "National People's Congress"
+   },
+   {
+    "pageid": 39942926,
+    "ns": 0,
+    "title": "Pro-democracy camp (Macau)"
+   },
+   {
+    "pageid": 40951157,
+    "ns": 0,
+    "title": "Tundu Lissu"
+   },
+   {
+    "pageid": 41800053,
+    "ns": 0,
+    "title": "Ministry of Family and Social Services"
+   },
+   {
+    "pageid": 57462235,
+    "ns": 0,
+    "title": "Thomas Markle"
+   },
+   {
+    "pageid": 57934167,
+    "ns": 0,
+    "title": "Public Ministry of Paraguay"
+   },
+   {
+    "pageid": 58414156,
+    "ns": 0,
+    "title": "Santiago Peña"
+   },
+   {
+    "pageid": 60527824,
+    "ns": 0,
+    "title": "Measles resurgence in the United States"
+   },
+   {
+    "pageid": 70823964,
+    "ns": 0,
+    "title": "Pedro Alliana"
+   },
+   {
+    "pageid": 73923491,
+    "ns": 0,
+    "title": "Shakahola Forest incident"
+   },
+   {
+    "pageid": 83052909,
+    "ns": 0,
+    "title": "Opposition to AI data centers"
+   }
+  ]
+ }
+}

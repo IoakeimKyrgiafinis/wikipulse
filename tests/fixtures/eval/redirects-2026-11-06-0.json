@@ -1,0 +1,271 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "redirects": [
+   {
+    "from": "Democratic Republic of Congo",
+    "to": "Democratic Republic of the Congo"
+   },
+   {
+    "from": "Conflicts of interest",
+    "to": "Conflict of interest"
+   },
+   {
+    "from": "C-130 Hercules",
+    "to": "Lockheed C-130 Hercules"
+   }
+  ],
+  "pages": [
+   {
+    "pageid": 844,
+    "ns": 0,
+    "title": "Amsterdam"
+   },
+   {
+    "pageid": 3343,
+    "ns": 0,
+    "title": "Belgium"
+   },
+   {
+    "pageid": 5405,
+    "ns": 0,
+    "title": "China"
+   },
+   {
+    "pageid": 6811,
+    "ns": 0,
+    "title": "Centers for Disease Control and Prevention"
+   },
+   {
+    "pageid": 7697,
+    "ns": 0,
+    "title": "Lockheed C-130 Hercules"
+   },
+   {
+    "pageid": 14579,
+    "ns": 0,
+    "title": "Indonesia"
+   },
+   {
+    "pageid": 37568,
+    "ns": 0,
+    "title": "Chinese law"
+   },
+   {
+    "pageid": 41914,
+    "ns": 0,
+    "title": "Capital market"
+   },
+   {
+    "pageid": 76762,
+    "ns": 0,
+    "title": "Democratic Republic of the Congo"
+   },
+   {
+    "pageid": 83168,
+    "ns": 0,
+    "title": "Ain"
+   },
+   {
+    "pageid": 236850,
+    "ns": 0,
+    "title": "Conflict of interest"
+   },
+   {
+    "pageid": 247643,
+    "ns": 0,
+    "title": "House arrest"
+   },
+   {
+    "pageid": 323167,
+    "ns": 0,
+    "title": "Airstrike"
+   },
+   {
+    "pageid": 453651,
+    "ns": 0,
+    "title": "East Kalimantan"
+   },
+   {
+    "pageid": 511459,
+    "ns": 0,
+    "title": "In camera"
+   },
+   {
+    "pageid": 579730,
+    "ns": 0,
+    "title": "Data center"
+   },
+   {
+    "pageid": 690307,
+    "ns": 0,
+    "title": "Congress of Paraguay"
+   },
+   {
+    "pageid": 771262,
+    "ns": 0,
+    "title": "Grand National Assembly of Turkey"
+   },
+   {
+    "pageid": 1258240,
+    "ns": 0,
+    "title": "Allied Democratic Forces"
+   },
+   {
+    "pageid": 1816440,
+    "ns": 0,
+    "title": "Incitement"
+   },
+   {
+    "pageid": 2684696,
+    "ns": 0,
+    "title": "Chadema"
+   },
+   {
+    "pageid": 3098211,
+    "ns": 0,
+    "title": "Cessna Citation family"
+   },
+   {
+    "pageid": 4689264,
+    "ns": 0,
+    "title": "Australia"
+   },
+   {
+    "pageid": 5843419,
+    "ns": 0,
+    "title": "France"
+   },
+   {
+    "pageid": 7994960,
+    "ns": 0,
+    "title": "Australia–Indonesia relations"
+   },
+   {
+    "pageid": 8048689,
+    "ns": 0,
+    "title": "Central Bank of Paraguay"
+   },
+   {
+    "pageid": 12983355,
+    "ns": 0,
+    "title": "Environmental policy of China"
+   },
+   {
+    "pageid": 13005346,
+    "ns": 0,
+    "title": "Illegal drug trade in Colombia"
+   },
+   {
+    "pageid": 13106121,
+    "ns": 0,
+    "title": "Crime in Turkey"
+   },
+   {
+    "pageid": 14143193,
+    "ns": 0,
+    "title": "Bart De Wever"
+   },
+   {
+    "pageid": 18933066,
+    "ns": 0,
+    "title": "Florida"
+   },
+   {
+    "pageid": 18959138,
+    "ns": 0,
+    "title": "Antarctica"
+   },
+   {
+    "pageid": 24824215,
+    "ns": 0,
+    "title": "Au Kam San"
+   },
+   {
+    "pageid": 26159730,
+    "ns": 0,
+    "title": "High Court of Tanzania"
+   },
+   {
+    "pageid": 26269645,
+    "ns": 0,
+    "title": "Child sexual abuse laws in the United States"
+   },
+   {
+    "pageid": 26859305,
+    "ns": 0,
+    "title": "Inciting subversion of state power"
+   },
+   {
+    "pageid": 30857467,
+    "ns": 0,
+    "title": "Investment fund"
+   },
+   {
+    "pageid": 33726346,
+    "ns": 0,
+    "title": "Crime in Colombia"
+   },
+   {
+    "pageid": 40780074,
+    "ns": 0,
+    "title": "Allied Democratic Forces insurgency"
+   },
+   {
+    "pageid": 43785434,
+    "ns": 0,
+    "title": "Colombia Migration"
+   },
+   {
+    "pageid": 47550643,
+    "ns": 0,
+    "title": "1MDB scandal"
+   },
+   {
+    "pageid": 47695166,
+    "ns": 0,
+    "title": "Houthi–Saudi conflict"
+   },
+   {
+    "pageid": 50625223,
+    "ns": 0,
+    "title": "Fatma Betül Sayan Kaya"
+   },
+   {
+    "pageid": 73605414,
+    "ns": 0,
+    "title": "Good News International Ministries"
+   },
+   {
+    "pageid": 76587785,
+    "ns": 0,
+    "title": "2025 Tanzanian general election"
+   },
+   {
+    "pageid": 80563331,
+    "ns": 0,
+    "title": "Attorney General's Chambers of Malaysia"
+   },
+   {
+    "pageid": 81474851,
+    "ns": 0,
+    "title": "2025 Tanzanian election protests"
+   },
+   {
+    "pageid": 84028953,
+    "ns": 0,
+    "title": "2026 Indonesia wildfires"
+   },
+   {
+    "pageid": 84556593,
+    "ns": 0,
+    "title": "2026 European unrest"
+   },
+   {
+    "pageid": 84711436,
+    "ns": 0,
+    "title": "2026 Paraguay banking crisis"
+   }
+  ]
+ }
+}
