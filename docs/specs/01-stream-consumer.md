@@ -1,6 +1,6 @@
 # Spec 01: Live stream consumer
 
-Status: ready
+Status: done
 Stage: 1. Live stream consumer
 Owner: agent
 Depends on: 00
