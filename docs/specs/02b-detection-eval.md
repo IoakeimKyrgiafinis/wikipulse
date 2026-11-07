@@ -1,6 +1,6 @@
 # Spec 02b: Detection evaluation
 
-Status: ready
+Status: done
 Stage: 2. Spike detection
 Owner: agent
 Depends on: 01, 02a (the agent part, so the spikes table exists)
