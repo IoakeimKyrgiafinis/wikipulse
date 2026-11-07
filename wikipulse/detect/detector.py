@@ -80,7 +80,7 @@ class SpikeRecord:
     total_edits: int  # human, non-revert edits from first_edit_at to the end
     distinct_editors: int
     revert_edits: int
-    peak_edits_10m: int  # most edits seen in one short window (10 minutes by default)
+    peak_edits_10m: int  # most edits in any one short window (10 min) since first_edit_at
     score: float  # highest Poisson z-score during the spike
 
 
@@ -280,7 +280,7 @@ class SpikeDetector:
             last_hot_at=now,
             total_edits=edits,
             editors=editors,
-            peak_edits_10m=counts.edits_short,
+            peak_edits_10m=self.windows.busiest_short(title, first),
             score=max(checks["short"][2], checks["long"][2]),
         )
         self.active[title] = spike
@@ -303,7 +303,10 @@ class SpikeDetector:
         spike.last_edit_at = max(spike.last_edit_at, time)
         if counts.edits_short >= self.config.continue_min_edits:
             spike.last_hot_at = now
-        spike.peak_edits_10m = max(spike.peak_edits_10m, counts.edits_short)
+        # The busiest stretch since the burst began, not just the one ending now: this
+        # also covers slightly late edits that land in an earlier stretch.
+        busiest = self.windows.busiest_short(spike.title, spike.first_edit_at)
+        spike.peak_edits_10m = max(spike.peak_edits_10m, busiest)
         checks = self._evaluate(spike.title, now, counts)
         spike.score = max(spike.score, checks["short"][2], checks["long"][2])
         self._changed[spike.key] = spike

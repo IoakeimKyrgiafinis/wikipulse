@@ -74,6 +74,21 @@ def test_editors_in_a_window(windows: PageWindows) -> None:
     assert windows.editors("Page", now=58 * MIN, window_s=60 * MIN) == {"old", "a", "b"}
 
 
+def test_busiest_short_finds_the_densest_stretch_not_the_latest(windows: PageWindows) -> None:
+    for minute in [0, 0.5, 1, 2, 15, 22, 29, 36, 43, 50]:
+        windows.add("P", minute * MIN, "a")
+    assert windows.counts("P", 50 * MIN).edits_short == 2
+    assert windows.busiest_short("P", since=0) == 4
+    assert windows.busiest_short("P", since=1 * MIN) == 2  # edits before `since` ignored
+    assert windows.busiest_short("Unknown", since=0) == 0
+
+
+def test_busiest_short_window_is_half_open(windows: PageWindows) -> None:
+    for minute in [0, 10, 20]:  # exactly one short window apart: never together
+        windows.add("P", minute * MIN, "a")
+    assert windows.busiest_short("P", since=0) == 1
+
+
 def test_snapshot_round_trip_through_json(windows: PageWindows) -> None:
     windows.add("Page", 1.5, "a")
     windows.add("Other", 2.25, "b")

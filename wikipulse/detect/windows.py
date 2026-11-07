@@ -90,6 +90,22 @@ class PageWindows:
             first_edit_long=long_part[0][0] if long_part else None,
         )
 
+    def busiest_short(self, title: str, since: float) -> int:
+        """Most edits in any one short window, counting only edits at or after `since`.
+
+        Looks at every stretch of `short_s` seconds among the page's remembered edits
+        (the last long window), not just the one ending now. The busiest stretch always
+        ends at an edit, so a two-pointer pass over the sorted edits finds it.
+        """
+        times = [time for time, _ in self._edits.get(title, []) if time >= since]
+        busiest = 0
+        start = 0
+        for end, end_time in enumerate(times):
+            while times[start] <= end_time - self.short_s:  # window is (end - short, end]
+                start += 1
+            busiest = max(busiest, end - start + 1)
+        return busiest
+
     def editors(self, title: str, now: float, window_s: float) -> set[str]:
         """The distinct users who edited the page in the `window_s` seconds up to `now`."""
         edits = self._edits.get(title, [])

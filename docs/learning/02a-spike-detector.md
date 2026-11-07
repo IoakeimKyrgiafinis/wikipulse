@@ -252,6 +252,14 @@ Because of the event-time rule both give the same spikes.
 - **`trending` on Windows**: printing a title like *Boban Marjanović* crashed when the
   output was redirected (Windows then uses the cp1252 code page). `main()` now tells stdout
   to replace characters it can't encode.
+- **Review fix: `peak_edits_10m` is the busiest 10 minutes of the whole spike.** At first
+  it was the short-window count at the moment the spike started, so a spike starting on
+  the 60-minute rule after an early dense stretch (4 edits in 2 minutes, then 6 spread
+  out) reported a peak of 2 with 10 edits. Now `PageWindows.busiest_short()` scans every
+  10-minute stretch of the page's remembered edits since `first_edit_at` (a two-pointer
+  pass), at the start and on each later edit, which also catches slightly late edits
+  landing in an earlier stretch. It only reads the window state, which is snapshotted,
+  so replays stay deterministic.
 
 ## Results
 

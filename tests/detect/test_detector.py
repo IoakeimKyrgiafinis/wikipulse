@@ -46,6 +46,31 @@ def test_a_story_building_over_an_hour_starts_a_spike_on_the_long_window() -> No
     assert spike.peak_edits_10m == 2
 
 
+def test_peak_counts_a_dense_stretch_before_a_long_window_start() -> None:
+    # Review case: 4 edits in 2 minutes (too few for the short rule), then 6 spread-out
+    # edits. The spike starts on the long rule at the 10th edit; its busiest 10 minutes
+    # were the first 4 edits, not the 2 edits in the window ending at the start.
+    dense = [make_edit("Build-up", m, user=f"User{i}") for i, m in enumerate([0, 0.5, 1, 2])]
+    spread = [
+        make_edit("Build-up", m, user=f"User{i % 4}")
+        for i, m in enumerate([15, 22, 29, 36, 43, 50])
+    ]
+    _, spikes = run([*dense, *spread])
+    assert [s.title for s in spikes] == ["Build-up"]
+    spike = spikes[0]
+    assert spike.started_at == T0 + timedelta(minutes=50)
+    assert spike.first_edit_at == T0
+    assert (spike.total_edits, spike.peak_edits_10m) == (10, 4)
+
+
+def test_peak_counts_a_late_edit_in_an_earlier_stretch() -> None:
+    detector, _ = run(burst("News", 0, edits=5, editors=3))  # spike, peak 5
+    detector.process(make_edit("News", 12, user="User9"))  # window (2, 12]: 3 edits
+    detector.process(make_edit("News", 3.5, user="User8"))  # late: (-6, 4] now holds 6
+    spike = final_records(detector.pop_changes())[0]
+    assert (spike.total_edits, spike.peak_edits_10m) == (7, 6)
+
+
 def test_one_busy_editor_is_not_a_spike() -> None:
     _, spikes = run(burst("Draft work", 0, edits=20, editors=1, every_min=0.4))
     assert spikes == []
