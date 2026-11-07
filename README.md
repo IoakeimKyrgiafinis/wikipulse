@@ -20,3 +20,16 @@ This is an early skeleton; see `docs/ROADMAP.md` for the plan.
 6. Run the tests: `uv run pytest`
 
 Lint and format with `uv run ruff check .` and `uv run ruff format .`.
+
+## Stage 1: live stream consumer
+
+With the services running and `USER_AGENT` set in `.env`:
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.stream.consume` | Live consumer: English Wikipedia article edits into the Redis Stream `wiki:edits`. Ctrl+C stops it cleanly; it resumes from its checkpoint on the next start. |
+| `uv run python -m wikipulse.stream.stats --watch` | Counters, events per second, bot share, stream length and lag, refreshed every 2 seconds. |
+| `uv run python -m wikipulse.stream.record --minutes 60` | Saves the raw, unfiltered stream to `data/recordings/<start time>.jsonl`. |
+| `uv run python -m wikipulse.stream.replay --file <path> --speed max` | Feeds a recording through the same processing core (`--speed 10` for 10x real time). |
+| `uv run pytest -m integration` | Integration tests against the Docker Redis. |
+| `uv run python scripts/crash_test.py` | Five-minute crash test: kills and restarts the consumer, then checks nothing was lost or doubled. |

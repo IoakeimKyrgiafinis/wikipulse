@@ -9,10 +9,13 @@ dependencies = [
     "pydantic-settings>=2.6",
     "redis>=5.2",
     "psycopg[binary]>=3.2",
+    "httpx>=0.28.1",
+    "httpx-sse>=0.4.3",
 ]
 
 [dependency-groups]
 dev = [
+    "fakeredis[lua]>=2.40.0",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
     "ruff>=0.8",
