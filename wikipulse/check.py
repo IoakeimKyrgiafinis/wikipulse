@@ -9,6 +9,7 @@ import sys
 
 import psycopg
 import redis
+from pydantic import ValidationError
 
 from wikipulse.config import Settings, get_settings
 from wikipulse.logging_setup import setup_logging
@@ -65,8 +66,14 @@ def check_services(settings: Settings) -> list[str]:
 
 def main() -> int:
     """Run the service check and return a process exit code."""
+    try:
+        settings = get_settings()
+    except ValidationError as exc:
+        print(
+            f"Invalid settings (check your .env and environment variables):\n{exc}", file=sys.stderr
+        )
+        return 2
     setup_logging()
-    settings = get_settings()
     if settings.user_agent_is_placeholder():
         print(f"WARNING: {USER_AGENT_WARNING}")
     failed = check_services(settings)

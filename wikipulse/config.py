@@ -7,8 +7,12 @@ case-insensitively, so `redis_url` is set by `REDIS_URL`.
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # Text that marks a User-Agent the human has not filled in yet.
 USER_AGENT_PLACEHOLDER_MARKERS: tuple[str, ...] = ("<you>", "<your email>", "example.com")
@@ -29,8 +33,14 @@ class Settings(BaseSettings):
     postgres_dsn: str = "postgresql://wikipulse:wikipulse@localhost:5432/wikipulse"
     # Deliberately not a working value: Wikimedia requires a real contact address.
     user_agent: str = DEFAULT_USER_AGENT
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
     data_dir: Path = Path("data")
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _uppercase_log_level(cls, value: Any) -> Any:
+        """Accept `debug` as well as `DEBUG`; anything else unknown is rejected."""
+        return value.strip().upper() if isinstance(value, str) else value
 
     def user_agent_is_placeholder(self) -> bool:
         """True if USER_AGENT still contains placeholder text instead of a real contact."""

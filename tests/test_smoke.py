@@ -3,8 +3,10 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 import wikipulse
+from wikipulse import check
 from wikipulse.config import DEFAULT_USER_AGENT, Settings
 
 
@@ -46,3 +48,25 @@ def test_example_contact_counts_as_placeholder(
         "USER_AGENT", "WikiPulse/0.1 (https://github.com/someone/wikipulse; you@example.com)"
     )
     assert Settings(_env_file=None).user_agent_is_placeholder()
+
+
+def test_log_level_is_case_insensitive(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "warning")
+    assert Settings(_env_file=None).log_level == "WARNING"
+
+
+def test_invalid_log_level_is_rejected(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "verbose")
+    with pytest.raises(ValidationError, match="log_level"):
+        Settings(_env_file=None)
+
+
+def test_check_reports_invalid_settings_without_traceback(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "verbose")
+    monkeypatch.setattr(check, "get_settings", lambda: Settings(_env_file=None))
+    assert check.main() == 2
+    err = capsys.readouterr().err
+    assert "Invalid settings" in err
+    assert "log_level" in err

@@ -107,6 +107,12 @@ then mirror what you run locally. Any step that exits non-zero turns the run red
   "push and watch the run go green" step is left to them. The workflow was validated locally
   with `actionlint` and the GitHub workflow JSON schema (both run with `uvx`, nothing installed
   globally).
+- **`LOG_LEVEL` is validated (review fix).** `Settings.log_level` is now a `Literal` of the five
+  standard levels, with a "before" validator that upper-cases the input (so `debug` works).
+  A typo like `LOG_LEVEL=verbose` used to crash `check` with a raw `ValueError` traceback; now
+  `check.main()` catches the pydantic `ValidationError`, prints "Invalid settings ..." with the
+  allowed values to stderr, and exits with code 2. Covered by three new tests in
+  `tests/test_smoke.py`.
 
 ## Results
 
@@ -116,7 +122,7 @@ then mirror what you run locally. Any step that exits non-zero turns the run red
   `Postgres: OK (version 16.15)` and exited 0. With services stopped, it printed both as
   UNREACHABLE plus the `docker compose up -d` suggestion and exited 1. The placeholder
   User-Agent warning appeared both times, as expected.
-- `uv run pytest`: 4 passed. `ruff check` and `ruff format --check`: clean.
+- `uv run pytest`: 4 passed (7 after the LOG_LEVEL review fix). `ruff check` and `ruff format --check`: clean.
 
 ## Check your understanding
 
