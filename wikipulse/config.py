@@ -63,6 +63,37 @@ class DetectorConfig(BaseModel):
     count_reverts: bool = False
 
 
+class EventsConfig(BaseModel):
+    """How spikes are grouped into events (stage 3, spec 03b).
+
+    Built from the `EVENTS_*` settings by `Settings.events_config()`; tests build it
+    directly. See docs/learning/03b-event-grouping.md for how the values were chosen.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    # Weights of the three signals in the pairwise score (normalized by their sum).
+    link_weight: float = Field(default=0.4, ge=0)
+    time_weight: float = Field(default=0.2, ge=0)
+    embed_weight: float = Field(default=0.4, ge=0)
+    # Time signal: 1 when two spikes start together, falling linearly to 0 when their
+    # starts are this many hours apart.
+    time_window_h: float = Field(default=6, gt=0)
+    # Embedding signal: cosine similarity of the summaries, rescaled so that `embed_floor`
+    # (what unrelated summaries typically reach) gives 0 and 1.0 gives 1.
+    embed_floor: float = Field(default=0.5, ge=0, lt=1)
+    # A new spike joins an active event when its score with one of the event's pages
+    # reaches this threshold.
+    join_threshold: float = Field(default=0.55, gt=0, le=1)
+    # A spike's link to a page counts fully only if the linking page has at most this
+    # many links; long list pages ("Deaths in 2026") link to everything, so a link from
+    # them counts proportionally less. 0 switches this off.
+    link_hub_size: int = Field(default=1000, ge=0)
+    # A spike counts as over this many minutes after its last edit (the detector's quiet
+    # period), so a replay closes events exactly when the live detector would.
+    spike_close_min: float = Field(default=30, gt=0)
+
+
 class Settings(BaseSettings):
     """Application settings loaded from the environment and `.env`."""
 
@@ -139,6 +170,24 @@ class Settings(BaseSettings):
     # How often the enrichment runner looks for new spikes in Postgres, in seconds.
     enrich_poll_interval_s: float = Field(default=10, gt=0)
 
+    # --- Stage 3: event grouping (weights and thresholds explained in EventsConfig) ---
+    events_link_weight: float = Field(default=0.4, ge=0)
+    events_time_weight: float = Field(default=0.2, ge=0)
+    events_embed_weight: float = Field(default=0.4, ge=0)
+    events_time_window_h: float = Field(default=6, gt=0)
+    events_embed_floor: float = Field(default=0.5, ge=0, lt=1)
+    events_join_threshold: float = Field(default=0.55, gt=0, le=1)
+    events_link_hub_size: int = Field(default=1000, ge=0)
+    events_spike_close_min: float = Field(default=30, gt=0)
+    # Sentence-transformers model that embeds page summaries (downloaded once, then cached
+    # by Hugging Face on this machine).
+    events_embed_model: str = "BAAI/bge-small-en-v1.5"
+    # How often the grouper looks for new spikes, in seconds.
+    events_poll_interval_s: float = Field(default=10, gt=0)
+    # A live spike waits at most this long (wall clock) for its page to be enriched
+    # before it is grouped without links and summary.
+    events_enrich_wait_s: float = Field(default=120, ge=0)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:
@@ -154,6 +203,16 @@ class Settings(BaseSettings):
             if hasattr(self, prefix + name)
         }
         return DetectorConfig(**values)
+
+    def events_config(self) -> EventsConfig:
+        """The grouping weights and thresholds from the `EVENTS_*` settings."""
+        prefix = "events_"
+        values = {
+            name: getattr(self, prefix + name)
+            for name in EventsConfig.model_fields
+            if hasattr(self, prefix + name)
+        }
+        return EventsConfig(**values)
 
     def user_agent_is_placeholder(self) -> bool:
         """True if USER_AGENT still contains placeholder text instead of a real contact."""

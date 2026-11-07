@@ -72,3 +72,18 @@ wikipulse.db.migrate` first). API responses are cached in the table `api_cache` 
 | `uv run python -m wikipulse.enrich.run --run-id <run> --since <date> --until <date> --once` | Backfill: enriches the pages of a run's spikes that started in [since, until), then prints the pages, API calls and cache hit rate. `--force` enriches fresh pages again (free while the cache is fresh). |
 | `uv run python scripts/enrich_latency.py <run>` | How long after each spike started its page was enriched (the "within a minute" check). |
 | `uv run python scripts/make_enrich_fixtures.py` | Re-records the saved API responses in `tests/fixtures/enrich/` used by the unit tests (touches the real APIs). |
+
+### Event grouping
+
+Groups spikes about the same story into events (tables `events` and `event_pages`),
+using three signals between spiking pages: links, start times and the meaning of their
+summaries (embeddings from the local model `EVENTS_EMBED_MODEL`, downloaded once from
+Hugging Face). Weights and thresholds are the `EVENTS_*` settings.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.events.run` | Live: every `EVENTS_POLL_INTERVAL_S` seconds, groups new spikes of run `live` (waiting up to `EVENTS_ENRICH_WAIT_S` for their pages to be enriched). Run it next to the detector and the enricher. |
+| `uv run python -m wikipulse.events.run --spike-run <run> --run-id <name> --since <date> --until <date> --once --reset` | Replay: groups a detector run's spikes of a time range, in order, into grouping run `<name>`, then exits. |
+| `uv run python -m wikipulse.events.feed --run-id <name>` | Prints the active events with their pages (`--all` adds ended ones, `--min-pages 2` hides single pages, `--watch 30` refreshes). |
+| `uv run python -m wikipulse.eval.grouping label --run-id <name> --day <date>` | Samples page pairs of a day (stratified) and has a local LLM label them as same story / different; `--manual` lets you label them. Saved to `evals/labels/grouping_labels.jsonl`. |
+| `uv run python -m wikipulse.eval.grouping report --run-id <name> --day <date>` | Pairwise precision and recall of a grouping run; writes `evals/results/<today>_<name>.md` and `.json`. |

@@ -1,0 +1,1320 @@
+{
+  "name": "03b-close180",
+  "grouping_run": "03b-close180",
+  "spike_run": "02b-loose",
+  "day": "2026-11-05",
+  "created_at": "2026-11-07T18:40:46.365955+00:00",
+  "git": {
+    "commit": "249e36f2293aba2b2c4e126c7cdc47a2f2f74ca7",
+    "dirty": true
+  },
+  "note": "Diagnostic: EVENTS_SPIKE_CLOSE_MIN=180 (events stay open 3 h after their last edit); spikes of 02b-loose on 2026-11-05; LLM labels ollama:qwen3:4b, prompt v2",
+  "config": {
+    "link_weight": 0.4,
+    "time_weight": 0.2,
+    "embed_weight": 0.4,
+    "time_window_h": 6.0,
+    "embed_floor": 0.5,
+    "join_threshold": 0.55,
+    "link_hub_size": 1000,
+    "spike_close_min": 180.0
+  },
+  "events": {
+    "spikes": 665,
+    "events": 481,
+    "pages_per_event_mean": 1.383,
+    "pages_per_event_median": 1,
+    "pages_per_event_max": 36,
+    "multi_page_events": 59,
+    "pages_in_multi_page_events": 243
+  },
+  "strata": {
+    "together": {
+      "population": 1347,
+      "sampled": 50,
+      "same": 33,
+      "different": 17,
+      "unsure": 0,
+      "unlabeled": 0,
+      "estimated_same": 889.0200000000001
+    },
+    "near": {
+      "population": 1543,
+      "sampled": 50,
+      "same": 16,
+      "different": 34,
+      "unsure": 0,
+      "unlabeled": 0,
+      "estimated_same": 493.76
+    },
+    "far": {
+      "population": 217890,
+      "sampled": 25,
+      "same": 0,
+      "different": 24,
+      "unsure": 1,
+      "unlabeled": 0,
+      "estimated_same": 0.0
+    }
+  },
+  "metrics": {
+    "precision": 0.66,
+    "precision_margin_95": 0.13130537231964273,
+    "recall": 0.6429222291326169,
+    "recall_candidates": 0.6429222291326169,
+    "recall_labeled_pairs": 0.673469387755102,
+    "far_same_upper_bound_95": 27236.25
+  },
+  "pairs": [
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in Mississippi",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T16:41:03.208000+00:00",
+      "b_started_at": "2026-11-05T18:59:23.455000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct: one is a specific Senate election in Mississippi (2026), the other is the broader Democratic Party presidential primaries for the 2028 election, which are separate events with different timelines and scopes."
+    },
+    {
+      "stratum": "together",
+      "a": "The Cure",
+      "b": "Steve Lyon (producer)",
+      "a_started_at": "2026-11-05T14:56:29.300000+00:00",
+      "b_started_at": "2026-11-05T17:48:58.140000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts involve The Cure, with Page B's summary mentioning Steve Lyon's work with The Cure, indicating a connection to the same news story about The Cure."
+    },
+    {
+      "stratum": "together",
+      "a": "Gerrymandering in the United States",
+      "b": "Cyril Jefferson",
+      "a_started_at": "2026-11-05T14:18:29.906000+00:00",
+      "b_started_at": "2026-11-05T23:17:48.412000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 United States House of Representatives elections, with Page B being a newly elected representative in the context of the same election cycle that Page A discusses as a broader political practice."
+    },
+    {
+      "stratum": "together",
+      "a": "2026–27 AFC Bournemouth season",
+      "b": "2026–27 Brighton & Hove Albion F.C. season",
+      "a_started_at": "2026-11-05T19:48:53.177000+00:00",
+      "b_started_at": "2026-11-05T22:36:11.668000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are about the 2026-27 English Premier League football seasons for two different clubs (AFC Bournemouth and Brighton & Hove Albion) that are part of the same broader context of the 2026-27 Premier League season, which is a single news story covering the upcoming season's preparations and historical context."
+    },
+    {
+      "stratum": "together",
+      "a": "Don Leonard (politician)",
+      "b": "List of new members of the 120th United States Congress",
+      "a_started_at": "2026-11-05T17:20:12.031000+00:00",
+      "b_started_at": "2026-11-05T20:17:07.952000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts relate to the 2026 US elections, specifically the election results and the new members of the 120th Congress, with Don Leonard being a newly elected representative for Ohio's 15th congressional district."
+    },
+    {
+      "stratum": "together",
+      "a": "Republican Party (United States)",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T21:43:52.311000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The Republican Party article and the Democratic Party presidential primaries article describe two distinct political processes in the United States, with no shared current event connecting the bursts of editing on the same day."
+    },
+    {
+      "stratum": "together",
+      "a": "Cyril Jefferson",
+      "b": "2026 Kansas gubernatorial election",
+      "a_started_at": "2026-11-05T23:17:48.412000+00:00",
+      "b_started_at": "2026-11-05T23:32:53.036000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct political events: one is a specific congressional election result (Cyril Jefferson winning North Carolina's 6th district), and the other is a gubernatorial election in Kansas, which are separate races in different states and offices."
+    },
+    {
+      "stratum": "together",
+      "a": "Deaths in 2026",
+      "b": "Ali-Asghar Fani",
+      "a_started_at": "2026-11-05T15:44:45.221000+00:00",
+      "b_started_at": "2026-11-05T16:59:11.991000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and the death of Ali-Asghar Fani on 5 November 2026 is listed in the 'Deaths in 2026' page, indicating they belong to the same news story of a notable death in 2026."
+    },
+    {
+      "stratum": "together",
+      "a": "Gerrymandering in the United States",
+      "b": "United States midterm election",
+      "a_started_at": "2026-11-05T14:18:29.906000+00:00",
+      "b_started_at": "2026-11-05T22:22:42.315000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and relate to the 2026 US elections, with gerrymandering being a key issue in the context of the midterm elections."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in Mississippi",
+      "b": "2026 United States Senate election in Iowa",
+      "a_started_at": "2026-11-05T01:06:04.791000+00:00",
+      "b_started_at": "2026-11-05T10:44:46.144000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the same US Senate elections held on November 3, 2026, which are part of the broader 2026 US elections story."
+    },
+    {
+      "stratum": "together",
+      "a": "Alan Jones (racing driver)",
+      "b": "Alessandro Staccioli",
+      "a_started_at": "2026-11-05T10:43:16.647000+00:00",
+      "b_started_at": "2026-11-05T12:59:26.255000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about different individuals with no common news event connecting them; Alan Jones was a Formula One driver who died in 2026, while Alessandro Staccioli was a bishop who died in 2026, but they are unrelated events."
+    },
+    {
+      "stratum": "together",
+      "a": "Hossein Wahid Khorasani",
+      "b": "Hossein Wahid Khorasani",
+      "a_started_at": "2026-11-05T23:11:29.314000+00:00",
+      "b_started_at": "2026-11-05T23:57:50.112000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article about Hossein Wahid Khorasani, with identical short descriptions and summaries, indicating they are part of the same editing activity on that specific article."
+    },
+    {
+      "stratum": "together",
+      "a": "2028 Democratic Party presidential primaries",
+      "b": "2026 United States Senate election in Mississippi",
+      "a_started_at": "2026-11-05T18:59:23.455000+00:00",
+      "b_started_at": "2026-11-05T21:44:52.236000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different elections: one is about Democratic Party presidential primaries for 2028, and the other is about the 2026 United States Senate election in Mississippi. They are separate events occurring in different years and different offices."
+    },
+    {
+      "stratum": "together",
+      "a": "Antonio Carattoni",
+      "b": "Hubert Aiwanger",
+      "a_started_at": "2026-11-05T10:52:19.610000+00:00",
+      "b_started_at": "2026-11-05T21:59:55.803000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about different individuals from different countries (San Marino vs. Germany) with no shared news event connecting them, as they are unrelated deaths in the same year but distinct people and contexts."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 Korea Open (badminton)",
+      "b": "2026 Korea Open (badminton)",
+      "a_started_at": "2026-11-05T07:51:59.026000+00:00",
+      "b_started_at": "2026-11-05T08:51:20.882000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both pages refer to the exact same event: the 2026 Korea Open badminton tournament with identical descriptions and editing bursts happening on the same day."
+    },
+    {
+      "stratum": "together",
+      "a": "Ramayana: Part 1",
+      "b": "Ramayana: Part 1",
+      "a_started_at": "2026-11-05T11:08:09.979000+00:00",
+      "b_started_at": "2026-11-05T12:49:27.800000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article about the 2026 Indian film 'Ramayana: Part 1', with identical summaries and descriptions, indicating they are part of the same editing activity for that specific article."
+    },
+    {
+      "stratum": "together",
+      "a": "Erin Paré",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T16:35:17.929000+00:00",
+      "b_started_at": "2026-11-05T21:43:52.311000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are on different news events: one is about a specific North Carolina politician's role in the state legislature, and the other is about the 2028 Democratic Party presidential primaries, which are unrelated events."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States House of Representatives elections in Texas",
+      "b": "2026 United States elections",
+      "a_started_at": "2026-11-05T02:32:26.620000+00:00",
+      "b_started_at": "2026-11-05T05:37:16.618000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 US elections, which include the Texas House elections and the broader national elections context."
+    },
+    {
+      "stratum": "together",
+      "a": "List of new members of the 120th United States Congress",
+      "b": "Adam Hamilton (pastor)",
+      "a_started_at": "2026-11-05T00:05:16.312000+00:00",
+      "b_started_at": "2026-11-05T01:51:42.038000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the 2026 United States Senate election in Kansas, where Adam Hamilton was elected as a senator-elect, which is part of the broader 2026 US elections context."
+    },
+    {
+      "stratum": "together",
+      "a": "Dan Newlin",
+      "b": "United States midterm election",
+      "a_started_at": "2026-11-05T13:03:06.485000+00:00",
+      "b_started_at": "2026-11-05T22:22:42.315000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The burst of editing on Dan Newlin's article relates to his nomination as ambassador to Colombia, while the burst on the United States midterm election describes the general process of midterm elections. These are distinct events with no direct connection."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in Maine",
+      "b": "2026 United States gubernatorial elections",
+      "a_started_at": "2026-11-05T18:44:02.060000+00:00",
+      "b_started_at": "2026-11-05T20:26:05.271000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections held on November 3, 2026, which is a single news story covering multiple state and federal elections."
+    },
+    {
+      "stratum": "together",
+      "a": "Cindy Hyde-Smith",
+      "b": "2026 United States Senate election in Iowa",
+      "a_started_at": "2026-11-05T00:28:42.526000+00:00",
+      "b_started_at": "2026-11-05T10:44:46.144000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are for two distinct political events: Cindy Hyde-Smith's profile (a current senator) and the 2026 Iowa Senate election (a specific election event), which are not part of the same news story."
+    },
+    {
+      "stratum": "together",
+      "a": "Ramayana: Part 1",
+      "b": "Ramayana: Part 1",
+      "a_started_at": "2026-11-05T10:12:13.054000+00:00",
+      "b_started_at": "2026-11-05T11:40:11.332000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article about the 2026 Indian film 'Ramayana: Part 1', with identical summaries and descriptions, indicating they are part of the same editing activity on the same article."
+    },
+    {
+      "stratum": "together",
+      "a": "Rena Lee",
+      "b": "Rena Lee",
+      "a_started_at": "2026-11-05T01:56:12.659000+00:00",
+      "b_started_at": "2026-11-05T04:47:31.417000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article for 'Rena Lee' with identical summaries and descriptions, indicating they are part of the same editing activity on the same day."
+    },
+    {
+      "stratum": "together",
+      "a": "2028 Republican Party presidential primaries",
+      "b": "2026 United States gubernatorial elections",
+      "a_started_at": "2026-11-05T19:31:14.026000+00:00",
+      "b_started_at": "2026-11-05T20:26:05.271000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections cycle, with the Republican primaries for 2028 and gubernatorial elections in 2026 occurring within the same broader election context of the United States."
+    },
+    {
+      "stratum": "together",
+      "a": "List of new members of the 120th United States Congress",
+      "b": "Scott Colom",
+      "a_started_at": "2026-11-05T00:05:16.312000+00:00",
+      "b_started_at": "2026-11-05T01:35:10.141000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 United States Senate election in Mississippi, where Scott Colom is the Democratic nominee, and the 120th United States Congress includes newly elected members from the November 2026 elections."
+    },
+    {
+      "stratum": "together",
+      "a": "Santiago Peña",
+      "b": "Pedro Alliana",
+      "a_started_at": "2026-11-05T17:49:22.398000+00:00",
+      "b_started_at": "2026-11-05T20:15:42.256000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts involve the 2026 Paraguayan presidential election results, with Santiago Peña being dismissed as president in 2026 and Pedro Alliana taking office on November 6, 2026, indicating a direct succession event."
+    },
+    {
+      "stratum": "together",
+      "a": "Republican Party (United States)",
+      "b": "2026 Ohio gubernatorial election",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T19:11:32.361000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 United States elections, with the Republican Party being the political entity involved in the Ohio gubernatorial election."
+    },
+    {
+      "stratum": "together",
+      "a": "Republican Party (United States)",
+      "b": "Kristina Knickerbocker",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T21:29:54.908000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events occurred on the same day (2026-11-05) and are part of the 2026 US elections, specifically the Republican Party's role in the election and Kristina Knickerbocker's election as a new representative."
+    },
+    {
+      "stratum": "together",
+      "a": "Deaths in 2026",
+      "b": "Alessandro Staccioli",
+      "a_started_at": "2026-11-05T11:30:08.752000+00:00",
+      "b_started_at": "2026-11-05T21:11:39.137000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the notable death of Alessandro Staccioli in 2026, which is listed under 'Deaths in 2026' as a specific entry."
+    },
+    {
+      "stratum": "together",
+      "a": "Erin Paré",
+      "b": "List of new members of the 120th United States Congress",
+      "a_started_at": "2026-11-05T16:35:17.929000+00:00",
+      "b_started_at": "2026-11-05T20:17:07.952000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts relate to the 2026 US elections, where Erin Paré was elected as a new member of the North Carolina General Assembly and the List of new members of the 120th United States Congress includes newly elected representatives from the November 2026 elections."
+    },
+    {
+      "stratum": "together",
+      "a": "Cindy Hyde-Smith",
+      "b": "2026 Texas Land Commissioner election",
+      "a_started_at": "2026-11-05T00:28:42.526000+00:00",
+      "b_started_at": "2026-11-05T08:47:31.774000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct political events: Cindy Hyde-Smith's Senate page and the Texas Land Commissioner election, which are separate offices and elections in different states with no direct connection."
+    },
+    {
+      "stratum": "together",
+      "a": "Alan Jones (racing driver)",
+      "b": "Alessandro Staccioli",
+      "a_started_at": "2026-11-05T05:24:20.499000+00:00",
+      "b_started_at": "2026-11-05T12:59:26.255000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different individuals with no common news event connecting them; Alan Jones was a racing driver who died in 2026, while Alessandro Staccioli was a bishop who died in 2026, but they are unrelated events."
+    },
+    {
+      "stratum": "together",
+      "a": "Alan Jones (racing driver)",
+      "b": "Alan Jones (racing driver)",
+      "a_started_at": "2026-11-05T05:24:20.499000+00:00",
+      "b_started_at": "2026-11-05T10:43:16.647000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article about Alan Jones, the racing driver, with identical summaries and descriptions, indicating they are part of the same editing event for that specific article."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in Maine",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T18:44:02.060000+00:00",
+      "b_started_at": "2026-11-05T18:59:23.455000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different news events: one is a specific Senate election in Maine (2026), and the other is the Democratic Party presidential primaries for 2028, which are separate events with no direct connection."
+    },
+    {
+      "stratum": "together",
+      "a": "Herbert Blomstedt",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T20:14:33.997000+00:00",
+      "b_started_at": "2026-11-05T22:35:12.288000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to notable deaths in 2026, with Herbert Blomstedt's death being one of the notable deaths reported in the 'Deaths in 2026' page."
+    },
+    {
+      "stratum": "together",
+      "a": "Santiago Peña",
+      "b": "Santiago Peña",
+      "a_started_at": "2026-11-05T17:49:22.398000+00:00",
+      "b_started_at": "2026-11-05T23:58:29.736000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are on the same Wikipedia article about Santiago Peña, the President of Paraguay, with identical summaries and descriptions, indicating they are part of the same news event related to his presidency."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States elections",
+      "b": "2026 Texas Land Commissioner election",
+      "a_started_at": "2026-11-05T05:37:16.618000+00:00",
+      "b_started_at": "2026-11-05T08:47:31.774000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (November 3, 2026) as part of the broader US elections, with Page B being a specific state-level election within the larger national election context described in Page A."
+    },
+    {
+      "stratum": "together",
+      "a": "Republican Party (United States)",
+      "b": "2026 United States Senate election in North Carolina",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T14:53:45.487000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 United States elections, which is a single news story as they occur on the same day and are related to the broader US electoral process."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in Texas",
+      "b": "2026 United States Senate election in Texas",
+      "a_started_at": "2026-11-05T15:33:25.671000+00:00",
+      "b_started_at": "2026-11-05T16:55:15.215000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are for the same Senate election in Texas with identical summaries and timing on the same day, indicating a single news event."
+    },
+    {
+      "stratum": "together",
+      "a": "Republican Party (United States)",
+      "b": "2026 House Republican Conference leadership election",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T20:33:17.283000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 US elections, specifically the Republican Party's internal leadership election process within the House of Representatives, which is a direct part of the broader election cycle."
+    },
+    {
+      "stratum": "together",
+      "a": "Dan Newlin",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T13:03:06.485000+00:00",
+      "b_started_at": "2026-11-05T18:24:04.858000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct news events: one about a specific candidate's nomination for ambassador to Colombia, and the other about the 2028 Democratic Party presidential primaries, which are unrelated events."
+    },
+    {
+      "stratum": "together",
+      "a": "Allison Montgomery",
+      "b": "2026 United States gubernatorial elections",
+      "a_started_at": "2026-11-05T15:34:55.234000+00:00",
+      "b_started_at": "2026-11-05T20:26:05.271000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are part of the 2026 US elections, with Page A being a specific election result (Alabama House of Representatives) and Page B being the broader context of gubernatorial elections that day."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 SAFF Championship",
+      "b": "Mohammad Ibrahim (footballer, born 1997)",
+      "a_started_at": "2026-11-05T14:05:35.788000+00:00",
+      "b_started_at": "2026-11-05T16:01:37.740000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The SAFF Championship is a regional football tournament in South Asia, while Mohammad Ibrahim is a specific Bangladeshi footballer; these are unrelated events."
+    },
+    {
+      "stratum": "together",
+      "a": "Dan Newlin",
+      "b": "Republican Party (United States)",
+      "a_started_at": "2026-11-05T13:03:06.485000+00:00",
+      "b_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day and are related to the 2026 United States Senate election in Maine, as Dan Newlin is the nominee for ambassador to Colombia, which is a position that would be filled by a senator in the context of the 2026 elections."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 Karjala Tournament",
+      "b": "2027 Sweden Hockey Games",
+      "a_started_at": "2026-11-05T07:08:32.618000+00:00",
+      "b_started_at": "2026-11-05T07:51:31.975000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are different tournaments with different years (2026 vs 2027), different names (NOCCO Hockey Games vs Beijer Hockey Games), and different dates (November 2026 vs February 2027)."
+    },
+    {
+      "stratum": "together",
+      "a": "Jesús de Miguel",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T14:35:29.333000+00:00",
+      "b_started_at": "2026-11-05T15:44:45.221000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct topics: one about a Spanish footballer and the other about notable deaths in 2:26, with no connection between the events."
+    },
+    {
+      "stratum": "together",
+      "a": "Vice President of Paraguay",
+      "b": "Santiago Peña",
+      "a_started_at": "2026-11-05T17:25:01.096000+00:00",
+      "b_started_at": "2026-11-05T23:58:29.736000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and relate to the Paraguayan political context, specifically the vice president position and the current president Santiago Peña who was dismissed in 2026, indicating a connection to the same news story about Paraguay's government transition."
+    },
+    {
+      "stratum": "together",
+      "a": "2026 United States Senate election in North Carolina",
+      "b": "Allison Montgomery",
+      "a_started_at": "2026-11-05T14:53:45.487000+00:00",
+      "b_started_at": "2026-11-05T15:34:55.234000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different news events: one is a Senate election in North Carolina and the other is a House of Representatives election in Alabama, which are separate state-level elections on the same day but distinct races."
+    },
+    {
+      "stratum": "together",
+      "a": "Herbert Blomstedt",
+      "b": "Alessandro Staccioli",
+      "a_started_at": "2026-11-05T20:14:33.997000+00:00",
+      "b_started_at": "2026-11-05T21:11:39.137000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and both individuals died in 2026, with their articles having sudden editing activity that likely relates to the same news event: the death of notable figures in 2026."
+    },
+    {
+      "stratum": "near",
+      "a": "Simon Winchester",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T00:13:56.664000+00:00",
+      "b_started_at": "2026-11-05T06:53:16.625000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the death of Simon Winchester, who passed away in 2026 as indicated by the 'Deaths in 2026' page."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Karjala Tournament",
+      "b": "2026 Korea Open (badminton)",
+      "a_started_at": "2026-11-05T07:08:32.618000+00:00",
+      "b_started_at": "2026-11-05T07:51:59.026000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate international sports tournaments happening on the same day but in different countries and with different sports (ice hockey vs. badminton), so they do not constitute the same news story."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 FIFA U-17 Women's World Cup",
+      "b": "2026 Players Championship Finals",
+      "a_started_at": "2026-11-05T13:17:54.458000+00:00",
+      "b_started_at": "2026-11-05T17:05:53.259000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct sports competitions happening on different dates and in different locations with no overlap in participants, context, or significance."
+    },
+    {
+      "stratum": "near",
+      "a": "Mike Schietzelt",
+      "b": "Erin Paré",
+      "a_started_at": "2026-11-05T05:04:57.763000+00:00",
+      "b_started_at": "2026-11-05T16:35:17.929000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts involve North Carolina state politicians elected in the 2024 general election, with Schietzelt representing the 35th House district and Paré the 37th House district, part of the same state's legislative elections."
+    },
+    {
+      "stratum": "near",
+      "a": "Abelardo de la Espriella",
+      "b": "Early life of Néstor Kirchner",
+      "a_started_at": "2026-11-05T02:00:42.697000+00:00",
+      "b_started_at": "2026-11-05T19:50:23.325000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about entirely different events: one is about a Colombian president elected in 2026, and the other is about the early life of an Argentine president from 2003-2007, with no connection between the events."
+    },
+    {
+      "stratum": "near",
+      "a": "Quebec sovereignty movement",
+      "b": "Samuel de Champlain",
+      "a_started_at": "2026-11-05T14:45:59.485000+00:00",
+      "b_started_at": "2026-11-05T18:40:07.823000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The Quebec sovereignty movement is a political movement for Quebec's independence from Canada, while Samuel de Champlain is a historical figure who founded Quebec City in the 17th century; these are unrelated events and topics."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Major League Baseball season",
+      "b": "2026–27 Brighton & Hove Albion F.C. season",
+      "a_started_at": "2026-11-05T20:37:41.657000+00:00",
+      "b_started_at": "2026-11-05T21:55:05.085000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different sports events: one is the 2026 MLB season and the other is the 2026-27 Brighton & Hove Albion F.C. season, which are unrelated events."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 FIFA U-17 Women's World Cup",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T13:17:54.458000+00:00",
+      "b_started_at": "2026-11-05T22:33:23.020000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct football competitions happening on different schedules and in different contexts: the U-17 Women's World Cup is a youth international tournament hosted in Morocco in late 2026, while the UEFA Europa League league phase is a club competition in Europe running from September 2026 to January 2027."
+    },
+    {
+      "stratum": "near",
+      "a": "Republican Party (United States)",
+      "b": "Salon (website)",
+      "a_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "b_started_at": "2026-11-05T20:30:23.046000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the 2026 United States elections, as the Republican Party is a key player in the elections and Salon is a news outlet that would cover election coverage."
+    },
+    {
+      "stratum": "near",
+      "a": "Adam Hamilton (pastor)",
+      "b": "Republican Party (United States)",
+      "a_started_at": "2026-11-05T03:05:11.729000+00:00",
+      "b_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct political entities: Adam Hamilton's election as a senator-elect from Kansas and the Republican Party's general description, which are unrelated current events."
+    },
+    {
+      "stratum": "near",
+      "a": "Joan: The Unauthorized Rusical!",
+      "b": "RuPaul's Drag Race UK series 8",
+      "a_started_at": "2026-11-05T23:08:13.464000+00:00",
+      "b_started_at": "2026-11-05T23:20:53.372000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different episodes of different shows: Page A is the 6th episode of RuPaul's Drag Race All Stars season 8 (2023), while Page B is the 8th series of RuPaul's Drag Race UK (2026). They are distinct shows with different production timelines and contexts."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Korea Open (badminton)",
+      "b": "2026 Players Championship Finals",
+      "a_started_at": "2026-11-05T08:51:20.882000+00:00",
+      "b_started_at": "2026-11-05T17:05:53.259000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct sports tournaments happening on different dates and locations with no overlap in participants, teams, or context."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Grand Slam of Darts",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T18:45:57.187000+00:00",
+      "b_started_at": "2026-11-05T22:33:23.020000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different sports events: the Grand Slam of Darts is a darts tournament, while the UEFA Europa League is a football club competition, with no overlap in the events or context."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States Senate election in Alabama",
+      "b": "Mehreen Faruqi",
+      "a_started_at": "2026-11-05T01:43:11.652000+00:00",
+      "b_started_at": "2026-11-05T12:56:59.065000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different news events: one is about a US Senate election in Alabama, and the other is about an Australian politician's profile, with no connection between the events."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Israeli legislative election",
+      "b": "List of new members of the 120th United States Congress",
+      "a_started_at": "2026-11-05T14:24:42.210000+00:00",
+      "b_started_at": "2026-11-05T20:17:07.952000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate elections in different countries (Israel and the United States) occurring on the same day but for different legislative bodies, so they do not constitute the same news story."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Players Championship Finals",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T17:05:53.259000+00:00",
+      "b_started_at": "2026-11-05T21:55:30.053000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different sports events happening on the same day but are unrelated in terms of the news story they represent."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 SAFF Championship",
+      "b": "2026 F1 Academy season",
+      "a_started_at": "2026-11-05T12:46:03.137000+00:00",
+      "b_started_at": "2026-11-05T18:12:06.066000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct sports competitions with no overlap in participants, structure, or context: the SAFF Championship is a regional men's football tournament in South Asia, while the F1 Academy is a women's single-seater racing series supporting Formula One."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States Senate election in Iowa",
+      "b": "2026 Ohio gubernatorial election",
+      "a_started_at": "2026-11-05T00:10:19.776000+00:00",
+      "b_started_at": "2026-11-05T19:11:32.361000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections held on the same day (November 3, 2026), with specific state-level races that would be covered under a single headline for the broader election cycle."
+    },
+    {
+      "stratum": "near",
+      "a": "Grinds Pouches",
+      "b": "Alp Supply Co.",
+      "a_started_at": "2026-11-05T20:36:27.147000+00:00",
+      "b_started_at": "2026-11-05T20:38:16.702000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about different brands of nicotine/caffeine pouches with distinct founders, origins, and product focuses: Grinds Pouches (founded by Matt Canepa and Pat Pezet, coffee grounds-based) vs. Alp Supply Co. (created by Tucker Carlson and Turning Point Brands)."
+    },
+    {
+      "stratum": "near",
+      "a": "Lloyd Geering",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T02:22:41.462000+00:00",
+      "b_started_at": "2026-11-05T11:30:08.752000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the year 2026, with Page A mentioning Lloyd Geering's death in 2026 (as he was New Zealand's oldest living man until his death) and Page B listing notable deaths in 2026."
+    },
+    {
+      "stratum": "near",
+      "a": "Lloyd Geering",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T01:30:36.456000+00:00",
+      "b_started_at": "2026-11-05T23:40:31.670000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) and are related to the year 2026, with Page A mentioning Lloyd Geering's death in 2026 (as he was the oldest living man until his death) and Page B listing notable deaths in 2026."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Texas Land Commissioner election",
+      "b": "2026 United States Senate election in Maine",
+      "a_started_at": "2026-11-05T08:47:31.774000+00:00",
+      "b_started_at": "2026-11-05T18:44:02.060000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate elections in different states (Texas Land Commissioner election vs. Maine Senate election) that occurred on the same day but are distinct political events with no overlap in offices, candidates, or outcomes."
+    },
+    {
+      "stratum": "near",
+      "a": "2026–27 Philadelphia 76ers season",
+      "b": "2026 Major League Baseball season",
+      "a_started_at": "2026-11-05T03:01:21.696000+00:00",
+      "b_started_at": "2026-11-05T20:37:41.657000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are for different sports seasons (NBA and MLB) that occurred on the same day but are unrelated events."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States state legislative elections",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T03:01:23.786000+00:00",
+      "b_started_at": "2026-11-05T18:24:04.858000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different election events: state legislative elections in 2026 versus Democratic presidential primaries in 2028, occurring on different dates and for different levels of government and political processes."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States House of Representatives elections in Indiana",
+      "b": "2026 Israeli legislative election",
+      "a_started_at": "2026-11-05T03:34:14.641000+00:00",
+      "b_started_at": "2026-11-05T18:12:09.192000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate elections in different countries (United States and Israel) on different dates, with no connection between the events."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Korea Open (badminton)",
+      "b": "2026 FIFA U-17 Women's World Cup",
+      "a_started_at": "2026-11-05T07:51:59.026000+00:00",
+      "b_started_at": "2026-11-05T13:17:54.458000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct sports tournaments happening in different locations and with different dates, not connected by a single news story."
+    },
+    {
+      "stratum": "near",
+      "a": "Abelardo de la Espriella",
+      "b": "Santiago Peña",
+      "a_started_at": "2026-11-05T02:00:42.697000+00:00",
+      "b_started_at": "2026-11-05T23:58:29.736000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different national leaders in different countries with no connection between the events, as one is the president of Colombia (starting in 2026) and the other is a former president of Paraguay (dismissed in 2026)."
+    },
+    {
+      "stratum": "near",
+      "a": "2027 Sweden Hockey Games",
+      "b": "2026–27 Indian Super League",
+      "a_started_at": "2026-11-05T07:51:31.975000+00:00",
+      "b_started_at": "2026-11-05T16:09:38.613000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are distinct sports competitions happening in different countries and with no overlap in participants, venues, or context."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States Senate election in Maine",
+      "b": "2026 United States House of Representatives elections in Montana",
+      "a_started_at": "2026-11-05T00:25:56.938000+00:00",
+      "b_started_at": "2026-11-05T23:33:15.679000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections, which occurred on the same day (November 3, 2026) and are connected as part of the broader US electoral process."
+    },
+    {
+      "stratum": "near",
+      "a": "Wisconsin's 1st congressional district",
+      "b": "2026 United States House of Representatives elections in Iowa",
+      "a_started_at": "2026-11-05T02:41:33.337000+00:00",
+      "b_started_at": "2026-11-05T21:24:26.954000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are for two different elections: Wisconsin's 1st congressional district and Iowa's House elections, which are separate events in different states."
+    },
+    {
+      "stratum": "near",
+      "a": "2028 European Men's Handball Championship qualification",
+      "b": "2026–27 Brighton & Hove Albion F.C. season",
+      "a_started_at": "2026-11-05T19:16:14.214000+00:00",
+      "b_started_at": "2026-11-05T22:36:11.668000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different sports events with no common real-world event connecting them: one is a handball championship qualification tournament, the other is a football (soccer) club's season."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 French student protests",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T05:27:47.281000+00:00",
+      "b_started_at": "2026-11-05T22:33:23.020000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about entirely separate events: French student protests in November 2026 versus the UEFA Europa League league phase starting in September 2026, with no overlap in the news events they cover."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Georgia gubernatorial election",
+      "b": "2026 United States Senate election in Texas",
+      "a_started_at": "2026-11-05T00:11:07.454000+00:00",
+      "b_started_at": "2026-11-05T15:33:25.671000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections held on November 3, 2026, with specific state-level races (gubernatorial and Senate) that are considered the same news story under the broader context of the 2026 US elections."
+    },
+    {
+      "stratum": "near",
+      "a": "Eric Armstrong",
+      "b": "Republican Party (United States)",
+      "a_started_at": "2026-11-05T05:39:57.132000+00:00",
+      "b_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct topics: Eric Armstrong's election victory in Iowa and the Republican Party's general description, with no direct news event connecting them."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Players Championship Finals",
+      "b": "2026 Rolex Paris Masters – Singles",
+      "a_started_at": "2026-11-05T17:05:53.259000+00:00",
+      "b_started_at": "2026-11-05T21:02:58.226000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 sports events happening on the same day with specific tournaments (darts and tennis) that are scheduled to occur in November 2026."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States House of Representatives elections in Florida",
+      "b": "2026 United States Senate election in Mississippi",
+      "a_started_at": "2026-11-05T06:49:40.961000+00:00",
+      "b_started_at": "2026-11-05T21:44:52.236000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026 US elections, which occurred on the same day (November 3, 2026) and are part of the same broader news story covering the US electoral process."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States Senate election in Iowa",
+      "b": "Republican Party (United States)",
+      "a_started_at": "2026-11-05T10:44:46.144000+00:00",
+      "b_started_at": "2026-11-05T13:25:11.270000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The Senate election in Iowa is a specific event, while the Republican Party article covers a broader political entity without a direct connection to the Iowa Senate race."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Texas Supreme Court election",
+      "b": "2026 United States Senate election in Maine",
+      "a_started_at": "2026-11-05T10:21:57.433000+00:00",
+      "b_started_at": "2026-11-05T18:44:02.060000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate elections in different states (Texas Supreme Court and Maine Senate) that occurred on the same day but are distinct news stories as they involve different offices, states, and outcomes."
+    },
+    {
+      "stratum": "near",
+      "a": "Mike Schietzelt",
+      "b": "Mehreen Faruqi",
+      "a_started_at": "2026-11-05T05:04:57.763000+00:00",
+      "b_started_at": "2026-11-05T12:56:59.065000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts involve different political figures from different countries and contexts: Mike Schietzelt is a U.S. politician in North Carolina, while Mehreen Faruqi is an Australian politician in New South Wales, with no shared news event connecting them."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 South African municipal elections",
+      "b": "2026–27 Indian Super League",
+      "a_started_at": "2026-11-05T06:52:44.762000+00:00",
+      "b_started_at": "2026-11-05T16:09:38.613000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different news events: South African municipal elections and the Indian Super League season, which are unrelated events occurring in different countries and contexts."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States elections",
+      "b": "2028 Democratic Party presidential primaries",
+      "a_started_at": "2026-11-05T05:37:16.618000+00:00",
+      "b_started_at": "2026-11-05T18:24:04.858000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different election events: one is the 2026 U.S. midterm elections (held on November 3, 2026) and the other is the 2028 Democratic Party presidential primaries (which occur in 2026 but are for the 2028 election). They are distinct events with different timelines and purposes."
+    },
+    {
+      "stratum": "near",
+      "a": "2027 in spaceflight",
+      "b": "Deaths in 2026",
+      "a_started_at": "2026-11-05T13:13:35.206000+00:00",
+      "b_started_at": "2026-11-05T23:40:31.670000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on different topics: spaceflight events in 2027 versus notable deaths in 2026, with no shared real-world event connecting them."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Texas Land Commissioner election",
+      "b": "2026 United States House of Representatives elections in Iowa",
+      "a_started_at": "2026-11-05T08:47:31.774000+00:00",
+      "b_started_at": "2026-11-05T21:24:26.954000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events occurred on the same day (November 3, 2026) as part of the broader 2026 US elections, which include multiple federal, state, and local races."
+    },
+    {
+      "stratum": "near",
+      "a": "Beachwood, Ohio",
+      "b": "Beachwood High School",
+      "a_started_at": "2026-11-05T01:25:14.469000+00:00",
+      "b_started_at": "2026-11-05T16:10:09.678000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts occurred on the same day (2026-11-05) for articles related to Beachwood, Ohio, with the city and its high school being directly connected as part of the same local community and geographic context."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 United States House of Representatives elections in Indiana",
+      "b": "Don Leonard (politician)",
+      "a_started_at": "2026-11-05T03:34:14.641000+00:00",
+      "b_started_at": "2026-11-05T16:33:09.304000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 US elections, specifically the House of Representatives elections in Indiana and the election of Don Leonard for Ohio's 15th congressional district, which are part of the same broader election cycle."
+    },
+    {
+      "stratum": "near",
+      "a": "Gina Hinojosa",
+      "b": "Austin, Texas",
+      "a_started_at": "2026-11-05T08:07:49.186000+00:00",
+      "b_started_at": "2026-11-05T13:40:36.388000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both bursts are related to the 2026 Texas gubernatorial election, where Gina Hinojosa was declared the victor and became governor-elect, which is a significant event for Austin as the capital city of Texas."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 South African municipal elections",
+      "b": "2026 Texas Land Commissioner election",
+      "a_started_at": "2026-11-05T06:52:44.762000+00:00",
+      "b_started_at": "2026-11-05T08:47:31.774000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two events are separate municipal elections in South Africa and a state-level election in Texas, which are distinct political events occurring in different countries and jurisdictions."
+    },
+    {
+      "stratum": "near",
+      "a": "2027 Sweden Hockey Games",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T07:51:31.975000+00:00",
+      "b_started_at": "2026-11-05T21:55:30.053000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are part of the 2026–27 European sports competitions, with the Sweden Hockey Games being a specific event within the Euro Hockey Tour and the UEFA Europa League league phase being a major club competition in Europe for the same season."
+    },
+    {
+      "stratum": "near",
+      "a": "2026–27 Euro Hockey Tour",
+      "b": "2026 SAFF Championship",
+      "a_started_at": "2026-11-05T07:04:49.310000+00:00",
+      "b_started_at": "2026-11-05T14:05:35.788000+00:00",
+      "label": "same",
+      "labeler": "llm",
+      "reason": "Both events are scheduled for November 2026 and are international sports competitions happening on the same day with edits starting on 2026-11-05."
+    },
+    {
+      "stratum": "near",
+      "a": "2026 Players Championship Finals",
+      "b": "2026–27 UEFA Europa League league phase",
+      "a_started_at": "2026-11-05T18:46:51.461000+00:00",
+      "b_started_at": "2026-11-05T21:55:30.053000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different sports events happening on the same day but in different contexts: one is a darts tournament and the other is a football club competition phase."
+    },
+    {
+      "stratum": "far",
+      "a": "Directorate General of Trade Remedies",
+      "b": "Suwon Samsung Bluewings",
+      "a_started_at": "2026-11-05T00:45:10.157000+00:00",
+      "b_started_at": "2026-11-05T14:53:39.945000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The Directorate General of Trade Remedies is an Indian government agency related to trade policies, while Suwon Samsung Bluewings is a South Korean football club; these are unrelated events or topics that do not share a common news story."
+    },
+    {
+      "stratum": "far",
+      "a": "Port City Colombo",
+      "b": "Badminton at the 2026 Summer Youth Olympics",
+      "a_started_at": "2026-11-05T07:30:50.902000+00:00",
+      "b_started_at": "2026-11-05T19:30:28.115000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are for different events: Port City Colombo is a construction project in Sri Lanka, while the badminton events are part of the 2026 Summer Youth Olympics in Senegal. They are unrelated news events."
+    },
+    {
+      "stratum": "far",
+      "a": "2026 BYU Cougars football team",
+      "b": "Pedro Alliana",
+      "a_started_at": "2026-11-05T14:42:37.379000+00:00",
+      "b_started_at": "2026-11-05T16:49:02.849000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about entirely different events: the 2026 BYU Cougars football team (a college sports team) and Pedro Alliana becoming President of Paraguay (a political event), with no connection between the two news stories."
+    },
+    {
+      "stratum": "far",
+      "a": "Deaths in 2026",
+      "b": "2026 Major League Baseball season",
+      "a_started_at": "2026-11-05T10:34:22.851000+00:00",
+      "b_started_at": "2026-11-05T20:37:41.657000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are for distinct news events: one is about notable deaths in 2026 and the other is about the 2026 Major League Baseball season, which are unrelated events occurring on the same day but not part of the same story."
+    },
+    {
+      "stratum": "far",
+      "a": "List of Looney Tunes feature films",
+      "b": "Moses Harris",
+      "a_started_at": "2026-11-05T18:13:22.692000+00:00",
+      "b_started_at": "2026-11-05T19:58:16.797000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on completely unrelated topics: one is about Looney Tunes feature films and the other about an 18th-century English entomologist, with no connection between the events."
+    },
+    {
+      "stratum": "far",
+      "a": "Legacy of José de San Martín",
+      "b": "Aiham Ousou",
+      "a_started_at": "2026-11-05T17:18:43.023000+00:00",
+      "b_started_at": "2026-11-05T18:11:50.278000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are on completely unrelated topics: one about José de San Martín, a historical figure in South American independence, and the other about Aiham Ousou, a Syrian footballer. There is no shared news event connecting these two edits."
+    },
+    {
+      "stratum": "far",
+      "a": "HTML",
+      "b": "2026 United States Senate election in North Carolina",
+      "a_started_at": "2026-11-05T10:08:12.847000+00:00",
+      "b_started_at": "2026-11-05T14:53:45.487000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The burst of editing on HTML (a technical standard) and the burst on the 2026 North Carolina Senate election are unrelated events; one is a technical topic and the other is a specific election result."
+    },
+    {
+      "stratum": "far",
+      "a": "Janine Butcher",
+      "b": "Riva Taylor",
+      "a_started_at": "2026-11-05T13:19:45.743000+00:00",
+      "b_started_at": "2026-11-05T17:29:21.143000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on different characters from unrelated fields: one is a soap opera character from EastEnders and the other is a British singer, with no connection between the events or people involved."
+    },
+    {
+      "stratum": "far",
+      "a": "Haley Stevens",
+      "b": "DMZ (disambiguation)",
+      "a_started_at": "2026-11-05T08:32:27.210000+00:00",
+      "b_started_at": "2026-11-05T12:33:42.184000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct topics: Haley Stevens is a U.S. representative from Michigan, while DMZ refers to demilitarized zones, with no connection between the two events."
+    },
+    {
+      "stratum": "far",
+      "a": "Get Him to the Greek",
+      "b": "Francesco di Maria",
+      "a_started_at": "2026-11-05T15:19:06.887000+00:00",
+      "b_started_at": "2026-11-05T22:04:59.071000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are for entirely unrelated topics: one is a 2010 comedy film and the other is a historical Baroque painter, with no connection between the events or subjects."
+    },
+    {
+      "stratum": "far",
+      "a": "Abelardo de la Espriella",
+      "b": "John Houston (manager)",
+      "a_started_at": "2026-11-05T02:00:42.697000+00:00",
+      "b_started_at": "2026-11-05T12:51:14.693000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about entirely unrelated events: one is about a Colombian president elected in 2026, the other is about a talent manager who died in 2003, with no connection between the news events."
+    },
+    {
+      "stratum": "far",
+      "a": "Khan (surname)",
+      "b": "Eric Armstrong",
+      "a_started_at": "2026-11-05T04:47:11.440000+00:00",
+      "b_started_at": "2026-11-05T05:39:57.132000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts are on two distinct articles about different topics: 'Khan' (a surname) and 'Eric Armstrong' (an American politician), with no shared news event connecting them."
+    },
+    {
+      "stratum": "far",
+      "a": "Criciúma",
+      "b": "The Committee for the Defence of Arab Palestine",
+      "a_started_at": "2026-11-05T09:51:41.924000+00:00",
+      "b_started_at": "2026-11-05T11:05:57.378000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on unrelated topics: one is about a Brazilian city and the other about a historical Tunisian organization related to the Palestinian cause, with no common news event connecting them."
+    },
+    {
+      "stratum": "far",
+      "a": "Wisconsin's 1st congressional district",
+      "b": "Osmotic power",
+      "a_started_at": "2026-11-05T02:41:33.337000+00:00",
+      "b_started_at": "2026-11-05T17:50:37.539000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The bursts of editing on Wisconsin's 1st congressional district and Osmotic power are unrelated news events; one pertains to a U.S. House election district while the other describes a sustainable energy technology."
+    },
+    {
+      "stratum": "far",
+      "a": "2026–27 Indian Super League",
+      "b": "Kowloon Walled City",
+      "a_started_at": "2026-11-05T16:09:38.613000+00:00",
+      "b_started_at": "2026-11-05T16:30:44.074000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on completely unrelated topics: one is about the 2026-27 Indian Super League football season, and the other is about the historical Kowloon Walled City in Hong Kong, which was demolished in the 1990s. There is no shared news event or current development connecting these two events."
+    },
+    {
+      "stratum": "far",
+      "a": "James T. Kirk",
+      "b": "Ted",
+      "a_started_at": "2026-11-05T14:20:34.383000+00:00",
+      "b_started_at": "2026-11-05T19:46:17.751000+00:00",
+      "label": "unsure",
+      "labeler": "llm",
+      "reason": "The burst of editing on James T. Kirk (a Star Trek character) and Ted (a term with multiple meanings) on the same day does not provide enough context to determine if they are related to the same news event, as the edits could be for unrelated reasons such as updates to the articles themselves rather than a specific news story."
+    },
+    {
+      "stratum": "far",
+      "a": "Begin Again (Taylor Swift song)",
+      "b": "Military budget of the Soviet Union",
+      "a_started_at": "2026-11-05T00:51:05.230000+00:00",
+      "b_started_at": "2026-11-05T13:42:06.153000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on completely unrelated topics: a 2012 Taylor Swift song and the Soviet Union's military budget, which are not connected by any current news event or development."
+    },
+    {
+      "stratum": "far",
+      "a": "We Are Busy Bodies",
+      "b": "International System of Units",
+      "a_started_at": "2026-11-05T06:32:00.144000+00:00",
+      "b_started_at": "2026-11-05T23:12:00.272000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on unrelated topics: one is about a Canadian music label and the other about the International System of Units, with no common news event connecting them."
+    },
+    {
+      "stratum": "far",
+      "a": "2027 in spaceflight",
+      "b": "2026 Atlantic hurricane season",
+      "a_started_at": "2026-11-05T13:13:35.206000+00:00",
+      "b_started_at": "2026-11-05T14:41:22.186000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are about different spaceflight events and hurricane seasons, which are unrelated news events."
+    },
+    {
+      "stratum": "far",
+      "a": "Bands of America",
+      "b": "S-X",
+      "a_started_at": "2026-11-05T02:07:37.066000+00:00",
+      "b_started_at": "2026-11-05T12:43:45.988000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on unrelated topics: Bands of America (a marching band organization) and S-X (a British singer-songwriter). There is no common news event connecting these two events."
+    },
+    {
+      "stratum": "far",
+      "a": "Signs of AI writing",
+      "b": "Country Club of Fairfield",
+      "a_started_at": "2026-11-05T06:45:34.247000+00:00",
+      "b_started_at": "2026-11-05T22:06:08.727000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on unrelated Wikipedia pages: one about AI writing conventions and the other about a private golf club in Connecticut, with no shared news event connecting them."
+    },
+    {
+      "stratum": "far",
+      "a": "ISRO",
+      "b": "Ramayana: Part 1",
+      "a_started_at": "2026-11-05T03:19:34.007000+00:00",
+      "b_started_at": "2026-11-05T20:51:19.756000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are on unrelated news events: ISRO is a national space agency of India with recent missions, while Ramayana: Part 1 is a 2026 Indian film release. They belong to different categories (government agency vs. film) and have no connection in the news event context."
+    },
+    {
+      "stratum": "far",
+      "a": "Eric Dubay",
+      "b": "Solar (singer)",
+      "a_started_at": "2026-11-05T01:26:22.804000+00:00",
+      "b_started_at": "2026-11-05T14:15:04.939000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are on unrelated individuals: Eric Dubay, an American conspiracy theorist, and Solar, a South Korean singer, with no common news event connecting them."
+    },
+    {
+      "stratum": "far",
+      "a": "Rhyl",
+      "b": "Knights of Guinevere",
+      "a_started_at": "2026-11-05T13:02:49.346000+00:00",
+      "b_started_at": "2026-11-05T14:38:56.208000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts of editing are for unrelated topics: Rhyl is a coastal town in North Wales, while Knights of Guinevere is an Australian animated web series. There is no shared news event connecting these two articles."
+    },
+    {
+      "stratum": "far",
+      "a": "Eevee",
+      "b": "Kimmarie Johnson",
+      "a_started_at": "2026-11-05T00:42:44.311000+00:00",
+      "b_started_at": "2026-11-05T17:56:10.988000+00:00",
+      "label": "different",
+      "labeler": "llm",
+      "reason": "The two bursts are on different subjects: Eevee (a Pokémon species) and Kimmarie Johnson (an American model and businesswoman who died in 2026). There is no shared news event connecting these two topics."
+    }
+  ]
+}
