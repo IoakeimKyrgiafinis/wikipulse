@@ -31,5 +31,18 @@ With the services running and `USER_AGENT` set in `.env`:
 | `uv run python -m wikipulse.stream.stats --watch` | Counters, events per second, bot share, stream length and lag, refreshed every 2 seconds. |
 | `uv run python -m wikipulse.stream.record --minutes 60` | Saves the raw, unfiltered stream to `data/recordings/<start time>.jsonl`. |
 | `uv run python -m wikipulse.stream.replay --file <path> --speed max` | Feeds a recording through the same processing core (`--speed 10` for 10x real time) into `REPLAY_STREAM_KEY` (`wiki:replay:edits`), not the live stream. |
-| `uv run pytest -m integration` | Integration tests against the Docker Redis. |
+| `uv run pytest -m integration` | Integration tests against the Docker Redis and Postgres. |
 | `uv run python scripts/crash_test.py` | Five-minute crash test: kills and restarts the consumer, then checks nothing was lost or doubled. |
+
+## Stage 2: spike detection
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.db.migrate` | Applies new SQL migrations (`wikipulse/db/migrations/`); run once before detecting. |
+| `uv run python -m wikipulse.detect.run` | Live detector: reads `wiki:edits` with a consumer group, stores spikes in Postgres as run `live`. Ctrl+C saves its state; it resumes on the next start. |
+| `uv run python -m wikipulse.detect.trending` | Prints the active spikes (`--all` adds ended ones, `--watch 30` refreshes, `--run-id` picks a run). |
+| `uv run python -m wikipulse.detect.run --stream-key wiki:replay:edits --run-id <name> --reset --exit-when-idle 10` | Detects spikes in a replay, from scratch, as its own run. |
+| `uv run python scripts/determinism_check.py --file <recording>` | Replays a recording twice (one run restarted half way) and checks the spikes are identical. |
+| `uv run python scripts/compare_thresholds.py --file <recording> --set min_edits=4` | Tries threshold changes on a recording in seconds, offline. |
+
+All thresholds are `DETECT_*` settings (see `.env.example`).
