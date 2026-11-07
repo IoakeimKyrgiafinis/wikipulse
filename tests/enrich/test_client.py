@@ -8,8 +8,7 @@ import pytest
 
 from tests.enrich.helpers import API_URL, REST_URL, USER_AGENT, make_client
 from wikipulse.enrich.cache import MemoryCache
-from wikipulse.enrich.client import MAXLAG_S, WikiApiError, request_key
-from wikipulse.eval.wiki_client import MAX_ATTEMPTS
+from wikipulse.enrich.client import MAX_ATTEMPTS, MAXLAG_S, WikiApiError, request_key
 
 SUMMARY = f"{REST_URL}/page/summary/X"
 
@@ -170,3 +169,37 @@ async def test_request_starts_are_spaced() -> None:
         await asyncio.gather(*(client.get_json(f"{REST_URL}/page/summary/P{i}") for i in range(4)))
     gaps = [b - a for a, b in zip(starts, starts[1:], strict=False)]
     assert all(gap >= 0.04 for gap in gaps)  # a little slack for the timer resolution
+
+
+async def test_a_throttled_request_pauses_every_other_request() -> None:
+    """After a 429, no request starts until the backoff delay has passed (real time)."""
+    times: dict[str, float] = {}
+    throttled = asyncio.Event()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        name = request.url.path.rsplit("/", 1)[-1]
+        now = asyncio.get_running_loop().time()
+        if name == "A" and not throttled.is_set():
+            times["429"] = now
+            throttled.set()
+            return httpx.Response(429)
+        times[name] = now
+        return httpx.Response(200, json={})
+
+    async with make_client(
+        httpx.MockTransport(handler),
+        concurrency=2,
+        sleep=asyncio.sleep,
+        backoff_base_s=0.4,
+        backoff_max_s=0.4,
+    ) as client:
+
+        async def later() -> None:
+            await throttled.wait()
+            await client.get_json(f"{REST_URL}/page/summary/B")
+
+        await asyncio.gather(client.get_json(f"{REST_URL}/page/summary/A"), later())
+    # The backoff delay is between 0.2 and 0.4 s; slack for one Windows clock tick.
+    assert times["B"] - times["429"] >= 0.18
+    assert times["A"] - times["429"] >= 0.18
+    assert client.stats.retries == 1

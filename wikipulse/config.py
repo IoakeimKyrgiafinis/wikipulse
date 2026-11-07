@@ -110,8 +110,9 @@ class Settings(BaseSettings):
     detect_rhythm_max: float = Field(default=2.0, gt=0)
     detect_count_reverts: bool = False
     # How often (wall-clock seconds) the detector saves its state to Redis, writes
-    # spikes to Postgres and acknowledges the stream entries it has processed.
-    detect_snapshot_interval_s: float = Field(default=60, gt=0)
+    # spikes to Postgres and acknowledges the stream entries it has processed. 30 s keeps
+    # new spikes' enrichment (stage 3, which reads them from Postgres) within a minute.
+    detect_snapshot_interval_s: float = Field(default=30, gt=0)
 
     # --- Stage 2: detection evaluation ---
     # MediaWiki Action API and REST API of English Wikipedia (ground truth, label context).
@@ -128,8 +129,9 @@ class Settings(BaseSettings):
     # Most requests to Wikimedia APIs in flight at the same time (async enrichment client).
     wiki_api_concurrency: int = Field(default=4, ge=1)
     # Smallest pause between the *starts* of two enrichment requests, in seconds. With the
-    # concurrency limit this caps the request rate (0.2 s: at most 5 requests per second).
-    enrich_min_interval_s: float = Field(default=0.2, ge=0)
+    # concurrency limit this caps the request rate (0.5 s: at most 2 requests per second;
+    # 5 per second drew HTTP 429 "too many requests" from Wikimedia).
+    enrich_min_interval_s: float = Field(default=0.5, ge=0)
     # How long cached API responses (and enriched pages) stay fresh, in hours.
     enrich_cache_ttl_h: float = Field(default=24, gt=0)
     # Keep at most this many outgoing article links per page (500 per request).

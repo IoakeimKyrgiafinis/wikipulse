@@ -10,7 +10,8 @@ keeps the same politeness rules and adds limited concurrency:
 - Action API requests carry `maxlag=5`, so the API turns us away when its database
   replicas lag (then we wait, as Wikimedia's API etiquette asks),
 - failures (network errors, HTTP 429/5xx, `maxlag`) are retried with exponential
-  backoff and jitter, honouring `Retry-After`,
+  backoff and jitter, honouring `Retry-After`; while one request waits to retry, no
+  other request starts either (a throttled client slows down as a whole),
 - answers (HTTP 200, and 404 for a page that doesn't exist) are cached with a
   time-to-live, so the same request is sent at most once per `ttl`.
 """
@@ -27,7 +28,7 @@ from typing import Any
 import httpx
 
 from wikipulse.enrich.cache import ResponseCache
-from wikipulse.eval.wiki_client import MAX_ATTEMPTS, RETRY_STATUSES
+from wikipulse.eval.wiki_client import RETRY_STATUSES
 from wikipulse.stream.resilience import Backoff
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ logger = logging.getLogger(__name__)
 CACHEABLE_STATUSES = {200, 404}
 # Ask the Action API to refuse work while its replicas lag more than 5 s (API etiquette).
 MAXLAG_S = 5
+# Attempts per request. Backoff waits about 1, 2, 4, 8, 16 s between them, so a request
+# rides out about half a minute of throttling before it is given up (and retried later).
+MAX_ATTEMPTS = 6
 
 
 class WikiApiError(Exception):
@@ -110,6 +114,7 @@ class WikimediaClient:
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         backoff_base_s: float = 1.0,
         backoff_max_s: float = 60.0,
+        max_attempts: int = MAX_ATTEMPTS,
     ) -> None:
         self.cache = cache
         self.ttl = ttl
@@ -117,6 +122,7 @@ class WikimediaClient:
         self.sleep = sleep
         self.backoff_base_s = backoff_base_s
         self.backoff_max_s = backoff_max_s
+        self.max_attempts = max_attempts
         self.http = httpx.AsyncClient(
             headers={"User-Agent": user_agent, "Accept": "application/json"},
             timeout=30.0,
@@ -126,6 +132,7 @@ class WikimediaClient:
         self._slots = asyncio.Semaphore(concurrency)
         self._turn = asyncio.Lock()
         self._next_start = 0.0  # event-loop time before which no request may start
+        self._paused_until = 0.0  # after a throttle: no request starts before this
         self._in_flight = 0
         self.stats = ClientStats()
 
@@ -158,15 +165,16 @@ class WikimediaClient:
 
     async def _fetch(self, url: str, params: dict[str, Any]) -> tuple[int, Any]:
         backoff = Backoff(self.backoff_base_s, self.backoff_max_s)
-        for attempt in range(1, MAX_ATTEMPTS + 1):
+        for attempt in range(1, self.max_attempts + 1):
             result = await self._try_once(url, params)
             if not isinstance(result, Retry):
                 return result
-            if attempt == MAX_ATTEMPTS:
+            if attempt == self.max_attempts:
                 raise WikiApiError(f"{url} {params}: {result.problem} (gave up after {attempt})")
             delay = max(backoff.next_delay(), result.wait_s)
             logger.warning("%s from %s; retrying in %.1f s", result.problem, url, delay)
             self.stats.retries += 1
+            self._pause_everyone(delay)
             await self.sleep(delay)
         raise AssertionError("unreachable")  # the loop always returns or raises
 
@@ -203,14 +211,25 @@ class WikimediaClient:
             finally:
                 self._in_flight -= 1
 
+    def _pause_everyone(self, seconds: float) -> None:
+        """Hold back every new request for `seconds` (the server asked us to slow down)."""
+        until = asyncio.get_running_loop().time() + seconds
+        self._paused_until = max(self._paused_until, until)
+
     async def _wait_for_turn(self) -> None:
-        """Space the starts of requests at least `min_interval_s` apart."""
-        if self.min_interval_s <= 0:
-            return
+        """Wait out a pause after a failure, and space request starts `min_interval_s` apart."""
         loop = asyncio.get_running_loop()
         async with self._turn:
-            wait = self._next_start - loop.time()
-            if wait > 0:
+            paused_until = self._paused_until
+            if paused_until > loop.time():
+                await self.sleep(paused_until - loop.time())
+                if self._paused_until == paused_until:  # not extended meanwhile: it's over
+                    self._paused_until = 0.0
+            if self.min_interval_s <= 0:
+                return
+            # A loop, because asyncio may wake a sleeper up to one clock tick early
+            # (about 16 ms on Windows).
+            while (wait := self._next_start - loop.time()) > 0:
                 await asyncio.sleep(wait)
             self._next_start = loop.time() + self.min_interval_s
 
