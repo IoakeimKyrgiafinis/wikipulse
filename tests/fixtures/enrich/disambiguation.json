@@ -1,0 +1,174 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Shipley",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "pages": [
+     {
+      "pageid": 152522,
+      "ns": 0,
+      "title": "Shipley",
+      "pageprops": {
+       "disambiguation": "",
+       "wikibase_item": "Q447168"
+      },
+      "links": [
+       {
+        "ns": 0,
+        "title": "Eglingham"
+       },
+       {
+        "ns": 0,
+        "title": "List of United Kingdom locations: Sg-Sh"
+       },
+       {
+        "ns": 0,
+        "title": "Shepley, West Yorkshire"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, Derbyshire"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, New South Wales"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, Northumberland"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, Oregon"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, Shropshire"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, West Sussex"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley, West Yorkshire"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley & Halmos"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley (1805 ship)"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley (UK Parliament constituency)"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley (surname)"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley Do-Nuts"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley Erskine, 14th Earl of Buchan"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley Jones"
+       },
+       {
+        "ns": 0,
+        "title": "Shipley School"
+       },
+       {
+        "ns": 0,
+        "title": "Shiply"
+       }
+      ],
+      "categories": [
+       {
+        "ns": 14,
+        "title": "Category:Disambiguation pages"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Place name disambiguation pages"
+       }
+      ]
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/api/rest_v1/page/summary/Shipley",
+  "params": {},
+  "status": 200,
+  "location": null,
+  "body": {
+   "type": "disambiguation",
+   "title": "Shipley",
+   "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Shipley</span></span>",
+   "namespace": {
+    "id": 0,
+    "text": ""
+   },
+   "wikibase_item": "Q447168",
+   "titles": {
+    "canonical": "Shipley",
+    "normalized": "Shipley",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Shipley</span></span>"
+   },
+   "pageid": 152522,
+   "lang": "en",
+   "dir": "ltr",
+   "revision": "1361205948",
+   "tid": "afbdc497-714f-11f1-9374-fc51577cf236",
+   "timestamp": "2026-06-26T11:10:49Z",
+   "description": "Topics referred to by the same term",
+   "description_source": "local",
+   "content_urls": {
+    "desktop": {
+     "page": "https://en.wikipedia.org/wiki/Shipley",
+     "revisions": "https://en.wikipedia.org/wiki/Shipley?action=history",
+     "edit": "https://en.wikipedia.org/wiki/Shipley?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Shipley"
+    },
+    "mobile": {
+     "page": "https://en.wikipedia.org/wiki/Shipley",
+     "revisions": "https://en.wikipedia.org/wiki/Special:History/Shipley",
+     "edit": "https://en.wikipedia.org/wiki/Shipley?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Shipley"
+    }
+   },
+   "extract": "Shipley may refer to:",
+   "extract_html": "<p><b>Shipley</b> may refer to:</p>"
+  }
+ }
+]

@@ -1,0 +1,37 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "WikiPulse test page that does not exist",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "pages": [
+     {
+      "ns": 0,
+      "title": "WikiPulse test page that does not exist",
+      "missing": true
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ }
+]

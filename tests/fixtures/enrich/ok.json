@@ -1,0 +1,325 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Syed Soharwardy",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "pages": [
+     {
+      "pageid": 45656556,
+      "ns": 0,
+      "title": "Syed Soharwardy",
+      "pageprops": {
+       "wikibase_item": "Q19898422"
+      },
+      "links": [
+       {
+        "ns": 0,
+        "title": "AlMaghrib Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Amritsar"
+       },
+       {
+        "ns": 0,
+        "title": "An-Nisa, 34"
+       },
+       {
+        "ns": 0,
+        "title": "Bachelor of Arts"
+       },
+       {
+        "ns": 0,
+        "title": "Bachelor of Engineering"
+       },
+       {
+        "ns": 0,
+        "title": "Chistiyya"
+       },
+       {
+        "ns": 0,
+        "title": "Ezra Levant"
+       },
+       {
+        "ns": 0,
+        "title": "Fatwa"
+       },
+       {
+        "ns": 0,
+        "title": "Grand Mufti"
+       },
+       {
+        "ns": 0,
+        "title": "Honor killings"
+       },
+       {
+        "ns": 0,
+        "title": "Ijazah"
+       },
+       {
+        "ns": 0,
+        "title": "Imam"
+       },
+       {
+        "ns": 0,
+        "title": "India"
+       },
+       {
+        "ns": 0,
+        "title": "Information technology"
+       },
+       {
+        "ns": 0,
+        "title": "Islam"
+       },
+       {
+        "ns": 0,
+        "title": "Islamic State of Iraq and the Levant"
+       },
+       {
+        "ns": 0,
+        "title": "Islamic Supreme Council of Canada"
+       },
+       {
+        "ns": 0,
+        "title": "Jyllands-Posten Muhammad cartoons controversy"
+       },
+       {
+        "ns": 0,
+        "title": "Karachi"
+       },
+       {
+        "ns": 0,
+        "title": "Karachi, Pakistan"
+       },
+       {
+        "ns": 0,
+        "title": "Kashmir"
+       },
+       {
+        "ns": 0,
+        "title": "Khawarij"
+       },
+       {
+        "ns": 0,
+        "title": "Madrasah"
+       },
+       {
+        "ns": 0,
+        "title": "Master of Engineering"
+       },
+       {
+        "ns": 0,
+        "title": "Master of Science"
+       },
+       {
+        "ns": 0,
+        "title": "Muhammad"
+       },
+       {
+        "ns": 0,
+        "title": "Murshid"
+       },
+       {
+        "ns": 0,
+        "title": "NED University of Engineering and Technology"
+       },
+       {
+        "ns": 0,
+        "title": "Naat"
+       },
+       {
+        "ns": 0,
+        "title": "National Post"
+       },
+       {
+        "ns": 0,
+        "title": "New Jersey Institute of Technology"
+       },
+       {
+        "ns": 0,
+        "title": "Pakistan"
+       },
+       {
+        "ns": 0,
+        "title": "Partition of India"
+       },
+       {
+        "ns": 0,
+        "title": "Project Management Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Project management"
+       },
+       {
+        "ns": 0,
+        "title": "Qadiriyya"
+       },
+       {
+        "ns": 0,
+        "title": "Quran"
+       },
+       {
+        "ns": 0,
+        "title": "Sayyid"
+       },
+       {
+        "ns": 0,
+        "title": "Sharia"
+       },
+       {
+        "ns": 0,
+        "title": "Sufi"
+       },
+       {
+        "ns": 0,
+        "title": "Suhrawardiyya"
+       },
+       {
+        "ns": 0,
+        "title": "Takfir"
+       },
+       {
+        "ns": 0,
+        "title": "Terrorism"
+       },
+       {
+        "ns": 0,
+        "title": "University of Calgary"
+       },
+       {
+        "ns": 0,
+        "title": "University of Karachi"
+       },
+       {
+        "ns": 0,
+        "title": "Wayback Machine"
+       },
+       {
+        "ns": 0,
+        "title": "Western Standard"
+       }
+      ],
+      "categories": [
+       {
+        "ns": 14,
+        "title": "Category:1955 births"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Canadian Muslims"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Canadian Sufis"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Living people"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Muhajir people"
+       },
+       {
+        "ns": 14,
+        "title": "Category:NED University of Engineering & Technology alumni"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Naturalized citizens of Canada"
+       },
+       {
+        "ns": 14,
+        "title": "Category:New Jersey Institute of Technology alumni"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Pakistani emigrants to Canada"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Scholars from Karachi"
+       },
+       {
+        "ns": 14,
+        "title": "Category:University of Calgary alumni"
+       },
+       {
+        "ns": 14,
+        "title": "Category:University of Karachi alumni"
+       }
+      ]
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/api/rest_v1/page/summary/Syed_Soharwardy",
+  "params": {},
+  "status": 200,
+  "location": null,
+  "body": {
+   "type": "standard",
+   "title": "Syed Soharwardy",
+   "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Syed Soharwardy</span></span>",
+   "namespace": {
+    "id": 0,
+    "text": ""
+   },
+   "wikibase_item": "Q19898422",
+   "titles": {
+    "canonical": "Syed_Soharwardy",
+    "normalized": "Syed Soharwardy",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Syed Soharwardy</span></span>"
+   },
+   "pageid": 45656556,
+   "lang": "en",
+   "dir": "ltr",
+   "revision": "1384140843",
+   "tid": "bf63e775-da20-11f1-bb86-78bfb6309dab",
+   "timestamp": "2026-11-06T20:29:21Z",
+   "description": "Pakistani–Canadian Islamic scholar",
+   "description_source": "local",
+   "content_urls": {
+    "desktop": {
+     "page": "https://en.wikipedia.org/wiki/Syed_Soharwardy",
+     "revisions": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=history",
+     "edit": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Syed_Soharwardy"
+    },
+    "mobile": {
+     "page": "https://en.wikipedia.org/wiki/Syed_Soharwardy",
+     "revisions": "https://en.wikipedia.org/wiki/Special:History/Syed_Soharwardy",
+     "edit": "https://en.wikipedia.org/wiki/Syed_Soharwardy?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Syed_Soharwardy"
+    }
+   },
+   "extract": "Hazrat Al Imaam ul imams Allama Mufti Mulana Al Sheikh ul Islam Pir Syed Azaam Badiuddin Soharwardy Shaah Sahb D.B is a Pakistani–Canadian Islamic scholar, a sheikh of the Suhrawardi Sufi order, chairman of the Al-Madinah Calgary Islamic Assembly,\n and is the founder and current president of the Islamic Supreme Council of Canada. In January 1998, he founded the group Muslims Against Terrorism.",
+   "extract_html": "<p><b>Hazrat Al Imaam ul imams Allama Mufti Mulana Al Sheikh ul Islam Pir Syed Azaam Badiuddin Soharwardy Shaah Sahb D.B</b> is a Pakistani–Canadian Islamic scholar, a sheikh of the Suhrawardi Sufi order, chairman of the Al-Madinah Calgary Islamic Assembly,\n and is the founder and current president of the Islamic Supreme Council of Canada. In January 1998, he founded the group Muslims Against Terrorism.</p>"
+  }
+ }
+]

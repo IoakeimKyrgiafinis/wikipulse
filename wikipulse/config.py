@@ -124,6 +124,19 @@ class Settings(BaseSettings):
     # Where the local Ollama server listens.
     ollama_host: str = "http://localhost:11434"
 
+    # --- Stage 3: page enrichment ---
+    # Most requests to Wikimedia APIs in flight at the same time (async enrichment client).
+    wiki_api_concurrency: int = Field(default=4, ge=1)
+    # Smallest pause between the *starts* of two enrichment requests, in seconds. With the
+    # concurrency limit this caps the request rate (0.2 s: at most 5 requests per second).
+    enrich_min_interval_s: float = Field(default=0.2, ge=0)
+    # How long cached API responses (and enriched pages) stay fresh, in hours.
+    enrich_cache_ttl_h: float = Field(default=24, gt=0)
+    # Keep at most this many outgoing article links per page (500 per request).
+    enrich_max_links: int = Field(default=5000, ge=1)
+    # How often the enrichment runner looks for new spikes in Postgres, in seconds.
+    enrich_poll_interval_s: float = Field(default=10, gt=0)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

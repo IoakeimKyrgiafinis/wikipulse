@@ -1,0 +1,5663 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Stephen Miller",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "continue": {
+    "plcontinue": "51260917|0|Howard_Baker",
+    "continue": "||pageprops|categories"
+   },
+   "query": {
+    "pages": [
+     {
+      "pageid": 51260917,
+      "ns": 0,
+      "title": "Stephen Miller",
+      "pageprops": {
+       "wikibase_item": "Q27996060"
+      },
+      "links": [
+       {
+        "ns": 0,
+        "title": "/pol/"
+       },
+       {
+        "ns": 0,
+        "title": "1819 News"
+       },
+       {
+        "ns": 0,
+        "title": "2008 Republican Party vice presidential candidate selection"
+       },
+       {
+        "ns": 0,
+        "title": "2012 United States presidential election"
+       },
+       {
+        "ns": 0,
+        "title": "2016 Republican National Convention"
+       },
+       {
+        "ns": 0,
+        "title": "2016 United States presidential election"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Berkeley protests"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Brussels NATO summit"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Donald Trump speech to a joint session of Congress"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Macron e-mail leaks"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Portland train attack"
+       },
+       {
+        "ns": 0,
+        "title": "2017 Shayrat missile strike"
+       },
+       {
+        "ns": 0,
+        "title": "2018 State of the Union Address"
+       },
+       {
+        "ns": 0,
+        "title": "2018 United States elections"
+       },
+       {
+        "ns": 0,
+        "title": "2018 United States federal budget"
+       },
+       {
+        "ns": 0,
+        "title": "2018–2019 United States federal government shutdown"
+       },
+       {
+        "ns": 0,
+        "title": "2019 State of the Union Address"
+       },
+       {
+        "ns": 0,
+        "title": "2019 Trump–Ukraine scandal"
+       },
+       {
+        "ns": 0,
+        "title": "2020 Democratic National Convention"
+       },
+       {
+        "ns": 0,
+        "title": "2020 State of the Union Address"
+       },
+       {
+        "ns": 0,
+        "title": "2020 United States presidential election"
+       },
+       {
+        "ns": 0,
+        "title": "2021 Taliban offensive"
+       },
+       {
+        "ns": 0,
+        "title": "2022 United States Senate election in Alabama"
+       },
+       {
+        "ns": 0,
+        "title": "2025 United States strikes on Venezuelan boats"
+       },
+       {
+        "ns": 0,
+        "title": "2026 Iran war"
+       },
+       {
+        "ns": 0,
+        "title": "2026 United States strikes in Venezuela"
+       },
+       {
+        "ns": 0,
+        "title": "4chan"
+       },
+       {
+        "ns": 0,
+        "title": "8chan"
+       },
+       {
+        "ns": 0,
+        "title": "ABC News (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "ACT for America"
+       },
+       {
+        "ns": 0,
+        "title": "A Choice Not an Echo"
+       },
+       {
+        "ns": 0,
+        "title": "A Conflict of Visions"
+       },
+       {
+        "ns": 0,
+        "title": "A Sacred Oath"
+       },
+       {
+        "ns": 0,
+        "title": "Aaron Reitz"
+       },
+       {
+        "ns": 0,
+        "title": "Abraham Accords"
+       },
+       {
+        "ns": 0,
+        "title": "Accuracy in Media"
+       },
+       {
+        "ns": 0,
+        "title": "Acton Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Adam Goldman"
+       },
+       {
+        "ns": 0,
+        "title": "Adam Liptak"
+       },
+       {
+        "ns": 0,
+        "title": "Administrator of the Drug Enforcement Administration"
+       },
+       {
+        "ns": 0,
+        "title": "Adrian Vermeule"
+       },
+       {
+        "ns": 0,
+        "title": "Agenda 47"
+       },
+       {
+        "ns": 0,
+        "title": "Aileen Cannon"
+       },
+       {
+        "ns": 0,
+        "title": "Al Jazeera"
+       },
+       {
+        "ns": 0,
+        "title": "Alabama"
+       },
+       {
+        "ns": 0,
+        "title": "Alain de Benoist"
+       },
+       {
+        "ns": 0,
+        "title": "Alan Rappeport"
+       },
+       {
+        "ns": 0,
+        "title": "Alex Jones"
+       },
+       {
+        "ns": 0,
+        "title": "Alex Nelson Wong"
+       },
+       {
+        "ns": 0,
+        "title": "Alexander Haig"
+       },
+       {
+        "ns": 0,
+        "title": "Alexander Hamilton Institute for the Study of Western Civilization"
+       },
+       {
+        "ns": 0,
+        "title": "Alexis de Tocqueville Institution"
+       },
+       {
+        "ns": 0,
+        "title": "Alien and Sedition Acts"
+       },
+       {
+        "ns": 0,
+        "title": "Alina Habba"
+       },
+       {
+        "ns": 0,
+        "title": "Allan Bloom"
+       },
+       {
+        "ns": 0,
+        "title": "Alliance Defending Freedom"
+       },
+       {
+        "ns": 0,
+        "title": "Alligator Alcatraz"
+       },
+       {
+        "ns": 0,
+        "title": "Alpha and beta male"
+       },
+       {
+        "ns": 0,
+        "title": "Alt-America"
+       },
+       {
+        "ns": 0,
+        "title": "Alt-lite"
+       },
+       {
+        "ns": 0,
+        "title": "Alt-right"
+       },
+       {
+        "ns": 0,
+        "title": "Alt-right pipeline"
+       },
+       {
+        "ns": 0,
+        "title": "Alt-tech"
+       },
+       {
+        "ns": 0,
+        "title": "AltRight Corporation"
+       },
+       {
+        "ns": 0,
+        "title": "Alyssa Farah Griffin"
+       },
+       {
+        "ns": 0,
+        "title": "America First"
+       },
+       {
+        "ns": 0,
+        "title": "America First Committee"
+       },
+       {
+        "ns": 0,
+        "title": "America First Legal"
+       },
+       {
+        "ns": 0,
+        "title": "America First Party (1943)"
+       },
+       {
+        "ns": 0,
+        "title": "America First Policy Institute"
+       },
+       {
+        "ns": 0,
+        "title": "America First Political Action Conference"
+       },
+       {
+        "ns": 0,
+        "title": "American Center for Law & Justice"
+       },
+       {
+        "ns": 0,
+        "title": "American Conservative Union"
+       },
+       {
+        "ns": 0,
+        "title": "American Enterprise Institute"
+       },
+       {
+        "ns": 0,
+        "title": "American Family Association"
+       },
+       {
+        "ns": 0,
+        "title": "American Freedom Party"
+       },
+       {
+        "ns": 0,
+        "title": "American Independent Party"
+       },
+       {
+        "ns": 0,
+        "title": "American Nationalism"
+       },
+       {
+        "ns": 0,
+        "title": "American Renaissance (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "American Thinker"
+       },
+       {
+        "ns": 0,
+        "title": "American exceptionalism"
+       },
+       {
+        "ns": 0,
+        "title": "American militia movement"
+       },
+       {
+        "ns": 0,
+        "title": "American nationalism"
+       },
+       {
+        "ns": 0,
+        "title": "Americans for Prosperity"
+       },
+       {
+        "ns": 0,
+        "title": "Amity Shlaes"
+       },
+       {
+        "ns": 0,
+        "title": "Amy Chozick"
+       },
+       {
+        "ns": 0,
+        "title": "Amy Coney Barrett"
+       },
+       {
+        "ns": 0,
+        "title": "Amy Swonger"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Anglin"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Bacevich"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Breitbart"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Bremberg"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Card"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Oldham"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Schlafly"
+       },
+       {
+        "ns": 0,
+        "title": "Andy Baker (national security advisor)"
+       },
+       {
+        "ns": 0,
+        "title": "Andy Ngo"
+       },
+       {
+        "ns": 0,
+        "title": "Angella Reid"
+       },
+       {
+        "ns": 0,
+        "title": "Angry Goy II"
+       },
+       {
+        "ns": 0,
+        "title": "Anita Dunn"
+       },
+       {
+        "ns": 0,
+        "title": "Ann Coulter"
+       },
+       {
+        "ns": 0,
+        "title": "Anna Cristina Niceta Lloyd"
+       },
+       {
+        "ns": 0,
+        "title": "Anna Kelly (spokesperson)"
+       },
+       {
+        "ns": 0,
+        "title": "Annie Karni"
+       },
+       {
+        "ns": 0,
+        "title": "Annie Tomasini"
+       },
+       {
+        "ns": 0,
+        "title": "Anthony Fauci"
+       },
+       {
+        "ns": 0,
+        "title": "Anthony Salisbury"
+       },
+       {
+        "ns": 0,
+        "title": "Anthony Scaramucci"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-Communist Action"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-Masonic Party"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-Zionism"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-communism"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-elitism"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-establishment"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-immigration"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-intellectualism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-woke"
+       },
+       {
+        "ns": 0,
+        "title": "Antonin Scalia"
+       },
+       {
+        "ns": 0,
+        "title": "April Fools' Day"
+       },
+       {
+        "ns": 0,
+        "title": "Arabs"
+       },
+       {
+        "ns": 0,
+        "title": "Archive.org"
+       },
+       {
+        "ns": 0,
+        "title": "Arizona"
+       },
+       {
+        "ns": 0,
+        "title": "Arthur Laffer"
+       },
+       {
+        "ns": 0,
+        "title": "Ashkenazi Jews"
+       },
+       {
+        "ns": 0,
+        "title": "Assassination of Charlie Kirk"
+       },
+       {
+        "ns": 0,
+        "title": "Assault of DeAndre Harris"
+       },
+       {
+        "ns": 0,
+        "title": "Associated Press"
+       },
+       {
+        "ns": 0,
+        "title": "Atlas Network"
+       },
+       {
+        "ns": 0,
+        "title": "Augustus Sol Invictus"
+       },
+       {
+        "ns": 0,
+        "title": "Autarky"
+       },
+       {
+        "ns": 0,
+        "title": "Authoritarianism"
+       },
+       {
+        "ns": 0,
+        "title": "Authoritarianism during the Trump presidencies"
+       },
+       {
+        "ns": 0,
+        "title": "Axios (website)"
+       },
+       {
+        "ns": 0,
+        "title": "Ayn Rand"
+       },
+       {
+        "ns": 0,
+        "title": "Bachelor of Arts"
+       },
+       {
+        "ns": 0,
+        "title": "Baked Alaska (influencer)"
+       },
+       {
+        "ns": 0,
+        "title": "Barack Obama"
+       },
+       {
+        "ns": 0,
+        "title": "Barry Goldwater"
+       },
+       {
+        "ns": 0,
+        "title": "Barry Goldwater 1964 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Barry Steven Jackson"
+       },
+       {
+        "ns": 0,
+        "title": "Barstool conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Basket of deplorables"
+       },
+       {
+        "ns": 0,
+        "title": "Beau Harrison"
+       },
+       {
+        "ns": 0,
+        "title": "Ben Collins (reporter)"
+       },
+       {
+        "ns": 0,
+        "title": "Ben Garrison"
+       },
+       {
+        "ns": 0,
+        "title": "Ben LaBolt"
+       },
+       {
+        "ns": 0,
+        "title": "Ben Moss (attorney)"
+       },
+       {
+        "ns": 0,
+        "title": "Ben Shapiro"
+       },
+       {
+        "ns": 0,
+        "title": "Bernie Moreno"
+       },
+       {
+        "ns": 0,
+        "title": "Beryl Howell"
+       },
+       {
+        "ns": 0,
+        "title": "Betsy Woodruff Swan"
+       },
+       {
+        "ns": 0,
+        "title": "Bibcode (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Bibliography of conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Biden–Ukraine conspiracy theory"
+       },
+       {
+        "ns": 0,
+        "title": "Bilingual education"
+       },
+       {
+        "ns": 0,
+        "title": "Bill Kristol"
+       },
+       {
+        "ns": 0,
+        "title": "Bill McGinley"
+       },
+       {
+        "ns": 0,
+        "title": "Bill Moyers"
+       },
+       {
+        "ns": 0,
+        "title": "Bill O'Reilly (political commentator)"
+       },
+       {
+        "ns": 0,
+        "title": "Bill Shine"
+       },
+       {
+        "ns": 0,
+        "title": "Bill Stepien"
+       },
+       {
+        "ns": 0,
+        "title": "Birthright Israel"
+       },
+       {
+        "ns": 0,
+        "title": "Birthright citizenship in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "BitChute"
+       },
+       {
+        "ns": 0,
+        "title": "Black conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Blaze Media"
+       },
+       {
+        "ns": 0,
+        "title": "Bloomberg Businessweek"
+       },
+       {
+        "ns": 0,
+        "title": "Bob Grant (radio host)"
+       },
+       {
+        "ns": 0,
+        "title": "Boll weevil (politics)"
+       },
+       {
+        "ns": 0,
+        "title": "Boogaloo movement"
+       },
+       {
+        "ns": 0,
+        "title": "Border Security, Economic Opportunity, and Immigration Modernization Act of 2013"
+       },
+       {
+        "ns": 0,
+        "title": "Bourbon Democrat"
+       },
+       {
+        "ns": 0,
+        "title": "Bradley Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "Bradley Impact Fund"
+       },
+       {
+        "ns": 0,
+        "title": "Brandon Darby"
+       },
+       {
+        "ns": 0,
+        "title": "Breitbart News"
+       },
+       {
+        "ns": 0,
+        "title": "Breitbart News Daily"
+       },
+       {
+        "ns": 0,
+        "title": "Brett Kavanaugh"
+       },
+       {
+        "ns": 0,
+        "title": "Brett Stevens"
+       },
+       {
+        "ns": 0,
+        "title": "Brian Deese"
+       },
+       {
+        "ns": 0,
+        "title": "Brian Jack"
+       },
+       {
+        "ns": 0,
+        "title": "Bridgewater Associates"
+       },
+       {
+        "ns": 0,
+        "title": "Brigitte Gabriel"
+       },
+       {
+        "ns": 0,
+        "title": "Bronze Age Pervert"
+       },
+       {
+        "ns": 0,
+        "title": "Brooke Rollins"
+       },
+       {
+        "ns": 0,
+        "title": "Bruce Reed (political operative)"
+       },
+       {
+        "ns": 0,
+        "title": "Bryan Bender"
+       },
+       {
+        "ns": 0,
+        "title": "Bureau of Population, Refugees and Migration"
+       },
+       {
+        "ns": 0,
+        "title": "Business nationalism"
+       },
+       {
+        "ns": 0,
+        "title": "C-SPAN"
+       },
+       {
+        "ns": 0,
+        "title": "CNN"
+       },
+       {
+        "ns": 0,
+        "title": "COVID-19"
+       },
+       {
+        "ns": 0,
+        "title": "COVID-19 pandemic in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Caitlin Dickerson"
+       },
+       {
+        "ns": 0,
+        "title": "Calvin Coolidge"
+       },
+       {
+        "ns": 0,
+        "title": "Candace Owens"
+       },
+       {
+        "ns": 0,
+        "title": "Carl Benjamin"
+       },
+       {
+        "ns": 0,
+        "title": "Carol Leonnig"
+       },
+       {
+        "ns": 0,
+        "title": "Casino (1995 film)"
+       },
+       {
+        "ns": 0,
+        "title": "Cedric Richmond"
+       },
+       {
+        "ns": 0,
+        "title": "Center for Immigration Studies"
+       },
+       {
+        "ns": 0,
+        "title": "Center for Security Policy"
+       },
+       {
+        "ns": 0,
+        "title": "Center for the National Interest"
+       },
+       {
+        "ns": 0,
+        "title": "Central American migrant caravans"
+       },
+       {
+        "ns": 0,
+        "title": "Chad Chronister"
+       },
+       {
+        "ns": 0,
+        "title": "Chad Mizelle"
+       },
+       {
+        "ns": 0,
+        "title": "Chair of the Council on Environmental Quality"
+       },
+       {
+        "ns": 0,
+        "title": "Chalcedon Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "Charles C. Johnson"
+       },
+       {
+        "ns": 0,
+        "title": "Charles Coughlin"
+       },
+       {
+        "ns": 0,
+        "title": "Charles Krauthammer"
+       },
+       {
+        "ns": 0,
+        "title": "Charles Kupperman"
+       },
+       {
+        "ns": 0,
+        "title": "Charles Murray (political scientist)"
+       },
+       {
+        "ns": 0,
+        "title": "Charleston church shooting"
+       },
+       {
+        "ns": 0,
+        "title": "Charlie Kirk"
+       },
+       {
+        "ns": 0,
+        "title": "Charlie Savage (author)"
+       },
+       {
+        "ns": 0,
+        "title": "Charlie Savage (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Charlottesville car attack"
+       },
+       {
+        "ns": 0,
+        "title": "Chicago Cubs"
+       },
+       {
+        "ns": 0,
+        "title": "Chicago Tribune"
+       },
+       {
+        "ns": 0,
+        "title": "Chicano Student Movement of Aztlán"
+       },
+       {
+        "ns": 0,
+        "title": "Chief Information Officer of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Chief Technology Officer of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Chief of Staff to the Vice President of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Chris Liddell"
+       },
+       {
+        "ns": 0,
+        "title": "Christchurch mosque shootings"
+       },
+       {
+        "ns": 0,
+        "title": "Christian Voice (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Christian Zionism"
+       },
+       {
+        "ns": 0,
+        "title": "Christian nationalism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Christian right"
+       },
+       {
+        "ns": 0,
+        "title": "Christopher Caldwell (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Christopher Cantwell"
+       },
+       {
+        "ns": 0,
+        "title": "Christopher Phelan"
+       },
+       {
+        "ns": 0,
+        "title": "Chronicles (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "Chuck Schumer"
+       },
+       {
+        "ns": 0,
+        "title": "CityCenterDC"
+       },
+       {
+        "ns": 0,
+        "title": "City Journal"
+       },
+       {
+        "ns": 0,
+        "title": "Civil rights movement"
+       },
+       {
+        "ns": 0,
+        "title": "Clare Boothe Luce"
+       },
+       {
+        "ns": 0,
+        "title": "Claremont Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Claremont Review of Books"
+       },
+       {
+        "ns": 0,
+        "title": "Clarence Thomas"
+       },
+       {
+        "ns": 0,
+        "title": "Climate change denial"
+       },
+       {
+        "ns": 0,
+        "title": "Club for Growth"
+       },
+       {
+        "ns": 0,
+        "title": "Cody Keenan"
+       },
+       {
+        "ns": 0,
+        "title": "Collegiate Network"
+       },
+       {
+        "ns": 0,
+        "title": "Columbia University"
+       },
+       {
+        "ns": 0,
+        "title": "Columbia University's settlement with the Trump administration"
+       },
+       {
+        "ns": 0,
+        "title": "Comicsgate"
+       },
+       {
+        "ns": 0,
+        "title": "Commentary (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "Compassionate conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Concerned Women for America"
+       },
+       {
+        "ns": 0,
+        "title": "Confederate States of America"
+       },
+       {
+        "ns": 0,
+        "title": "Confirmation"
+       },
+       {
+        "ns": 0,
+        "title": "ConservAmerica"
+       },
+       {
+        "ns": 0,
+        "title": "Conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Democrat"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Manifesto"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Partnership Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Party of New York State"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Political Action Conference"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative Review"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative coalition"
+       },
+       {
+        "ns": 0,
+        "title": "Conservative talk radio"
+       },
+       {
+        "ns": 0,
+        "title": "Consolidated Appropriations Act, 2018"
+       },
+       {
+        "ns": 0,
+        "title": "Constitutional Union Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Constitutionalism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Contempt of court"
+       },
+       {
+        "ns": 0,
+        "title": "Corey Lewandowski"
+       },
+       {
+        "ns": 0,
+        "title": "Council for National Policy"
+       },
+       {
+        "ns": 0,
+        "title": "Council of Economic Advisers"
+       },
+       {
+        "ns": 0,
+        "title": "Council on Environmental Quality"
+       },
+       {
+        "ns": 0,
+        "title": "Counselor to the President"
+       },
+       {
+        "ns": 0,
+        "title": "Craps"
+       },
+       {
+        "ns": 0,
+        "title": "Criminal trial of Donald Trump in New York"
+       },
+       {
+        "ns": 0,
+        "title": "Criticism of Israel"
+       },
+       {
+        "ns": 0,
+        "title": "Crystal Mangum"
+       },
+       {
+        "ns": 0,
+        "title": "Cuckservative"
+       },
+       {
+        "ns": 0,
+        "title": "Cultural Marxism conspiracy theory"
+       },
+       {
+        "ns": 0,
+        "title": "Culture Warlords"
+       },
+       {
+        "ns": 0,
+        "title": "Curtis Yarvin"
+       },
+       {
+        "ns": 0,
+        "title": "DNA"
+       },
+       {
+        "ns": 0,
+        "title": "Dan Bongino"
+       },
+       {
+        "ns": 0,
+        "title": "Dan Pfeiffer"
+       },
+       {
+        "ns": 0,
+        "title": "Dan Quayle"
+       },
+       {
+        "ns": 0,
+        "title": "Dan Scavino"
+       },
+       {
+        "ns": 0,
+        "title": "Daniel Bell"
+       },
+       {
+        "ns": 0,
+        "title": "Daniel Friberg"
+       },
+       {
+        "ns": 0,
+        "title": "Dark Enlightenment"
+       },
+       {
+        "ns": 0,
+        "title": "Daryle Lamont Jenkins"
+       },
+       {
+        "ns": 0,
+        "title": "Dasha Burns"
+       },
+       {
+        "ns": 0,
+        "title": "Dave Brat"
+       },
+       {
+        "ns": 0,
+        "title": "Dave McCormick"
+       },
+       {
+        "ns": 0,
+        "title": "David A. Fahrenthold"
+       },
+       {
+        "ns": 0,
+        "title": "David Axelrod"
+       },
+       {
+        "ns": 0,
+        "title": "David Brooks (commentator)"
+       },
+       {
+        "ns": 0,
+        "title": "David Duke"
+       },
+       {
+        "ns": 0,
+        "title": "David E. Sanger"
+       },
+       {
+        "ns": 0,
+        "title": "David Horowitz"
+       },
+       {
+        "ns": 0,
+        "title": "David Horowitz Freedom Center"
+       },
+       {
+        "ns": 0,
+        "title": "David Plouffe"
+       },
+       {
+        "ns": 0,
+        "title": "David Warrington"
+       },
+       {
+        "ns": 0,
+        "title": "Death of Abu Bakr al-Baghdadi"
+       },
+       {
+        "ns": 0,
+        "title": "Deborah Birx"
+       },
+       {
+        "ns": 0,
+        "title": "Deferred Action for Childhood Arrivals"
+       },
+       {
+        "ns": 0,
+        "title": "Democracy in America"
+       },
+       {
+        "ns": 0,
+        "title": "Democratic Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Denis McDonough"
+       },
+       {
+        "ns": 0,
+        "title": "Dennis Prager"
+       },
+       {
+        "ns": 0,
+        "title": "DeploraBall"
+       },
+       {
+        "ns": 0,
+        "title": "Deplorable Pride"
+       },
+       {
+        "ns": 0,
+        "title": "Deportation of Kilmar Abrego Garcia"
+       },
+       {
+        "ns": 0,
+        "title": "Deputy National Security Advisor"
+       },
+       {
+        "ns": 0,
+        "title": "Derek Lyons"
+       },
+       {
+        "ns": 0,
+        "title": "Devil's Bargain"
+       },
+       {
+        "ns": 0,
+        "title": "DezNat"
+       },
+       {
+        "ns": 0,
+        "title": "Diagolon"
+       },
+       {
+        "ns": 0,
+        "title": "Dick Cheney"
+       },
+       {
+        "ns": 0,
+        "title": "Dillon Irizarry"
+       },
+       {
+        "ns": 0,
+        "title": "Dina Powell"
+       },
+       {
+        "ns": 0,
+        "title": "Dinesh D'Souza"
+       },
+       {
+        "ns": 0,
+        "title": "Director of U.S. Immigration and Customs Enforcement"
+       },
+       {
+        "ns": 0,
+        "title": "Director of the Federal Bureau of Investigation"
+       },
+       {
+        "ns": 0,
+        "title": "Director of the United States Secret Service"
+       },
+       {
+        "ns": 0,
+        "title": "Discover the Networks"
+       },
+       {
+        "ns": 0,
+        "title": "Dismissal of James Comey"
+       },
+       {
+        "ns": 0,
+        "title": "District of Columbia National Guard"
+       },
+       {
+        "ns": 0,
+        "title": "Dixiecrat"
+       },
+       {
+        "ns": 0,
+        "title": "Doi (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Don McGahn"
+       },
+       {
+        "ns": 0,
+        "title": "Donald Regan"
+       },
+       {
+        "ns": 0,
+        "title": "Donald Rumsfeld"
+       },
+       {
+        "ns": 0,
+        "title": "Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Donald Trump 2016 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Dora Apel"
+       },
+       {
+        "ns": 0,
+        "title": "Doug Fears"
+       },
+       {
+        "ns": 0,
+        "title": "Doug Sosnik"
+       },
+       {
+        "ns": 0,
+        "title": "Douglas Hoelscher"
+       },
+       {
+        "ns": 0,
+        "title": "Drill, baby, drill"
+       },
+       {
+        "ns": 0,
+        "title": "Duke Blue Devils men's lacrosse"
+       },
+       {
+        "ns": 0,
+        "title": "Duke Chronicle"
+       },
+       {
+        "ns": 0,
+        "title": "Duke University"
+       },
+       {
+        "ns": 0,
+        "title": "Duke lacrosse rape hoax"
+       },
+       {
+        "ns": 0,
+        "title": "Dunning School"
+       },
+       {
+        "ns": 0,
+        "title": "Dwight D. Eisenhower"
+       },
+       {
+        "ns": 0,
+        "title": "Eagle Forum"
+       },
+       {
+        "ns": 0,
+        "title": "Education policy of the second Trump administration"
+       },
+       {
+        "ns": 0,
+        "title": "Edward Elgar Publishing"
+       },
+       {
+        "ns": 0,
+        "title": "Edwin Meese"
+       },
+       {
+        "ns": 0,
+        "title": "Eileen Sullivan"
+       },
+       {
+        "ns": 0,
+        "title": "Elaine Duke"
+       },
+       {
+        "ns": 0,
+        "title": "Eli Stokols"
+       },
+       {
+        "ns": 0,
+        "title": "Eliana Johnson"
+       },
+       {
+        "ns": 0,
+        "title": "Elizabeth Sherwood-Randall"
+       },
+       {
+        "ns": 0,
+        "title": "Elliott Kline"
+       },
+       {
+        "ns": 0,
+        "title": "Elon Musk"
+       },
+       {
+        "ns": 0,
+        "title": "Elvis Presley"
+       },
+       {
+        "ns": 0,
+        "title": "Emil Bove"
+       },
+       {
+        "ns": 0,
+        "title": "Emma Doyle"
+       },
+       {
+        "ns": 0,
+        "title": "Emmet Flood"
+       },
+       {
+        "ns": 0,
+        "title": "Encounter Books"
+       },
+       {
+        "ns": 0,
+        "title": "End Domestic Terrorism rally"
+       },
+       {
+        "ns": 0,
+        "title": "English language"
+       },
+       {
+        "ns": 0,
+        "title": "Epik"
+       },
+       {
+        "ns": 0,
+        "title": "Eric Cantor"
+       },
+       {
+        "ns": 0,
+        "title": "Eric Herschmann"
+       },
+       {
+        "ns": 0,
+        "title": "Eric P. Schmitt"
+       },
+       {
+        "ns": 0,
+        "title": "Eric Schmitt"
+       },
+       {
+        "ns": 0,
+        "title": "Eric Ueland"
+       },
+       {
+        "ns": 0,
+        "title": "Eric Voegelin"
+       },
+       {
+        "ns": 0,
+        "title": "Erik von Kuehnelt-Leddihn"
+       },
+       {
+        "ns": 0,
+        "title": "Ernest van den Haag"
+       },
+       {
+        "ns": 0,
+        "title": "Erskine Bowles"
+       },
+       {
+        "ns": 0,
+        "title": "Ethan Nordean"
+       },
+       {
+        "ns": 0,
+        "title": "Ethics and Public Policy Center"
+       },
+       {
+        "ns": 0,
+        "title": "Eugene Daniels"
+       },
+       {
+        "ns": 0,
+        "title": "Eugene Genovese"
+       },
+       {
+        "ns": 0,
+        "title": "Eurasia"
+       },
+       {
+        "ns": 0,
+        "title": "Everett Dirksen"
+       },
+       {
+        "ns": 0,
+        "title": "Evie Magazine"
+       },
+       {
+        "ns": 0,
+        "title": "Executive Office of the President of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Executive Order 13769"
+       },
+       {
+        "ns": 0,
+        "title": "Executive order"
+       },
+       {
+        "ns": 0,
+        "title": "Executive privilege"
+       },
+       {
+        "ns": 0,
+        "title": "Faith Goldy"
+       },
+       {
+        "ns": 0,
+        "title": "Faith and Freedom Coalition"
+       },
+       {
+        "ns": 0,
+        "title": "False claims of fraud in the 2020 presidential election"
+       },
+       {
+        "ns": 0,
+        "title": "Familialism"
+       },
+       {
+        "ns": 0,
+        "title": "Family Research Council"
+       },
+       {
+        "ns": 0,
+        "title": "Family Research Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Family values"
+       },
+       {
+        "ns": 0,
+        "title": "Far-right"
+       },
+       {
+        "ns": 0,
+        "title": "Fathers' rights movement"
+       },
+       {
+        "ns": 0,
+        "title": "Federal Bureau of Investigation"
+       },
+       {
+        "ns": 0,
+        "title": "Federal government of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Federalism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Federalist Era"
+       },
+       {
+        "ns": 0,
+        "title": "Federalist Party"
+       },
+       {
+        "ns": 0,
+        "title": "Federalist Society"
+       },
+       {
+        "ns": 0,
+        "title": "Federation for American Immigration Reform"
+       },
+       {
+        "ns": 0,
+        "title": "Feels Good Man"
+       },
+       {
+        "ns": 0,
+        "title": "Financial Times"
+       },
+       {
+        "ns": 0,
+        "title": "First 100 days of Donald Trump's first presidency"
+       },
+       {
+        "ns": 0,
+        "title": "First Things"
+       },
+       {
+        "ns": 0,
+        "title": "First impeachment of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "First inauguration of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "First presidency of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "First presidential transition of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Fiscal conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Flag of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Florida"
+       },
+       {
+        "ns": 0,
+        "title": "Focus on the Family"
+       },
+       {
+        "ns": 0,
+        "title": "Foreign Agents Registration Act"
+       },
+       {
+        "ns": 0,
+        "title": "Foundation for Moral Law"
+       },
+       {
+        "ns": 0,
+        "title": "Fourteen Words"
+       },
+       {
+        "ns": 0,
+        "title": "Fox & Friends"
+       },
+       {
+        "ns": 0,
+        "title": "Fox News"
+       },
+       {
+        "ns": 0,
+        "title": "Frances Townsend"
+       },
+       {
+        "ns": 0,
+        "title": "Francis Schaeffer"
+       },
+       {
+        "ns": 0,
+        "title": "Frank Meyer (political philosopher)"
+       },
+       {
+        "ns": 0,
+        "title": "Franklin News Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "FreedomWorks"
+       },
+       {
+        "ns": 0,
+        "title": "Freedom Caucus"
+       },
+       {
+        "ns": 0,
+        "title": "FrontPage Magazine"
+       },
+       {
+        "ns": 0,
+        "title": "Fusionism"
+       },
+       {
+        "ns": 0,
+        "title": "Gab (social network)"
+       },
+       {
+        "ns": 0,
+        "title": "Gamergate (harassment campaign)"
+       },
+       {
+        "ns": 0,
+        "title": "Gang of Eight (immigration)"
+       },
+       {
+        "ns": 0,
+        "title": "Garrett Hardin"
+       },
+       {
+        "ns": 0,
+        "title": "Gary Cohn"
+       },
+       {
+        "ns": 0,
+        "title": "Gatestone Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Gays Against Groomers"
+       },
+       {
+        "ns": 0,
+        "title": "Gene Sperling"
+       },
+       {
+        "ns": 0,
+        "title": "George H. W. Bush"
+       },
+       {
+        "ns": 0,
+        "title": "George Santayana"
+       },
+       {
+        "ns": 0,
+        "title": "George Sifakis"
+       },
+       {
+        "ns": 0,
+        "title": "George Stephanopoulos"
+       },
+       {
+        "ns": 0,
+        "title": "George Sutherland"
+       },
+       {
+        "ns": 0,
+        "title": "George W. Bush"
+       },
+       {
+        "ns": 0,
+        "title": "George Wallace 1968 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "George Will"
+       },
+       {
+        "ns": 0,
+        "title": "Gertrude Himmelfarb"
+       },
+       {
+        "ns": 0,
+        "title": "Gettr"
+       },
+       {
+        "ns": 0,
+        "title": "Ginni Thomas"
+       },
+       {
+        "ns": 0,
+        "title": "Glenn Beck"
+       },
+       {
+        "ns": 0,
+        "title": "Glenn Loury"
+       },
+       {
+        "ns": 0,
+        "title": "Glenn Thrush"
+       },
+       {
+        "ns": 0,
+        "title": "Globalizations"
+       },
+       {
+        "ns": 0,
+        "title": "God and Man at Yale"
+       },
+       {
+        "ns": 0,
+        "title": "Great Replacement conspiracy theory"
+       },
+       {
+        "ns": 0,
+        "title": "Green card"
+       },
+       {
+        "ns": 0,
+        "title": "Green conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Greenland"
+       },
+       {
+        "ns": 0,
+        "title": "Greenland crisis"
+       },
+       {
+        "ns": 0,
+        "title": "Greg Johnson (white nationalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Gregory Barbaccia"
+       },
+       {
+        "ns": 0,
+        "title": "Growth & Opportunity Project"
+       },
+       {
+        "ns": 0,
+        "title": "Groypers"
+       },
+       {
+        "ns": 0,
+        "title": "Guillaume Faye"
+       },
+       {
+        "ns": 0,
+        "title": "Gun Owners of America"
+       },
+       {
+        "ns": 0,
+        "title": "GypsyCrusader"
+       },
+       {
+        "ns": 0,
+        "title": "H-1B visa"
+       },
+       {
+        "ns": 0,
+        "title": "H. P. Lovecraft"
+       },
+       {
+        "ns": 0,
+        "title": "H. R. Haldeman"
+       },
+       {
+        "ns": 0,
+        "title": "H. R. McMaster"
+       },
+       {
+        "ns": 0,
+        "title": "Haakon Forwald"
+       },
+       {
+        "ns": 0,
+        "title": "Haaretz"
+       },
+       {
+        "ns": 0,
+        "title": "Habeas corpus"
+       },
+       {
+        "ns": 0,
+        "title": "Hamilton Jordan"
+       },
+       {
+        "ns": 0,
+        "title": "Hans-Hermann Hoppe"
+       },
+       {
+        "ns": 0,
+        "title": "Happy Merchant"
+       },
+       {
+        "ns": 0,
+        "title": "Harrison Fields"
+       },
+       {
+        "ns": 0,
+        "title": "Harry V. Jaffa"
+       },
+       {
+        "ns": 0,
+        "title": "Harvard v. Department of Health and Human Services"
+       },
+       {
+        "ns": 0,
+        "title": "Harvey Mansfield"
+       },
+       {
+        "ns": 0,
+        "title": "Hayley Harrison"
+       },
+       {
+        "ns": 0,
+        "title": "Heartland Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Heather Mac Donald"
+       },
+       {
+        "ns": 0,
+        "title": "Hebrew school"
+       },
+       {
+        "ns": 0,
+        "title": "Henry A. Giroux"
+       },
+       {
+        "ns": 0,
+        "title": "Henry Adams"
+       },
+       {
+        "ns": 0,
+        "title": "Henry Cabot Lodge"
+       },
+       {
+        "ns": 0,
+        "title": "Henry Clay"
+       },
+       {
+        "ns": 0,
+        "title": "Henry Regnery"
+       },
+       {
+        "ns": 0,
+        "title": "Herbert Hoover"
+       },
+       {
+        "ns": 0,
+        "title": "Heritage Action"
+       },
+       {
+        "ns": 0,
+        "title": "Hillary Clinton"
+       },
+       {
+        "ns": 0,
+        "title": "Hillbilly Elegy"
+       },
+       {
+        "ns": 0,
+        "title": "Hillsborough County, Florida"
+       },
+       {
+        "ns": 0,
+        "title": "Hillsdale College"
+       },
+       {
+        "ns": 0,
+        "title": "Hispanic and Latino conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "History of conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Hogan Gidley"
+       },
+       {
+        "ns": 0,
+        "title": "Homeland Security Advisor"
+       },
+       {
+        "ns": 0,
+        "title": "Homeland Security Council"
+       },
+       {
+        "ns": 0,
+        "title": "Hoover Institution"
+       },
+       {
+        "ns": 0,
+        "title": "Hope Hicks"
+       },
+       {
+        "ns": 0,
+        "title": "Hot Air"
+       },
+       {
+        "ns": 0,
+        "title": "House Majority Leader"
+       }
+      ],
+      "categories": [
+       {
+        "ns": 14,
+        "title": "Category:1985 births"
+       },
+       {
+        "ns": 14,
+        "title": "Category:21st-century American Jews"
+       },
+       {
+        "ns": 14,
+        "title": "Category:21st-century American male non-fiction writers"
+       },
+       {
+        "ns": 14,
+        "title": "Category:21st-century American non-fiction writers"
+       },
+       {
+        "ns": 14,
+        "title": "Category:21st-century American politicians"
+       },
+       {
+        "ns": 14,
+        "title": "Category:American people of Belarusian-Jewish descent"
+       },
+       {
+        "ns": 14,
+        "title": "Category:American political writers"
+       },
+       {
+        "ns": 14,
+        "title": "Category:American right-wing activists"
+       },
+       {
+        "ns": 14,
+        "title": "Category:American speechwriters"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Anti-immigration activists"
+       },
+       {
+        "ns": 14,
+        "title": "Category:California Republicans"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Donald Trump 2016 presidential campaign"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Duke University Trinity College of Arts and Sciences alumni"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Far-right politics in the United States"
+       },
+       {
+        "ns": 14,
+        "title": "Category:First Trump administration personnel"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Jewish American non-fiction writers"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Living people"
+       },
+       {
+        "ns": 14,
+        "title": "Category:People associated with the 2016 United States presidential election"
+       },
+       {
+        "ns": 14,
+        "title": "Category:People associated with the 2020 United States presidential election"
+       },
+       {
+        "ns": 14,
+        "title": "Category:People associated with the 2024 United States presidential election"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Santa Monica High School alumni"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Second Trump administration cabinet members"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Senior advisors to the president of the United States"
+       },
+       {
+        "ns": 14,
+        "title": "Category:United States congressional aides"
+       },
+       {
+        "ns": 14,
+        "title": "Category:White House chiefs of staff"
+       },
+       {
+        "ns": 14,
+        "title": "Category:White House deputy chiefs of staff"
+       },
+       {
+        "ns": 14,
+        "title": "Category:White House directors of speechwriting"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Writers from Santa Monica, California"
+       }
+      ]
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Stephen Miller",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "plcontinue": "51260917|0|Howard_Baker",
+   "continue": "||pageprops|categories",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "continue": {
+    "plcontinue": "51260917|0|Robert_A._Taft",
+    "continue": "||pageprops|categories"
+   },
+   "limits": {
+    "categories": 500,
+    "links": 500
+   },
+   "query": {
+    "pages": [
+     {
+      "pageid": 51260917,
+      "ns": 0,
+      "title": "Stephen Miller",
+      "links": [
+       {
+        "ns": 0,
+        "title": "Howard Baker"
+       },
+       {
+        "ns": 0,
+        "title": "Howard Phillips (activist)"
+       },
+       {
+        "ns": 0,
+        "title": "Hudson Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Human Events"
+       },
+       {
+        "ns": 0,
+        "title": "Hundred-Handers (group)"
+       },
+       {
+        "ns": 0,
+        "title": "Hunter Biden"
+       },
+       {
+        "ns": 0,
+        "title": "Hurricane Patricia"
+       },
+       {
+        "ns": 0,
+        "title": "ISBN (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "ISSN (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "I Don't Speak German"
+       },
+       {
+        "ns": 0,
+        "title": "Idaho Freedom Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "Ideas Have Consequences"
+       },
+       {
+        "ns": 0,
+        "title": "Identitarian movement"
+       },
+       {
+        "ns": 0,
+        "title": "Identity Evropa"
+       },
+       {
+        "ns": 0,
+        "title": "Illegal immigration"
+       },
+       {
+        "ns": 0,
+        "title": "Illiberal democracy"
+       },
+       {
+        "ns": 0,
+        "title": "Immigration and Nationality Act Section 212(f)"
+       },
+       {
+        "ns": 0,
+        "title": "Immigration and Nationality Act of 1952"
+       },
+       {
+        "ns": 0,
+        "title": "Immigration policy of the first Donald Trump administration"
+       },
+       {
+        "ns": 0,
+        "title": "Immigration policy of the first Trump administration"
+       },
+       {
+        "ns": 0,
+        "title": "Immigration policy of the second Trump administration"
+       },
+       {
+        "ns": 0,
+        "title": "Impeachment of Bill Clinton"
+       },
+       {
+        "ns": 0,
+        "title": "Imprimis"
+       },
+       {
+        "ns": 0,
+        "title": "Inauguration of Joe Biden"
+       },
+       {
+        "ns": 0,
+        "title": "Incel"
+       },
+       {
+        "ns": 0,
+        "title": "Incumbent"
+       },
+       {
+        "ns": 0,
+        "title": "Independence Party of New York"
+       },
+       {
+        "ns": 0,
+        "title": "Independent Journal Review"
+       },
+       {
+        "ns": 0,
+        "title": "Independent Women's Forum"
+       },
+       {
+        "ns": 0,
+        "title": "India"
+       },
+       {
+        "ns": 0,
+        "title": "India and the Russian invasion of Ukraine"
+       },
+       {
+        "ns": 0,
+        "title": "India–Russia relations"
+       },
+       {
+        "ns": 0,
+        "title": "Infowars"
+       },
+       {
+        "ns": 0,
+        "title": "Injustice (book)"
+       },
+       {
+        "ns": 0,
+        "title": "Innuendo Studios"
+       },
+       {
+        "ns": 0,
+        "title": "Intelligencer (website)"
+       },
+       {
+        "ns": 0,
+        "title": "Intercollegiate Studies Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Internet Archive"
+       },
+       {
+        "ns": 0,
+        "title": "Iraq War"
+       },
+       {
+        "ns": 0,
+        "title": "Irving Babbitt"
+       },
+       {
+        "ns": 0,
+        "title": "Irving Kristol"
+       },
+       {
+        "ns": 0,
+        "title": "Islamic State"
+       },
+       {
+        "ns": 0,
+        "title": "Islamic world"
+       },
+       {
+        "ns": 0,
+        "title": "It's okay to be white"
+       },
+       {
+        "ns": 0,
+        "title": "It Came from Something Awful"
+       },
+       {
+        "ns": 0,
+        "title": "Ivanka Trump"
+       },
+       {
+        "ns": 0,
+        "title": "JD Vance"
+       },
+       {
+        "ns": 0,
+        "title": "JSTOR (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Jack Donovan"
+       },
+       {
+        "ns": 0,
+        "title": "Jack Lew"
+       },
+       {
+        "ns": 0,
+        "title": "Jack Posobiec"
+       },
+       {
+        "ns": 0,
+        "title": "Jack Valenti"
+       },
+       {
+        "ns": 0,
+        "title": "Jack Watson (presidential adviser)"
+       },
+       {
+        "ns": 0,
+        "title": "Jacksonian democracy"
+       },
+       {
+        "ns": 0,
+        "title": "Jacob Reses"
+       },
+       {
+        "ns": 0,
+        "title": "Jake Tapper"
+       },
+       {
+        "ns": 0,
+        "title": "James Allsup"
+       },
+       {
+        "ns": 0,
+        "title": "James Baker"
+       },
+       {
+        "ns": 0,
+        "title": "James Blair (political advisor)"
+       },
+       {
+        "ns": 0,
+        "title": "James Braid (political advisor)"
+       },
+       {
+        "ns": 0,
+        "title": "James Burnham"
+       },
+       {
+        "ns": 0,
+        "title": "James Dobson"
+       },
+       {
+        "ns": 0,
+        "title": "James Madison Program in American Ideals and Institutions"
+       },
+       {
+        "ns": 0,
+        "title": "James O'Keefe"
+       },
+       {
+        "ns": 0,
+        "title": "James R. Jones"
+       },
+       {
+        "ns": 0,
+        "title": "James W. Carroll"
+       },
+       {
+        "ns": 0,
+        "title": "Jamieson Greer"
+       },
+       {
+        "ns": 0,
+        "title": "January 2018 United States federal government shutdown"
+       },
+       {
+        "ns": 0,
+        "title": "January 6 United States Capitol attack"
+       },
+       {
+        "ns": 0,
+        "title": "January 6th Committee"
+       },
+       {
+        "ns": 0,
+        "title": "Jared Kushner"
+       },
+       {
+        "ns": 0,
+        "title": "Jared Taylor"
+       },
+       {
+        "ns": 0,
+        "title": "Jason Jorjani"
+       },
+       {
+        "ns": 0,
+        "title": "Jason Kessler"
+       },
+       {
+        "ns": 0,
+        "title": "Jason Richwine"
+       },
+       {
+        "ns": 0,
+        "title": "Jason Zengerle"
+       },
+       {
+        "ns": 0,
+        "title": "Jean-François Gariépy"
+       },
+       {
+        "ns": 0,
+        "title": "Jean Guerrero"
+       },
+       {
+        "ns": 0,
+        "title": "Jeane Kirkpatrick"
+       },
+       {
+        "ns": 0,
+        "title": "Jeanine Pirro"
+       },
+       {
+        "ns": 0,
+        "title": "Jeff Sessions"
+       },
+       {
+        "ns": 0,
+        "title": "Jeff Zients"
+       },
+       {
+        "ns": 0,
+        "title": "Jeffrey Hart"
+       },
+       {
+        "ns": 0,
+        "title": "Jennifer Steinhauer"
+       },
+       {
+        "ns": 0,
+        "title": "Jeremy MacKenzie (activist)"
+       },
+       {
+        "ns": 0,
+        "title": "Jeremy W. Peters"
+       },
+       {
+        "ns": 0,
+        "title": "Jerry Falwell"
+       },
+       {
+        "ns": 0,
+        "title": "Jesse Helms"
+       },
+       {
+        "ns": 0,
+        "title": "Jesse Watters"
+       },
+       {
+        "ns": 0,
+        "title": "Jewish Telegraphic Agency"
+       },
+       {
+        "ns": 0,
+        "title": "Jewish World Review"
+       },
+       {
+        "ns": 0,
+        "title": "Jim Acosta"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Arpaio"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Biden"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Grogan"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Hagin"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Kent"
+       },
+       {
+        "ns": 0,
+        "title": "Joel Johnson (communications strategist)"
+       },
+       {
+        "ns": 0,
+        "title": "John A. Gordon"
+       },
+       {
+        "ns": 0,
+        "title": "John Adams"
+       },
+       {
+        "ns": 0,
+        "title": "John Birch Society"
+       },
+       {
+        "ns": 0,
+        "title": "John Bolton"
+       },
+       {
+        "ns": 0,
+        "title": "John C. Calhoun"
+       },
+       {
+        "ns": 0,
+        "title": "John Cornyn"
+       },
+       {
+        "ns": 0,
+        "title": "John Crowe Ransom"
+       },
+       {
+        "ns": 0,
+        "title": "John Derbyshire"
+       },
+       {
+        "ns": 0,
+        "title": "John F. Kelly"
+       },
+       {
+        "ns": 0,
+        "title": "John H. Sununu"
+       },
+       {
+        "ns": 0,
+        "title": "John Kennedy (Louisiana politician)"
+       },
+       {
+        "ns": 0,
+        "title": "John Lukacs"
+       },
+       {
+        "ns": 0,
+        "title": "John M. Olin Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "John McCain"
+       },
+       {
+        "ns": 0,
+        "title": "John McEntee (political aide)"
+       },
+       {
+        "ns": 0,
+        "title": "John O. Brennan"
+       },
+       {
+        "ns": 0,
+        "title": "John Podesta"
+       },
+       {
+        "ns": 0,
+        "title": "John R. Steelman"
+       },
+       {
+        "ns": 0,
+        "title": "John Randolph of Roanoke"
+       },
+       {
+        "ns": 0,
+        "title": "John Roberts"
+       },
+       {
+        "ns": 0,
+        "title": "John Shadegg"
+       },
+       {
+        "ns": 0,
+        "title": "John Thune"
+       },
+       {
+        "ns": 0,
+        "title": "Johnny DeStefano"
+       },
+       {
+        "ns": 0,
+        "title": "Joint session of the United States Congress"
+       },
+       {
+        "ns": 0,
+        "title": "Jonah Goldberg"
+       },
+       {
+        "ns": 0,
+        "title": "Jonathan Blitzer"
+       },
+       {
+        "ns": 0,
+        "title": "Jonathan Swan"
+       },
+       {
+        "ns": 0,
+        "title": "Joseph McCarthy"
+       },
+       {
+        "ns": 0,
+        "title": "Josh Dawsey"
+       },
+       {
+        "ns": 0,
+        "title": "Josh Hawley"
+       },
+       {
+        "ns": 0,
+        "title": "Josh Pitcock"
+       },
+       {
+        "ns": 0,
+        "title": "Joshua Bolten"
+       },
+       {
+        "ns": 0,
+        "title": "Joshua Green (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Judeo-Christian ethics"
+       },
+       {
+        "ns": 0,
+        "title": "Judicial Watch"
+       },
+       {
+        "ns": 0,
+        "title": "Julia Hahn"
+       },
+       {
+        "ns": 0,
+        "title": "Julia Nesheiwat"
+       },
+       {
+        "ns": 0,
+        "title": "Julie Chávez Rodriguez"
+       },
+       {
+        "ns": 0,
+        "title": "Julie Hirschfeld Davis"
+       },
+       {
+        "ns": 0,
+        "title": "June 2025 Los Angeles protests"
+       },
+       {
+        "ns": 0,
+        "title": "Justin R. Clark"
+       },
+       {
+        "ns": 0,
+        "title": "K. T. McFarland"
+       },
+       {
+        "ns": 0,
+        "title": "Kaitlin Bennett"
+       },
+       {
+        "ns": 0,
+        "title": "Kari Lake"
+       },
+       {
+        "ns": 0,
+        "title": "Karine Jean-Pierre"
+       },
+       {
+        "ns": 0,
+        "title": "Karl Rove"
+       },
+       {
+        "ns": 0,
+        "title": "Karol Nawrocki"
+       },
+       {
+        "ns": 0,
+        "title": "Karoline Leavitt"
+       },
+       {
+        "ns": 0,
+        "title": "Karoun Demirjian"
+       },
+       {
+        "ns": 0,
+        "title": "Kash Patel"
+       },
+       {
+        "ns": 0,
+        "title": "Kate Conger"
+       },
+       {
+        "ns": 0,
+        "title": "Katie Benner"
+       },
+       {
+        "ns": 0,
+        "title": "Katie Miller"
+       },
+       {
+        "ns": 0,
+        "title": "Katie Rogers (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Katie Walsh (politician)"
+       },
+       {
+        "ns": 0,
+        "title": "Katie Zacharia"
+       },
+       {
+        "ns": 0,
+        "title": "Kayleigh McEnany"
+       },
+       {
+        "ns": 0,
+        "title": "Keisha Lance Bottoms"
+       },
+       {
+        "ns": 0,
+        "title": "Keith Davids"
+       },
+       {
+        "ns": 0,
+        "title": "Keith Schiller"
+       },
+       {
+        "ns": 0,
+        "title": "Kellyanne Conway"
+       },
+       {
+        "ns": 0,
+        "title": "Kelvin Droegemeier"
+       },
+       {
+        "ns": 0,
+        "title": "Ken Cuccinelli"
+       },
+       {
+        "ns": 0,
+        "title": "Ken Paxton"
+       },
+       {
+        "ns": 0,
+        "title": "Ken Starr"
+       },
+       {
+        "ns": 0,
+        "title": "Kenneth Duberstein"
+       },
+       {
+        "ns": 0,
+        "title": "Kenneth L. Wainstein"
+       },
+       {
+        "ns": 0,
+        "title": "Kenneth O'Donnell"
+       },
+       {
+        "ns": 0,
+        "title": "Kevin Hassett"
+       },
+       {
+        "ns": 0,
+        "title": "Kevin MacDonald (evolutionary psychologist)"
+       },
+       {
+        "ns": 0,
+        "title": "Kevin McAleenan"
+       },
+       {
+        "ns": 0,
+        "title": "Kevin McCarthy"
+       },
+       {
+        "ns": 0,
+        "title": "Kevin Roberts (political strategist)"
+       },
+       {
+        "ns": 0,
+        "title": "Kill All Normies"
+       },
+       {
+        "ns": 0,
+        "title": "Killing of Alex Pretti"
+       },
+       {
+        "ns": 0,
+        "title": "Killing of Iryna Zarutska"
+       },
+       {
+        "ns": 0,
+        "title": "Kilmar Abrego Garcia"
+       },
+       {
+        "ns": 0,
+        "title": "Kirstjen Nielsen"
+       },
+       {
+        "ns": 0,
+        "title": "Know Nothing"
+       },
+       {
+        "ns": 0,
+        "title": "Knowledge Fight"
+       },
+       {
+        "ns": 0,
+        "title": "Kristan King Nevins"
+       },
+       {
+        "ns": 0,
+        "title": "Kristi Noem"
+       },
+       {
+        "ns": 0,
+        "title": "Kuruc.info"
+       },
+       {
+        "ns": 0,
+        "title": "LGBTQ conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "LSAT"
+       },
+       {
+        "ns": 0,
+        "title": "Lana Lokteff"
+       },
+       {
+        "ns": 0,
+        "title": "Larry Elder"
+       },
+       {
+        "ns": 0,
+        "title": "Larry Kudlow"
+       },
+       {
+        "ns": 0,
+        "title": "Las Vegas"
+       },
+       {
+        "ns": 0,
+        "title": "Laura Ingraham"
+       },
+       {
+        "ns": 0,
+        "title": "Laura Loomer"
+       },
+       {
+        "ns": 0,
+        "title": "Lauren Southern"
+       },
+       {
+        "ns": 0,
+        "title": "Law and order (politics)"
+       },
+       {
+        "ns": 0,
+        "title": "Leadership Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Lee Atwater"
+       },
+       {
+        "ns": 0,
+        "title": "Leo Strauss"
+       },
+       {
+        "ns": 0,
+        "title": "Leon Panetta"
+       },
+       {
+        "ns": 0,
+        "title": "Leonard Leo"
+       },
+       {
+        "ns": 0,
+        "title": "Les Identitaires"
+       },
+       {
+        "ns": 0,
+        "title": "Let's Go Brandon"
+       },
+       {
+        "ns": 0,
+        "title": "Liberal conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Libertarian authoritarianism"
+       },
+       {
+        "ns": 0,
+        "title": "Libertarian capitalism"
+       },
+       {
+        "ns": 0,
+        "title": "Libertarian conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Libertarianism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Liberty Counsel"
+       },
+       {
+        "ns": 0,
+        "title": "Liberty Fund"
+       },
+       {
+        "ns": 0,
+        "title": "Liberty University"
+       },
+       {
+        "ns": 0,
+        "title": "LifeZette"
+       },
+       {
+        "ns": 0,
+        "title": "Lindsay Reynolds"
+       },
+       {
+        "ns": 0,
+        "title": "Lisa Monaco"
+       },
+       {
+        "ns": 0,
+        "title": "List of American conservatives"
+       },
+       {
+        "ns": 0,
+        "title": "List of ambassadors of the United States to China"
+       },
+       {
+        "ns": 0,
+        "title": "List of body men"
+       },
+       {
+        "ns": 0,
+        "title": "List of court cases involving Alliance Defending Freedom"
+       },
+       {
+        "ns": 0,
+        "title": "Liz Wheeler"
+       },
+       {
+        "ns": 0,
+        "title": "Log Cabin Republicans"
+       },
+       {
+        "ns": 0,
+        "title": "Los Angeles Times"
+       },
+       {
+        "ns": 0,
+        "title": "Loyalist (American Revolution)"
+       },
+       {
+        "ns": 0,
+        "title": "Lucian Wintrich"
+       },
+       {
+        "ns": 0,
+        "title": "Luke Broadwater"
+       },
+       {
+        "ns": 0,
+        "title": "MAGA movement"
+       },
+       {
+        "ns": 0,
+        "title": "Mac Tonight"
+       },
+       {
+        "ns": 0,
+        "title": "Mack McLarty"
+       },
+       {
+        "ns": 0,
+        "title": "Madeleine Westerhout"
+       },
+       {
+        "ns": 0,
+        "title": "Madison Cawthorn"
+       },
+       {
+        "ns": 0,
+        "title": "Maggie Haberman"
+       },
+       {
+        "ns": 0,
+        "title": "Make America Great Again"
+       },
+       {
+        "ns": 0,
+        "title": "Mandate for Leadership"
+       },
+       {
+        "ns": 0,
+        "title": "Manhattan Institute for Policy Research"
+       },
+       {
+        "ns": 0,
+        "title": "Manosphere"
+       },
+       {
+        "ns": 0,
+        "title": "Marc Short"
+       },
+       {
+        "ns": 0,
+        "title": "Marco Rubio"
+       },
+       {
+        "ns": 0,
+        "title": "Marco Rubio 2016 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Maricopa County, Arizona"
+       },
+       {
+        "ns": 0,
+        "title": "Marjorie Taylor Greene"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Carney"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Esper"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Levin"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Mazzetti"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Meadows"
+       },
+       {
+        "ns": 0,
+        "title": "Martin Scorsese"
+       },
+       {
+        "ns": 0,
+        "title": "Martin Sellner"
+       },
+       {
+        "ns": 0,
+        "title": "Marxism"
+       },
+       {
+        "ns": 0,
+        "title": "Mary Neumayr"
+       },
+       {
+        "ns": 0,
+        "title": "Massad Boulos"
+       },
+       {
+        "ns": 0,
+        "title": "Matt Brasseaux"
+       },
+       {
+        "ns": 0,
+        "title": "Matt Gaetz"
+       },
+       {
+        "ns": 0,
+        "title": "Matt Pottinger"
+       },
+       {
+        "ns": 0,
+        "title": "Matt Walsh (political commentator)"
+       },
+       {
+        "ns": 0,
+        "title": "Matthew Heimbach"
+       },
+       {
+        "ns": 0,
+        "title": "McCarthyism"
+       },
+       {
+        "ns": 0,
+        "title": "McClatchyDC"
+       },
+       {
+        "ns": 0,
+        "title": "McKay Coppins"
+       },
+       {
+        "ns": 0,
+        "title": "Media Research Center"
+       },
+       {
+        "ns": 0,
+        "title": "Medicare (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Megyn Kelly"
+       },
+       {
+        "ns": 0,
+        "title": "Melville Fuller"
+       },
+       {
+        "ns": 0,
+        "title": "Memorials and services for the September 11 attacks"
+       },
+       {
+        "ns": 0,
+        "title": "Men Going Their Own Way"
+       },
+       {
+        "ns": 0,
+        "title": "Mercedes Schlapp"
+       },
+       {
+        "ns": 0,
+        "title": "Merlin Miller"
+       },
+       {
+        "ns": 0,
+        "title": "Metapedia"
+       },
+       {
+        "ns": 0,
+        "title": "Mette Frederiksen"
+       },
+       {
+        "ns": 0,
+        "title": "Mexico"
+       },
+       {
+        "ns": 0,
+        "title": "Mexico–United States border"
+       },
+       {
+        "ns": 0,
+        "title": "Mexico–United States border crisis"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Anton"
+       },
+       {
+        "ns": 0,
+        "title": "Michael D. Shear"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Dubke"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Flynn"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Knowles (political commentator)"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Kratsios"
+       },
+       {
+        "ns": 0,
+        "title": "Michael Needham (political advisor)"
+       },
+       {
+        "ns": 0,
+        "title": "Michael S. Schmidt"
+       },
+       {
+        "ns": 0,
+        "title": "Michele Bachmann"
+       },
+       {
+        "ns": 0,
+        "title": "Mick Mulvaney"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Cernovich"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Donilon"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Enoch"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Huckabee"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Johnson"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Pence"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Pompeo"
+       },
+       {
+        "ns": 0,
+        "title": "Mike Waltz"
+       },
+       {
+        "ns": 0,
+        "title": "Millennial Woes"
+       },
+       {
+        "ns": 0,
+        "title": "Milo Yiannopoulos"
+       },
+       {
+        "ns": 0,
+        "title": "Minds (social network)"
+       },
+       {
+        "ns": 0,
+        "title": "Minnesota"
+       },
+       {
+        "ns": 0,
+        "title": "Mira Ricardel"
+       },
+       {
+        "ns": 0,
+        "title": "Mitch Landrieu"
+       },
+       {
+        "ns": 0,
+        "title": "Mitch McConnell"
+       },
+       {
+        "ns": 0,
+        "title": "Mitt Romney"
+       },
+       {
+        "ns": 0,
+        "title": "Mo Brooks"
+       },
+       {
+        "ns": 0,
+        "title": "Moms for Liberty"
+       },
+       {
+        "ns": 0,
+        "title": "Monarchism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Moral Majority"
+       },
+       {
+        "ns": 0,
+        "title": "Movement conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Multiculturalism"
+       },
+       {
+        "ns": 0,
+        "title": "Murder of Timothy Caughman"
+       },
+       {
+        "ns": 0,
+        "title": "Muslims"
+       },
+       {
+        "ns": 0,
+        "title": "NBC News"
+       },
+       {
+        "ns": 0,
+        "title": "NPC (meme)"
+       },
+       {
+        "ns": 0,
+        "title": "NPR"
+       },
+       {
+        "ns": 0,
+        "title": "Nadia Schadlow"
+       },
+       {
+        "ns": 0,
+        "title": "Nahal Toosi"
+       },
+       {
+        "ns": 0,
+        "title": "Nancy Grace (TV program)"
+       },
+       {
+        "ns": 0,
+        "title": "Nancy Grace (TV series)"
+       },
+       {
+        "ns": 0,
+        "title": "Nancy Pelosi"
+       },
+       {
+        "ns": 0,
+        "title": "Nathaniel Weyl"
+       },
+       {
+        "ns": 0,
+        "title": "National Affairs"
+       },
+       {
+        "ns": 0,
+        "title": "National Association for Gun Rights"
+       },
+       {
+        "ns": 0,
+        "title": "National Association of Scholars"
+       },
+       {
+        "ns": 0,
+        "title": "National Border Patrol Council"
+       },
+       {
+        "ns": 0,
+        "title": "National Economic Council (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "National Emergencies Act"
+       },
+       {
+        "ns": 0,
+        "title": "National Emergency Concerning the Southern Border of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "National Federation of Independent Business"
+       },
+       {
+        "ns": 0,
+        "title": "National Journalism Center"
+       },
+       {
+        "ns": 0,
+        "title": "National Organization for Marriage"
+       },
+       {
+        "ns": 0,
+        "title": "National Policy Institute"
+       },
+       {
+        "ns": 0,
+        "title": "National Populism: The Revolt Against Liberal Democracy"
+       },
+       {
+        "ns": 0,
+        "title": "National Republican Party"
+       },
+       {
+        "ns": 0,
+        "title": "National Review"
+       },
+       {
+        "ns": 0,
+        "title": "National Rifle Association"
+       },
+       {
+        "ns": 0,
+        "title": "National Right to Life Committee"
+       },
+       {
+        "ns": 0,
+        "title": "National Security Advisor (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "National Taxpayers Union"
+       },
+       {
+        "ns": 0,
+        "title": "National Union for Social Justice (organization)"
+       },
+       {
+        "ns": 0,
+        "title": "National conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Nativism in United States politics"
+       },
+       {
+        "ns": 0,
+        "title": "Natural aristocracy"
+       },
+       {
+        "ns": 0,
+        "title": "Natural law"
+       },
+       {
+        "ns": 0,
+        "title": "Neera Tanden"
+       },
+       {
+        "ns": 0,
+        "title": "Neil Gorsuch"
+       },
+       {
+        "ns": 0,
+        "title": "Neo-Confederates"
+       },
+       {
+        "ns": 0,
+        "title": "Neo-nationalism"
+       },
+       {
+        "ns": 0,
+        "title": "Neoconservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Neoconservatism and paleoconservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Never Trump movement"
+       },
+       {
+        "ns": 0,
+        "title": "New Deal Democrats"
+       },
+       {
+        "ns": 0,
+        "title": "New Hampshire"
+       },
+       {
+        "ns": 0,
+        "title": "New Right"
+       },
+       {
+        "ns": 0,
+        "title": "New York Post"
+       },
+       {
+        "ns": 0,
+        "title": "New humanism (literature)"
+       },
+       {
+        "ns": 0,
+        "title": "Newsmax"
+       },
+       {
+        "ns": 0,
+        "title": "Newsmax TV"
+       },
+       {
+        "ns": 0,
+        "title": "Newt Gingrich"
+       },
+       {
+        "ns": 0,
+        "title": "Nicholas Confessore"
+       },
+       {
+        "ns": 0,
+        "title": "Nicholas Fandos"
+       },
+       {
+        "ns": 0,
+        "title": "Nick Ayers"
+       },
+       {
+        "ns": 0,
+        "title": "Nick Fuentes"
+       },
+       {
+        "ns": 0,
+        "title": "Nick Land"
+       },
+       {
+        "ns": 0,
+        "title": "Nick Luna"
+       },
+       {
+        "ns": 0,
+        "title": "Noem v. Vasquez Perdomo"
+       },
+       {
+        "ns": 0,
+        "title": "Norman Lowell"
+       },
+       {
+        "ns": 0,
+        "title": "Norman Podhoretz"
+       },
+       {
+        "ns": 0,
+        "title": "North Atlantic Treaty"
+       },
+       {
+        "ns": 0,
+        "title": "North Carolina"
+       },
+       {
+        "ns": 0,
+        "title": "NumbersUSA"
+       },
+       {
+        "ns": 0,
+        "title": "OK gesture"
+       },
+       {
+        "ns": 0,
+        "title": "Oath Keepers"
+       },
+       {
+        "ns": 0,
+        "title": "Occidental Observer"
+       },
+       {
+        "ns": 0,
+        "title": "Office of American Innovation"
+       },
+       {
+        "ns": 0,
+        "title": "Office of Management and Budget"
+       },
+       {
+        "ns": 0,
+        "title": "Office of National Drug Control Policy"
+       },
+       {
+        "ns": 0,
+        "title": "Office of Public Liaison"
+       },
+       {
+        "ns": 0,
+        "title": "Office of Refugee Resettlement"
+       },
+       {
+        "ns": 0,
+        "title": "Office of Science and Technology Policy"
+       },
+       {
+        "ns": 0,
+        "title": "Office of Trade and Manufacturing Policy"
+       },
+       {
+        "ns": 0,
+        "title": "Office of the First Lady of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Office of the United States Trade Representative"
+       },
+       {
+        "ns": 0,
+        "title": "Old Right (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Oliver North"
+       },
+       {
+        "ns": 0,
+        "title": "One America News Network"
+       },
+       {
+        "ns": 0,
+        "title": "Ordered liberty"
+       },
+       {
+        "ns": 0,
+        "title": "Oren Cass"
+       },
+       {
+        "ns": 0,
+        "title": "Osama bin Laden"
+       },
+       {
+        "ns": 0,
+        "title": "Oval Office Operations"
+       },
+       {
+        "ns": 0,
+        "title": "Owen Benjamin"
+       },
+       {
+        "ns": 0,
+        "title": "Owning the libs"
+       },
+       {
+        "ns": 0,
+        "title": "Pacific Justice Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Pacific Research Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Paleoconservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Paleolibertarianism"
+       },
+       {
+        "ns": 0,
+        "title": "Palestine Solidarity Movement"
+       },
+       {
+        "ns": 0,
+        "title": "Pam Bondi"
+       },
+       {
+        "ns": 0,
+        "title": "Pardon of Joe Arpaio"
+       },
+       {
+        "ns": 0,
+        "title": "Parental rights movement"
+       },
+       {
+        "ns": 0,
+        "title": "Parents Television and Media Council"
+       },
+       {
+        "ns": 0,
+        "title": "Parler"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Buchanan"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Buchanan 1992 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Buchanan 1996 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Buchanan 2000 presidential campaign"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Cipollone"
+       },
+       {
+        "ns": 0,
+        "title": "Pat Robertson"
+       },
+       {
+        "ns": 0,
+        "title": "Patrick Deneen"
+       },
+       {
+        "ns": 0,
+        "title": "Patrick Healy (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Patriot Front"
+       },
+       {
+        "ns": 0,
+        "title": "Patriot Prayer"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Gosar"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Gottfried"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Joseph Watson"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Nehlen"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Ray Ramsey"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Ryan"
+       },
+       {
+        "ns": 0,
+        "title": "Paul Wolfowitz"
+       },
+       {
+        "ns": 0,
+        "title": "People (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "Pepe the Frog"
+       },
+       {
+        "ns": 0,
+        "title": "Pete Hegseth"
+       },
+       {
+        "ns": 0,
+        "title": "Pete Rouse"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Baker (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Brimelow"
+       },
+       {
+        "ns": 0,
+        "title": "Peter J. Brown"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Navarro"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Thiel"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Viereck"
+       },
+       {
+        "ns": 0,
+        "title": "Petroleum industry in Russia"
+       },
+       {
+        "ns": 0,
+        "title": "Philadelphia Society"
+       },
+       {
+        "ns": 0,
+        "title": "Philip Rucker"
+       },
+       {
+        "ns": 0,
+        "title": "Phoenix, Arizona"
+       },
+       {
+        "ns": 0,
+        "title": "Phyllis Schlafly"
+       },
+       {
+        "ns": 0,
+        "title": "Physician to the President"
+       },
+       {
+        "ns": 0,
+        "title": "Pierre Yared"
+       },
+       {
+        "ns": 0,
+        "title": "Pizzagate conspiracy theory"
+       },
+       {
+        "ns": 0,
+        "title": "Pledge of Allegiance"
+       },
+       {
+        "ns": 0,
+        "title": "Pogroms in the Russian Empire"
+       },
+       {
+        "ns": 0,
+        "title": "Political correctness"
+       },
+       {
+        "ns": 0,
+        "title": "Political party"
+       },
+       {
+        "ns": 0,
+        "title": "Political positions of Ronald Reagan"
+       },
+       {
+        "ns": 0,
+        "title": "Politico"
+       },
+       {
+        "ns": 0,
+        "title": "Politico Magazine"
+       },
+       {
+        "ns": 0,
+        "title": "Populist Party (United States, 1984)"
+       },
+       {
+        "ns": 0,
+        "title": "PragerU"
+       },
+       {
+        "ns": 0,
+        "title": "Presidency of Barack Obama"
+       },
+       {
+        "ns": 0,
+        "title": "Presidency of Bill Clinton"
+       },
+       {
+        "ns": 0,
+        "title": "Presidency of George W. Bush"
+       },
+       {
+        "ns": 0,
+        "title": "Presidency of Joe Biden"
+       },
+       {
+        "ns": 0,
+        "title": "Progressive conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Project 2025"
+       },
+       {
+        "ns": 0,
+        "title": "Project Veritas"
+       },
+       {
+        "ns": 0,
+        "title": "Protectionism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Proud Boys"
+       },
+       {
+        "ns": 0,
+        "title": "Public charge rule"
+       },
+       {
+        "ns": 0,
+        "title": "Public image of Sarah Palin"
+       },
+       {
+        "ns": 0,
+        "title": "QAnon"
+       },
+       {
+        "ns": 0,
+        "title": "R/The Donald"
+       },
+       {
+        "ns": 0,
+        "title": "R Street Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Rachael Bade"
+       },
+       {
+        "ns": 0,
+        "title": "Racial segregation in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Racial views of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Racism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Radical Islam"
+       },
+       {
+        "ns": 0,
+        "title": "Radical right (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Rahm Emanuel"
+       },
+       {
+        "ns": 0,
+        "title": "Raj Shah"
+       },
+       {
+        "ns": 0,
+        "title": "Ralph Reed"
+       },
+       {
+        "ns": 0,
+        "title": "Rand Paul"
+       },
+       {
+        "ns": 0,
+        "title": "Randolph Alles"
+       },
+       {
+        "ns": 0,
+        "title": "Reagan Doctrine"
+       },
+       {
+        "ns": 0,
+        "title": "Reagan era"
+       },
+       {
+        "ns": 0,
+        "title": "Reaganomics"
+       },
+       {
+        "ns": 0,
+        "title": "RealClearPolitics"
+       },
+       {
+        "ns": 0,
+        "title": "Real America's Voice"
+       },
+       {
+        "ns": 0,
+        "title": "Rebekah Mercer"
+       },
+       {
+        "ns": 0,
+        "title": "Rebel News"
+       },
+       {
+        "ns": 0,
+        "title": "RedState"
+       },
+       {
+        "ns": 0,
+        "title": "Red Ice"
+       },
+       {
+        "ns": 0,
+        "title": "Red pill and blue pill"
+       },
+       {
+        "ns": 0,
+        "title": "Redeemers"
+       },
+       {
+        "ns": 0,
+        "title": "Reform Judaism"
+       },
+       {
+        "ns": 0,
+        "title": "Reform Party of the United States of America"
+       },
+       {
+        "ns": 0,
+        "title": "Reforming American Immigration for Strong Employment Act"
+       },
+       {
+        "ns": 0,
+        "title": "Refugee Act of 1980"
+       },
+       {
+        "ns": 0,
+        "title": "Regnery Publishing"
+       },
+       {
+        "ns": 0,
+        "title": "Reince Priebus"
+       },
+       {
+        "ns": 0,
+        "title": "Republican Main Street Partnership"
+       },
+       {
+        "ns": 0,
+        "title": "Republican Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Republican Revolution"
+       },
+       {
+        "ns": 0,
+        "title": "Republican Study Committee"
+       },
+       {
+        "ns": 0,
+        "title": "Republicanism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Responses to the alt-right"
+       },
+       {
+        "ns": 0,
+        "title": "Reuters"
+       },
+       {
+        "ns": 0,
+        "title": "Rex Tillerson"
+       },
+       {
+        "ns": 0,
+        "title": "Richard B. Spencer"
+       },
+       {
+        "ns": 0,
+        "title": "Richard John Neuhaus"
+       },
+       {
+        "ns": 0,
+        "title": "Richard M. Weaver"
+       },
+       {
+        "ns": 0,
+        "title": "Richard Mellon Scaife"
+       },
+       {
+        "ns": 0,
+        "title": "Richard Nixon"
+       },
+       {
+        "ns": 0,
+        "title": "Richard Walters (political advisor)"
+       },
+       {
+        "ns": 0,
+        "title": "Rick Dearborn"
+       },
+       {
+        "ns": 0,
+        "title": "Rick Santorum"
+       },
+       {
+        "ns": 0,
+        "title": "Ricky L. Waddell"
+       },
+       {
+        "ns": 0,
+        "title": "Right-wing populism"
+       },
+       {
+        "ns": 0,
+        "title": "Right Side Broadcasting Network"
+       },
+       {
+        "ns": 0,
+        "title": "Right to keep and bear arms in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Riley Gaines"
+       },
+       {
+        "ns": 0,
+        "title": "Ripon Society"
+       },
+       {
+        "ns": 0,
+        "title": "Rise Above Movement"
+       },
+       {
+        "ns": 0,
+        "title": "Rob Joyce"
+       },
+       {
+        "ns": 0,
+        "title": "Rob Porter"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Stephen Miller",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "plcontinue": "51260917|0|Robert_A._Taft",
+   "continue": "||pageprops|categories",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "limits": {
+    "categories": 500,
+    "links": 500
+   },
+   "query": {
+    "pages": [
+     {
+      "pageid": 51260917,
+      "ns": 0,
+      "title": "Stephen Miller",
+      "links": [
+       {
+        "ns": 0,
+        "title": "Robert A. Taft"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Agostinelli"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Bork"
+       },
+       {
+        "ns": 0,
+        "title": "Robert C. O'Brien"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Conquest"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Costa (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Robert De Niro"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Draper"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Evans (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Robert F. Kennedy Jr."
+       },
+       {
+        "ns": 0,
+        "title": "Robert Gabriel Jr."
+       },
+       {
+        "ns": 0,
+        "title": "Robert Lighthizer"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Mercer"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Nisbet"
+       },
+       {
+        "ns": 0,
+        "title": "Robert Novak"
+       },
+       {
+        "ns": 0,
+        "title": "Robert P. George"
+       },
+       {
+        "ns": 0,
+        "title": "Rockford Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Rod Dreher"
+       },
+       {
+        "ns": 0,
+        "title": "Roger Kimball"
+       },
+       {
+        "ns": 0,
+        "title": "Roger Stone"
+       },
+       {
+        "ns": 0,
+        "title": "Ron DeSantis"
+       },
+       {
+        "ns": 0,
+        "title": "Ron Klain"
+       },
+       {
+        "ns": 0,
+        "title": "Ron Nixon"
+       },
+       {
+        "ns": 0,
+        "title": "Ron Paul"
+       },
+       {
+        "ns": 0,
+        "title": "Ronald Reagan"
+       },
+       {
+        "ns": 0,
+        "title": "Ronald Vitiello"
+       },
+       {
+        "ns": 0,
+        "title": "Ronny Jackson"
+       },
+       {
+        "ns": 0,
+        "title": "Roosh V"
+       },
+       {
+        "ns": 0,
+        "title": "Rosalind S. Helderman"
+       },
+       {
+        "ns": 0,
+        "title": "Rosie Gray"
+       },
+       {
+        "ns": 0,
+        "title": "Ross Douthat"
+       },
+       {
+        "ns": 0,
+        "title": "Routledge"
+       },
+       {
+        "ns": 0,
+        "title": "Roy Moore"
+       },
+       {
+        "ns": 0,
+        "title": "Ruling class"
+       },
+       {
+        "ns": 0,
+        "title": "Rumble (company)"
+       },
+       {
+        "ns": 0,
+        "title": "Rupert Murdoch"
+       },
+       {
+        "ns": 0,
+        "title": "Rush Limbaugh"
+       },
+       {
+        "ns": 0,
+        "title": "Russell Kirk"
+       },
+       {
+        "ns": 0,
+        "title": "Russell Kirk Center for Cultural Renewal"
+       },
+       {
+        "ns": 0,
+        "title": "Russell Vought"
+       },
+       {
+        "ns": 0,
+        "title": "Ryan Lizza"
+       },
+       {
+        "ns": 0,
+        "title": "Ryan Mac"
+       },
+       {
+        "ns": 0,
+        "title": "Saagar Enjeti"
+       },
+       {
+        "ns": 0,
+        "title": "Sam Hyde"
+       },
+       {
+        "ns": 0,
+        "title": "Sam Nunberg"
+       },
+       {
+        "ns": 0,
+        "title": "Samuel Alito"
+       },
+       {
+        "ns": 0,
+        "title": "Samuel K. Skinner"
+       },
+       {
+        "ns": 0,
+        "title": "Sandra Day O'Connor"
+       },
+       {
+        "ns": 0,
+        "title": "Santa Monica, California"
+       },
+       {
+        "ns": 0,
+        "title": "Santa Monica High School"
+       },
+       {
+        "ns": 0,
+        "title": "Sara Carter (journalist)"
+       },
+       {
+        "ns": 0,
+        "title": "Sarah Huckabee Sanders"
+       },
+       {
+        "ns": 0,
+        "title": "Sarah Palin"
+       },
+       {
+        "ns": 0,
+        "title": "Saul Bellow"
+       },
+       {
+        "ns": 0,
+        "title": "Scott Atlas"
+       },
+       {
+        "ns": 0,
+        "title": "Sean Barbabella"
+       },
+       {
+        "ns": 0,
+        "title": "Sean Conley"
+       },
+       {
+        "ns": 0,
+        "title": "Sean Hannity"
+       },
+       {
+        "ns": 0,
+        "title": "Sean Spicer"
+       },
+       {
+        "ns": 0,
+        "title": "Secession in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Second Amendment Caucus"
+       },
+       {
+        "ns": 0,
+        "title": "Second impeachment of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Second presidency of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Second presidential transition of Donald Trump"
+       },
+       {
+        "ns": 0,
+        "title": "Section 8 (housing)"
+       },
+       {
+        "ns": 0,
+        "title": "Senior Advisor to the President"
+       },
+       {
+        "ns": 0,
+        "title": "Senior Advisor to the President of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "September 11 attacks"
+       },
+       {
+        "ns": 0,
+        "title": "Serbia Strong"
+       },
+       {
+        "ns": 0,
+        "title": "Sergio Gor"
+       },
+       {
+        "ns": 0,
+        "title": "Seung Min Kim"
+       },
+       {
+        "ns": 0,
+        "title": "Shadilay"
+       },
+       {
+        "ns": 0,
+        "title": "Shahira Knight"
+       },
+       {
+        "ns": 0,
+        "title": "Shailagh Murray"
+       },
+       {
+        "ns": 0,
+        "title": "Sherman Adams"
+       },
+       {
+        "ns": 0,
+        "title": "Sidney Blumenthal"
+       },
+       {
+        "ns": 0,
+        "title": "Sidney Powell"
+       },
+       {
+        "ns": 0,
+        "title": "Simon & Schuster"
+       },
+       {
+        "ns": 0,
+        "title": "Sinclair Broadcast Group"
+       },
+       {
+        "ns": 0,
+        "title": "Situation Room"
+       },
+       {
+        "ns": 0,
+        "title": "Snowflake (slang)"
+       },
+       {
+        "ns": 0,
+        "title": "Social conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Social justice warrior"
+       },
+       {
+        "ns": 0,
+        "title": "Solid South"
+       },
+       {
+        "ns": 0,
+        "title": "Southern Agrarians"
+       },
+       {
+        "ns": 0,
+        "title": "Southern Partisan"
+       },
+       {
+        "ns": 0,
+        "title": "Southern Poverty Law Center"
+       },
+       {
+        "ns": 0,
+        "title": "Southern chivalry"
+       },
+       {
+        "ns": 0,
+        "title": "Spanish language"
+       },
+       {
+        "ns": 0,
+        "title": "St. Cloud Times"
+       },
+       {
+        "ns": 0,
+        "title": "Stanley Woodward Jr."
+       },
+       {
+        "ns": 0,
+        "title": "Starr Report"
+       },
+       {
+        "ns": 0,
+        "title": "State Policy Network"
+       },
+       {
+        "ns": 0,
+        "title": "States' rights"
+       },
+       {
+        "ns": 0,
+        "title": "Stefan Molyneux"
+       },
+       {
+        "ns": 0,
+        "title": "Stefan Thomas Possony"
+       },
+       {
+        "ns": 0,
+        "title": "Stephanie Cutter"
+       },
+       {
+        "ns": 0,
+        "title": "Stephanie Grisham"
+       },
+       {
+        "ns": 0,
+        "title": "Stephen K. Benjamin"
+       },
+       {
+        "ns": 0,
+        "title": "Stephen McNallen"
+       },
+       {
+        "ns": 0,
+        "title": "Stephen Miller (disambiguation)"
+       },
+       {
+        "ns": 0,
+        "title": "Stephen Miran"
+       },
+       {
+        "ns": 0,
+        "title": "Steve Bannon"
+       },
+       {
+        "ns": 0,
+        "title": "Steve King"
+       },
+       {
+        "ns": 0,
+        "title": "Steve Munisteri"
+       },
+       {
+        "ns": 0,
+        "title": "Steven Cheung"
+       },
+       {
+        "ns": 0,
+        "title": "Steven Crowder"
+       },
+       {
+        "ns": 0,
+        "title": "StoneToss"
+       },
+       {
+        "ns": 0,
+        "title": "Stormy Daniels"
+       },
+       {
+        "ns": 0,
+        "title": "Strom Thurmond"
+       },
+       {
+        "ns": 0,
+        "title": "Students for Academic Freedom"
+       },
+       {
+        "ns": 0,
+        "title": "Supplemental Nutrition Assistance Program"
+       },
+       {
+        "ns": 0,
+        "title": "Supply-side economics"
+       },
+       {
+        "ns": 0,
+        "title": "Supreme Court of the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Susan B. Anthony Pro-Life America"
+       },
+       {
+        "ns": 0,
+        "title": "Susan Glasser"
+       },
+       {
+        "ns": 0,
+        "title": "Susie Wiles"
+       },
+       {
+        "ns": 0,
+        "title": "Sutherland Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Suzette Kent"
+       },
+       {
+        "ns": 0,
+        "title": "Taki's Magazine"
+       },
+       {
+        "ns": 0,
+        "title": "Tara Palmeri"
+       },
+       {
+        "ns": 0,
+        "title": "Taylor Budowich"
+       },
+       {
+        "ns": 0,
+        "title": "Tea Party Patriots"
+       },
+       {
+        "ns": 0,
+        "title": "Tea Party movement"
+       },
+       {
+        "ns": 0,
+        "title": "Ted Cruz"
+       },
+       {
+        "ns": 0,
+        "title": "Teleprompter"
+       },
+       {
+        "ns": 0,
+        "title": "Temporary Assistance for Needy Families"
+       },
+       {
+        "ns": 0,
+        "title": "Temporary protected status"
+       },
+       {
+        "ns": 0,
+        "title": "Terry Branstad"
+       },
+       {
+        "ns": 0,
+        "title": "Texas"
+       },
+       {
+        "ns": 0,
+        "title": "Texas Public Policy Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "Texas secession movements"
+       },
+       {
+        "ns": 0,
+        "title": "The 85 Fund"
+       },
+       {
+        "ns": 0,
+        "title": "The American Conservative"
+       },
+       {
+        "ns": 0,
+        "title": "The American Spectator"
+       },
+       {
+        "ns": 0,
+        "title": "The Atlantic"
+       },
+       {
+        "ns": 0,
+        "title": "The Babylon Bee"
+       },
+       {
+        "ns": 0,
+        "title": "The Base (neo-Nazi group)"
+       },
+       {
+        "ns": 0,
+        "title": "The Camp of the Saints"
+       },
+       {
+        "ns": 0,
+        "title": "The Center Square"
+       },
+       {
+        "ns": 0,
+        "title": "The Charlie Kirk Show"
+       },
+       {
+        "ns": 0,
+        "title": "The Closing of the American Mind"
+       },
+       {
+        "ns": 0,
+        "title": "The Conscience of a Conservative"
+       },
+       {
+        "ns": 0,
+        "title": "The Conservative Caucus"
+       },
+       {
+        "ns": 0,
+        "title": "The Conservative Mind"
+       },
+       {
+        "ns": 0,
+        "title": "The Daily Caller"
+       },
+       {
+        "ns": 0,
+        "title": "The Daily Signal"
+       },
+       {
+        "ns": 0,
+        "title": "The Daily Stormer"
+       },
+       {
+        "ns": 0,
+        "title": "The Daily Wire"
+       },
+       {
+        "ns": 0,
+        "title": "The Death of the West"
+       },
+       {
+        "ns": 0,
+        "title": "The Dispatch"
+       },
+       {
+        "ns": 0,
+        "title": "The Duke Chronicle"
+       },
+       {
+        "ns": 0,
+        "title": "The Epoch Times"
+       },
+       {
+        "ns": 0,
+        "title": "The Federalist (website)"
+       },
+       {
+        "ns": 0,
+        "title": "The Federalist Papers"
+       },
+       {
+        "ns": 0,
+        "title": "The First TV"
+       },
+       {
+        "ns": 0,
+        "title": "The Gateway Pundit"
+       },
+       {
+        "ns": 0,
+        "title": "The Geographical Journal"
+       },
+       {
+        "ns": 0,
+        "title": "The Guardian"
+       },
+       {
+        "ns": 0,
+        "title": "The Heritage Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "The Hill (newspaper)"
+       },
+       {
+        "ns": 0,
+        "title": "The Holocaust"
+       },
+       {
+        "ns": 0,
+        "title": "The Imaginative Conservative"
+       },
+       {
+        "ns": 0,
+        "title": "The Independent"
+       },
+       {
+        "ns": 0,
+        "title": "The Jewish Journal of Greater Los Angeles"
+       },
+       {
+        "ns": 0,
+        "title": "The Lead with Jake Tapper"
+       },
+       {
+        "ns": 0,
+        "title": "The Lincoln Project"
+       },
+       {
+        "ns": 0,
+        "title": "The Man"
+       },
+       {
+        "ns": 0,
+        "title": "The Managerial Revolution"
+       },
+       {
+        "ns": 0,
+        "title": "The Nation"
+       },
+       {
+        "ns": 0,
+        "title": "The National Interest"
+       },
+       {
+        "ns": 0,
+        "title": "The New American"
+       },
+       {
+        "ns": 0,
+        "title": "The New Atlantis (journal)"
+       },
+       {
+        "ns": 0,
+        "title": "The New Criterion"
+       },
+       {
+        "ns": 0,
+        "title": "The New Republic"
+       },
+       {
+        "ns": 0,
+        "title": "The New York Times"
+       },
+       {
+        "ns": 0,
+        "title": "The New York Times Magazine"
+       },
+       {
+        "ns": 0,
+        "title": "The New Yorker"
+       },
+       {
+        "ns": 0,
+        "title": "The O'Reilly Factor"
+       },
+       {
+        "ns": 0,
+        "title": "The Occidental Quarterly"
+       },
+       {
+        "ns": 0,
+        "title": "The Remnant (newspaper)"
+       },
+       {
+        "ns": 0,
+        "title": "The Right Stuff (app)"
+       },
+       {
+        "ns": 0,
+        "title": "The Right Stuff (blog)"
+       },
+       {
+        "ns": 0,
+        "title": "The Rubin Report"
+       },
+       {
+        "ns": 0,
+        "title": "The Wall Street Journal"
+       },
+       {
+        "ns": 0,
+        "title": "The Washington Free Beacon"
+       },
+       {
+        "ns": 0,
+        "title": "The Washington Post"
+       },
+       {
+        "ns": 0,
+        "title": "The Washington Times"
+       },
+       {
+        "ns": 0,
+        "title": "The Weekly Standard"
+       },
+       {
+        "ns": 0,
+        "title": "The Western Journal"
+       },
+       {
+        "ns": 0,
+        "title": "Theodore Roosevelt"
+       },
+       {
+        "ns": 0,
+        "title": "Thom Tillis"
+       },
+       {
+        "ns": 0,
+        "title": "Thomas E. Watson"
+       },
+       {
+        "ns": 0,
+        "title": "Thomas Massie"
+       },
+       {
+        "ns": 0,
+        "title": "Thomas More Law Center"
+       },
+       {
+        "ns": 0,
+        "title": "Thomas Rousseau"
+       },
+       {
+        "ns": 0,
+        "title": "Thomas Sowell"
+       },
+       {
+        "ns": 0,
+        "title": "Tila Tequila"
+       },
+       {
+        "ns": 0,
+        "title": "Tim LaHaye"
+       },
+       {
+        "ns": 0,
+        "title": "Tim Pataki"
+       },
+       {
+        "ns": 0,
+        "title": "Tim Pool"
+       },
+       {
+        "ns": 0,
+        "title": "Timeline of activities involving the Proud Boys"
+       },
+       {
+        "ns": 0,
+        "title": "Timeline of modern American conservatism"
+       },
+       {
+        "ns": 0,
+        "title": "Title 42 expulsion"
+       },
+       {
+        "ns": 0,
+        "title": "Todd Ricketts"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Bossert"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Kawcyznski"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Perez"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Ridge"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Tiffany"
+       },
+       {
+        "ns": 0,
+        "title": "Tom Woods"
+       },
+       {
+        "ns": 0,
+        "title": "Tomas J. Philipson"
+       },
+       {
+        "ns": 0,
+        "title": "Tomi Lahren"
+       },
+       {
+        "ns": 0,
+        "title": "Traditionalist Worker Party"
+       },
+       {
+        "ns": 0,
+        "title": "Traditionalist conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Trads (Hindutva)"
+       },
+       {
+        "ns": 0,
+        "title": "Transphobia in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "Trash Doves"
+       },
+       {
+        "ns": 0,
+        "title": "Triple parentheses"
+       },
+       {
+        "ns": 0,
+        "title": "TruNews"
+       },
+       {
+        "ns": 0,
+        "title": "Trump International Hotel Washington, D.C."
+       },
+       {
+        "ns": 0,
+        "title": "Trump administration family separation policy"
+       },
+       {
+        "ns": 0,
+        "title": "Trump fake electors plot"
+       },
+       {
+        "ns": 0,
+        "title": "Trump wall"
+       },
+       {
+        "ns": 0,
+        "title": "Trumpism"
+       },
+       {
+        "ns": 0,
+        "title": "Truth Social"
+       },
+       {
+        "ns": 0,
+        "title": "Tucker Carlson"
+       },
+       {
+        "ns": 0,
+        "title": "Turning Point Action"
+       },
+       {
+        "ns": 0,
+        "title": "Turning Point USA"
+       },
+       {
+        "ns": 0,
+        "title": "Tweet (social media)"
+       },
+       {
+        "ns": 0,
+        "title": "Tyler Goodspeed"
+       },
+       {
+        "ns": 0,
+        "title": "U.S. Customs and Border Protection"
+       },
+       {
+        "ns": 0,
+        "title": "U.S. Immigration and Customs Enforcement"
+       },
+       {
+        "ns": 0,
+        "title": "Undercut (hairstyle)"
+       },
+       {
+        "ns": 0,
+        "title": "Union Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Unitary executive theory"
+       },
+       {
+        "ns": 0,
+        "title": "Unite the Right 2"
+       },
+       {
+        "ns": 0,
+        "title": "Unite the Right rally"
+       },
+       {
+        "ns": 0,
+        "title": "United States Attorney General"
+       },
+       {
+        "ns": 0,
+        "title": "United States Chamber of Commerce"
+       },
+       {
+        "ns": 0,
+        "title": "United States Citizenship and Immigration Services"
+       },
+       {
+        "ns": 0,
+        "title": "United States Congress"
+       },
+       {
+        "ns": 0,
+        "title": "United States Court of Appeals for the District of Columbia Circuit"
+       },
+       {
+        "ns": 0,
+        "title": "United States Department of Health and Human Services"
+       },
+       {
+        "ns": 0,
+        "title": "United States Department of Homeland Security"
+       },
+       {
+        "ns": 0,
+        "title": "United States Department of Housing and Urban Development"
+       },
+       {
+        "ns": 0,
+        "title": "United States Department of Justice"
+       },
+       {
+        "ns": 0,
+        "title": "United States Department of State"
+       },
+       {
+        "ns": 0,
+        "title": "United States Domestic Policy Council"
+       },
+       {
+        "ns": 0,
+        "title": "United States Homeland Security Advisor"
+       },
+       {
+        "ns": 0,
+        "title": "United States House of Representatives"
+       },
+       {
+        "ns": 0,
+        "title": "United States Justice Department investigation into attempts to overturn the 2020 presidential election"
+       },
+       {
+        "ns": 0,
+        "title": "United States National Security Council"
+       },
+       {
+        "ns": 0,
+        "title": "United States Office of Government Ethics"
+       },
+       {
+        "ns": 0,
+        "title": "United States Secretary of Homeland Security"
+       },
+       {
+        "ns": 0,
+        "title": "United States Senate"
+       },
+       {
+        "ns": 0,
+        "title": "United States anti-abortion movement"
+       },
+       {
+        "ns": 0,
+        "title": "United States militarism"
+       },
+       {
+        "ns": 0,
+        "title": "United States non-interventionism"
+       },
+       {
+        "ns": 0,
+        "title": "VDARE"
+       },
+       {
+        "ns": 0,
+        "title": "Valerie Jarrett"
+       },
+       {
+        "ns": 0,
+        "title": "Vanguard America"
+       },
+       {
+        "ns": 0,
+        "title": "Victor Davis Hanson"
+       },
+       {
+        "ns": 0,
+        "title": "Victoria Coates"
+       },
+       {
+        "ns": 0,
+        "title": "Vinay Reddy"
+       },
+       {
+        "ns": 0,
+        "title": "Vince Haley"
+       },
+       {
+        "ns": 0,
+        "title": "Virginia"
+       },
+       {
+        "ns": 0,
+        "title": "Voat"
+       },
+       {
+        "ns": 0,
+        "title": "Volodymyr Zelenskyy"
+       },
+       {
+        "ns": 0,
+        "title": "Vox Day"
+       },
+       {
+        "ns": 0,
+        "title": "W. Marvin Watson"
+       },
+       {
+        "ns": 0,
+        "title": "Walt Nauta"
+       },
+       {
+        "ns": 0,
+        "title": "Walter Jenkins"
+       },
+       {
+        "ns": 0,
+        "title": "War on Christmas"
+       },
+       {
+        "ns": 0,
+        "title": "Warren E. Burger"
+       },
+       {
+        "ns": 0,
+        "title": "Warren G. Harding"
+       },
+       {
+        "ns": 0,
+        "title": "Washington, D.C."
+       },
+       {
+        "ns": 0,
+        "title": "Washington Examiner"
+       },
+       {
+        "ns": 0,
+        "title": "Washington Post"
+       },
+       {
+        "ns": 0,
+        "title": "Washington Summit Publishers"
+       },
+       {
+        "ns": 0,
+        "title": "Weev"
+       },
+       {
+        "ns": 0,
+        "title": "Weiss special counsel investigation"
+       },
+       {
+        "ns": 0,
+        "title": "Western civilization"
+       },
+       {
+        "ns": 0,
+        "title": "Western conservatism (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "Whig Party (United States)"
+       },
+       {
+        "ns": 0,
+        "title": "White House"
+       },
+       {
+        "ns": 0,
+        "title": "White House COVID-19 outbreak"
+       },
+       {
+        "ns": 0,
+        "title": "White House Cabinet Secretary"
+       },
+       {
+        "ns": 0,
+        "title": "White House Chief Usher"
+       },
+       {
+        "ns": 0,
+        "title": "White House Chief of Staff"
+       },
+       {
+        "ns": 0,
+        "title": "White House Communications Director"
+       },
+       {
+        "ns": 0,
+        "title": "White House Counsel"
+       },
+       {
+        "ns": 0,
+        "title": "White House Deputy Chief of Staff"
+       },
+       {
+        "ns": 0,
+        "title": "White House Director of Speechwriting"
+       },
+       {
+        "ns": 0,
+        "title": "White House Director of Strategic Communications"
+       },
+       {
+        "ns": 0,
+        "title": "White House Military Office"
+       },
+       {
+        "ns": 0,
+        "title": "White House National Trade Council"
+       },
+       {
+        "ns": 0,
+        "title": "White House Office"
+       },
+       {
+        "ns": 0,
+        "title": "White House Office of Intergovernmental Affairs"
+       },
+       {
+        "ns": 0,
+        "title": "White House Office of the Staff Secretary"
+       },
+       {
+        "ns": 0,
+        "title": "White House Presidential Personnel Office"
+       },
+       {
+        "ns": 0,
+        "title": "White House Press Secretary"
+       },
+       {
+        "ns": 0,
+        "title": "White House Social Secretary"
+       },
+       {
+        "ns": 0,
+        "title": "White House press secretary"
+       },
+       {
+        "ns": 0,
+        "title": "White Right: Meeting the Enemy"
+       },
+       {
+        "ns": 0,
+        "title": "White ethnostate"
+       },
+       {
+        "ns": 0,
+        "title": "White genocide conspiracy theory"
+       },
+       {
+        "ns": 0,
+        "title": "White nationalism"
+       },
+       {
+        "ns": 0,
+        "title": "White nationalist"
+       },
+       {
+        "ns": 0,
+        "title": "White supremacist"
+       },
+       {
+        "ns": 0,
+        "title": "White supremacy"
+       },
+       {
+        "ns": 0,
+        "title": "Whittaker Chambers"
+       },
+       {
+        "ns": 0,
+        "title": "Why Liberalism Failed"
+       },
+       {
+        "ns": 0,
+        "title": "Will Herberg"
+       },
+       {
+        "ns": 0,
+        "title": "Will Scharf"
+       },
+       {
+        "ns": 0,
+        "title": "William Daniel Johnson"
+       },
+       {
+        "ns": 0,
+        "title": "William F. Buckley Jr."
+       },
+       {
+        "ns": 0,
+        "title": "William Howard Taft"
+       },
+       {
+        "ns": 0,
+        "title": "William M. Daley"
+       },
+       {
+        "ns": 0,
+        "title": "William McKinley"
+       },
+       {
+        "ns": 0,
+        "title": "William Regnery II"
+       },
+       {
+        "ns": 0,
+        "title": "William Rehnquist"
+       },
+       {
+        "ns": 0,
+        "title": "Wilton Persons"
+       },
+       {
+        "ns": 0,
+        "title": "Witherspoon Institute"
+       },
+       {
+        "ns": 0,
+        "title": "Witness (memoir)"
+       },
+       {
+        "ns": 0,
+        "title": "Women in conservatism in the United States"
+       },
+       {
+        "ns": 0,
+        "title": "WorldNetDaily"
+       },
+       {
+        "ns": 0,
+        "title": "X (formerly Twitter)"
+       },
+       {
+        "ns": 0,
+        "title": "X (social network)"
+       },
+       {
+        "ns": 0,
+        "title": "Yahoo News"
+       },
+       {
+        "ns": 0,
+        "title": "Yamiche Alcindor"
+       },
+       {
+        "ns": 0,
+        "title": "Yeonmi Park"
+       },
+       {
+        "ns": 0,
+        "title": "Yoram Hazony"
+       },
+       {
+        "ns": 0,
+        "title": "Young America's Foundation"
+       },
+       {
+        "ns": 0,
+        "title": "Young Americans for Freedom"
+       },
+       {
+        "ns": 0,
+        "title": "Young Americans for Liberty"
+       },
+       {
+        "ns": 0,
+        "title": "Young Republicans"
+       },
+       {
+        "ns": 0,
+        "title": "Yuri Bezmenov"
+       },
+       {
+        "ns": 0,
+        "title": "Zachary Fuentes"
+       },
+       {
+        "ns": 0,
+        "title": "Ziklag (organization)"
+       },
+       {
+        "ns": 0,
+        "title": "Zolan Kanno-Youngs"
+       },
+       {
+        "ns": 0,
+        "title": "Zora Neale Hurston"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/api/rest_v1/page/summary/Stephen_Miller",
+  "params": {},
+  "status": 200,
+  "location": null,
+  "body": {
+   "type": "standard",
+   "title": "Stephen Miller",
+   "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Stephen Miller</span></span>",
+   "namespace": {
+    "id": 0,
+    "text": ""
+   },
+   "wikibase_item": "Q27996060",
+   "titles": {
+    "canonical": "Stephen_Miller",
+    "normalized": "Stephen Miller",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Stephen Miller</span></span>"
+   },
+   "pageid": 51260917,
+   "thumbnail": {
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Stephen_Miller_July_2025.jpg/330px-Stephen_Miller_July_2025.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "width": 330,
+    "height": 407
+   },
+   "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Stephen_Miller_July_2025.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "width": 840,
+    "height": 1037
+   },
+   "lang": "en",
+   "dir": "ltr",
+   "revision": "1384282231",
+   "tid": "a278f3c3-dab4-11f1-8ead-85764ac33c54",
+   "timestamp": "2026-11-07T14:07:58Z",
+   "description": "American political advisor (born 1985)",
+   "description_source": "local",
+   "content_urls": {
+    "desktop": {
+     "page": "https://en.wikipedia.org/wiki/Stephen_Miller",
+     "revisions": "https://en.wikipedia.org/wiki/Stephen_Miller?action=history",
+     "edit": "https://en.wikipedia.org/wiki/Stephen_Miller?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Stephen_Miller"
+    },
+    "mobile": {
+     "page": "https://en.wikipedia.org/wiki/Stephen_Miller",
+     "revisions": "https://en.wikipedia.org/wiki/Special:History/Stephen_Miller",
+     "edit": "https://en.wikipedia.org/wiki/Stephen_Miller?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Stephen_Miller"
+    }
+   },
+   "extract": "Stephen N. Miller is an American political advisor who has served as the White House deputy chief of staff for policy and the homeland security advisor since 2025. He previously served as senior advisor to the president and director of speechwriting from 2017 to 2021 during the first Trump administration. Considered one of the most influential figures of the Trump administrations and Trumpism movement, Miller's politics have been described as far-right, anti-immigration, and white nationalist.",
+   "extract_html": "<p><b>Stephen N. Miller</b> is an American political advisor who has served as the White House deputy chief of staff for policy and the homeland security advisor since 2025. He previously served as senior advisor to the president and director of speechwriting from 2017 to 2021 during the first Trump administration. Considered one of the most influential figures of the Trump administrations and Trumpism movement, Miller's politics have been described as far-right, anti-immigration, and white nationalist.</p>"
+  }
+ }
+]

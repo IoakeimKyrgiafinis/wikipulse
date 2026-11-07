@@ -1,0 +1,1362 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "frozen yogurt",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "normalized": [
+     {
+      "fromencoded": false,
+      "from": "frozen yogurt",
+      "to": "Frozen yogurt"
+     }
+    ],
+    "pages": [
+     {
+      "pageid": 369832,
+      "ns": 0,
+      "title": "Frozen yogurt",
+      "pageprops": {
+       "wikibase_item": "Q13319"
+      },
+      "links": [
+       {
+        "ns": 0,
+        "title": "16 Handles"
+       },
+       {
+        "ns": 0,
+        "title": "99 Flake"
+       },
+       {
+        "ns": 0,
+        "title": "ABC-CLIO"
+       },
+       {
+        "ns": 0,
+        "title": "Acidophiline"
+       },
+       {
+        "ns": 0,
+        "title": "Added sugar"
+       },
+       {
+        "ns": 0,
+        "title": "Affogato"
+       },
+       {
+        "ns": 0,
+        "title": "Almond milk"
+       },
+       {
+        "ns": 0,
+        "title": "Amasi"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew F. Smith"
+       },
+       {
+        "ns": 0,
+        "title": "Anne Mendelson"
+       },
+       {
+        "ns": 0,
+        "title": "Arctic roll"
+       },
+       {
+        "ns": 0,
+        "title": "Aspartame"
+       },
+       {
+        "ns": 0,
+        "title": "Australia"
+       },
+       {
+        "ns": 0,
+        "title": "Australian Government"
+       },
+       {
+        "ns": 0,
+        "title": "Ayran"
+       },
+       {
+        "ns": 0,
+        "title": "Bacon ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Bacon sundae"
+       },
+       {
+        "ns": 0,
+        "title": "Baked Alaska"
+       },
+       {
+        "ns": 0,
+        "title": "Banana split"
+       },
+       {
+        "ns": 0,
+        "title": "Bananas Foster"
+       },
+       {
+        "ns": 0,
+        "title": "Bastani"
+       },
+       {
+        "ns": 0,
+        "title": "Beer ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Bifidobacterium"
+       },
+       {
+        "ns": 0,
+        "title": "Biscuit Tortoni"
+       },
+       {
+        "ns": 0,
+        "title": "Black raspberry ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Bloomingdale's"
+       },
+       {
+        "ns": 0,
+        "title": "Blue moon (ice cream)"
+       },
+       {
+        "ns": 0,
+        "title": "Bombe glacée"
+       },
+       {
+        "ns": 0,
+        "title": "Booza"
+       },
+       {
+        "ns": 0,
+        "title": "Borani"
+       },
+       {
+        "ns": 0,
+        "title": "Brazil"
+       },
+       {
+        "ns": 0,
+        "title": "Brigham's Ice Cream"
+       },
+       {
+        "ns": 0,
+        "title": "British English"
+       },
+       {
+        "ns": 0,
+        "title": "Butter Brickle"
+       },
+       {
+        "ns": 0,
+        "title": "Butter pecan"
+       },
+       {
+        "ns": 0,
+        "title": "Buttermilk"
+       },
+       {
+        "ns": 0,
+        "title": "Café liégeois"
+       },
+       {
+        "ns": 0,
+        "title": "Calpis"
+       },
+       {
+        "ns": 0,
+        "title": "Canada"
+       },
+       {
+        "ns": 0,
+        "title": "Cancer"
+       },
+       {
+        "ns": 0,
+        "title": "Caramel ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Carlo Gatti"
+       },
+       {
+        "ns": 0,
+        "title": "Chaas"
+       },
+       {
+        "ns": 0,
+        "title": "Chain restaurant"
+       },
+       {
+        "ns": 0,
+        "title": "Chal"
+       },
+       {
+        "ns": 0,
+        "title": "Chalap"
+       },
+       {
+        "ns": 0,
+        "title": "Charles Bamforth"
+       },
+       {
+        "ns": 0,
+        "title": "Cherries jubilee"
+       },
+       {
+        "ns": 0,
+        "title": "Cherry ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Chicago Tribune"
+       },
+       {
+        "ns": 0,
+        "title": "Choc-top"
+       },
+       {
+        "ns": 0,
+        "title": "Choc ice"
+       },
+       {
+        "ns": 0,
+        "title": "Chocolate Shoppe Ice Cream Company"
+       },
+       {
+        "ns": 0,
+        "title": "Chocolate chip cookie dough ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Chocolate ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Cholesterol"
+       },
+       {
+        "ns": 0,
+        "title": "Chukauni"
+       },
+       {
+        "ns": 0,
+        "title": "Churri"
+       },
+       {
+        "ns": 0,
+        "title": "Circana"
+       },
+       {
+        "ns": 0,
+        "title": "Clabber (food)"
+       },
+       {
+        "ns": 0,
+        "title": "Coconut milk"
+       },
+       {
+        "ns": 0,
+        "title": "Coffee cabinet"
+       },
+       {
+        "ns": 0,
+        "title": "Coffee ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Colombo Yogurt"
+       },
+       {
+        "ns": 0,
+        "title": "Cookies and cream"
+       },
+       {
+        "ns": 0,
+        "title": "Corn syrup"
+       },
+       {
+        "ns": 0,
+        "title": "Cornell University"
+       },
+       {
+        "ns": 0,
+        "title": "Cornish ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Crab ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Creme de papaya"
+       },
+       {
+        "ns": 0,
+        "title": "Crème fraîche"
+       },
+       {
+        "ns": 0,
+        "title": "Cucumber raita"
+       },
+       {
+        "ns": 0,
+        "title": "Curd (India)"
+       },
+       {
+        "ns": 0,
+        "title": "Dadiah"
+       },
+       {
+        "ns": 0,
+        "title": "Dahi baigana"
+       },
+       {
+        "ns": 0,
+        "title": "Dahi chutney"
+       },
+       {
+        "ns": 0,
+        "title": "Dahi machha"
+       },
+       {
+        "ns": 0,
+        "title": "Dahi puri"
+       },
+       {
+        "ns": 0,
+        "title": "Dahi vada"
+       },
+       {
+        "ns": 0,
+        "title": "Dahibara Aludam"
+       },
+       {
+        "ns": 0,
+        "title": "Dairy product"
+       },
+       {
+        "ns": 0,
+        "title": "Dame blanche (dessert)"
+       },
+       {
+        "ns": 0,
+        "title": "Daniel J. Kim"
+       },
+       {
+        "ns": 0,
+        "title": "Danone"
+       },
+       {
+        "ns": 0,
+        "title": "Dessert"
+       },
+       {
+        "ns": 0,
+        "title": "Dhau"
+       },
+       {
+        "ns": 0,
+        "title": "Doi (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Dondurma"
+       },
+       {
+        "ns": 0,
+        "title": "Doogh"
+       },
+       {
+        "ns": 0,
+        "title": "Dovga"
+       },
+       {
+        "ns": 0,
+        "title": "Drive-thru"
+       },
+       {
+        "ns": 0,
+        "title": "Emulsifier"
+       },
+       {
+        "ns": 0,
+        "title": "Fermentation in food processing"
+       },
+       {
+        "ns": 0,
+        "title": "Fermentation starter"
+       },
+       {
+        "ns": 0,
+        "title": "Fermented milk products"
+       },
+       {
+        "ns": 0,
+        "title": "Filmjölk"
+       },
+       {
+        "ns": 0,
+        "title": "Florence Fabricant"
+       },
+       {
+        "ns": 0,
+        "title": "Food & Wine"
+       },
+       {
+        "ns": 0,
+        "title": "Franchising"
+       },
+       {
+        "ns": 0,
+        "title": "Freeze-dried ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Fried ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Frosty Boy"
+       },
+       {
+        "ns": 0,
+        "title": "Frozen custard"
+       },
+       {
+        "ns": 0,
+        "title": "Frozen dessert"
+       },
+       {
+        "ns": 0,
+        "title": "Fructose"
+       },
+       {
+        "ns": 0,
+        "title": "Fruit"
+       },
+       {
+        "ns": 0,
+        "title": "Garlic ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Gelato"
+       },
+       {
+        "ns": 0,
+        "title": "Gelato University"
+       },
+       {
+        "ns": 0,
+        "title": "Golden Opulence Sundae"
+       },
+       {
+        "ns": 0,
+        "title": "Goody Goody Gum Drops"
+       },
+       {
+        "ns": 0,
+        "title": "Government of the Netherlands"
+       },
+       {
+        "ns": 0,
+        "title": "Granita"
+       },
+       {
+        "ns": 0,
+        "title": "Grape ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Greek yogurt"
+       },
+       {
+        "ns": 0,
+        "title": "Green tea ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "HP Hood"
+       },
+       {
+        "ns": 0,
+        "title": "Halal"
+       },
+       {
+        "ns": 0,
+        "title": "Hartford Courant"
+       },
+       {
+        "ns": 0,
+        "title": "Harvard T.H. Chan School of Public Health"
+       },
+       {
+        "ns": 0,
+        "title": "Helen Rosner"
+       },
+       {
+        "ns": 0,
+        "title": "High-fructose corn syrup"
+       },
+       {
+        "ns": 0,
+        "title": "Hokey pokey (ice cream)"
+       },
+       {
+        "ns": 0,
+        "title": "Humphrey Yogart"
+       },
+       {
+        "ns": 0,
+        "title": "Häagen-Dazs"
+       },
+       {
+        "ns": 0,
+        "title": "ISBN (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Ice Cream for Breakfast Day"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream bar"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream cake"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream cart"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream cone"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream float"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream maker"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream parlor"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream sandwich"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream social"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream stand"
+       },
+       {
+        "ns": 0,
+        "title": "Ice cream van"
+       },
+       {
+        "ns": 0,
+        "title": "Ice milk"
+       },
+       {
+        "ns": 0,
+        "title": "Idaho Statesman"
+       },
+       {
+        "ns": 0,
+        "title": "Italian ice"
+       },
+       {
+        "ns": 0,
+        "title": "Jameed"
+       },
+       {
+        "ns": 0,
+        "title": "Jocoque"
+       },
+       {
+        "ns": 0,
+        "title": "June Hersh"
+       },
+       {
+        "ns": 0,
+        "title": "Kadhi"
+       },
+       {
+        "ns": 0,
+        "title": "Kashk"
+       },
+       {
+        "ns": 0,
+        "title": "Kashrut"
+       },
+       {
+        "ns": 0,
+        "title": "Kefir"
+       },
+       {
+        "ns": 0,
+        "title": "Knickerbocker (Zamboanga)"
+       },
+       {
+        "ns": 0,
+        "title": "Knickerbocker glory"
+       },
+       {
+        "ns": 0,
+        "title": "Kudzu"
+       },
+       {
+        "ns": 0,
+        "title": "Kulfi"
+       },
+       {
+        "ns": 0,
+        "title": "Kumis"
+       },
+       {
+        "ns": 0,
+        "title": "L. acidophilus"
+       },
+       {
+        "ns": 0,
+        "title": "Lactobacillus"
+       },
+       {
+        "ns": 0,
+        "title": "Lactobacillus bulgaricus"
+       },
+       {
+        "ns": 0,
+        "title": "Lactobacillus delbrueckii subsp. bulgaricus"
+       },
+       {
+        "ns": 0,
+        "title": "Lactose"
+       },
+       {
+        "ns": 0,
+        "title": "Lassi"
+       },
+       {
+        "ns": 0,
+        "title": "Leben (milk product)"
+       },
+       {
+        "ns": 0,
+        "title": "Lemon ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "List of dairy products"
+       },
+       {
+        "ns": 0,
+        "title": "List of ice cream brands"
+       },
+       {
+        "ns": 0,
+        "title": "List of ice cream flavors"
+       },
+       {
+        "ns": 0,
+        "title": "List of ice cream parlor chains"
+       },
+       {
+        "ns": 0,
+        "title": "List of ice cream varieties by country"
+       },
+       {
+        "ns": 0,
+        "title": "List of yogurt-based dishes and beverages"
+       },
+       {
+        "ns": 0,
+        "title": "Llaollao"
+       },
+       {
+        "ns": 0,
+        "title": "Main Page"
+       },
+       {
+        "ns": 0,
+        "title": "Mattha"
+       },
+       {
+        "ns": 0,
+        "title": "Matzoon"
+       },
+       {
+        "ns": 0,
+        "title": "Menchie's"
+       },
+       {
+        "ns": 0,
+        "title": "Menchie's Frozen Yogurt"
+       },
+       {
+        "ns": 0,
+        "title": "Microbial food cultures"
+       },
+       {
+        "ns": 0,
+        "title": "Microorganisms"
+       },
+       {
+        "ns": 0,
+        "title": "Milk"
+       },
+       {
+        "ns": 0,
+        "title": "Milk fat"
+       },
+       {
+        "ns": 0,
+        "title": "Milk solids"
+       },
+       {
+        "ns": 0,
+        "title": "Milk substitute"
+       },
+       {
+        "ns": 0,
+        "title": "Milkshake"
+       },
+       {
+        "ns": 0,
+        "title": "Mint chocolate chip"
+       },
+       {
+        "ns": 0,
+        "title": "Mitha dahi"
+       },
+       {
+        "ns": 0,
+        "title": "Mix-in"
+       },
+       {
+        "ns": 0,
+        "title": "Moab, Utah"
+       },
+       {
+        "ns": 0,
+        "title": "Mochi ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Moon mist"
+       },
+       {
+        "ns": 0,
+        "title": "Moose Tracks"
+       },
+       {
+        "ns": 0,
+        "title": "Mursik"
+       },
+       {
+        "ns": 0,
+        "title": "Nai lao"
+       },
+       {
+        "ns": 0,
+        "title": "National Ice Cream Month"
+       },
+       {
+        "ns": 0,
+        "title": "Natural selection"
+       },
+       {
+        "ns": 0,
+        "title": "Neapolitan ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "New York (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "New York (state)"
+       },
+       {
+        "ns": 0,
+        "title": "Nostalgia"
+       },
+       {
+        "ns": 0,
+        "title": "Nut (food)"
+       },
+       {
+        "ns": 0,
+        "title": "Oat milk"
+       },
+       {
+        "ns": 0,
+        "title": "Omaere"
+       },
+       {
+        "ns": 0,
+        "title": "Oreo"
+       },
+       {
+        "ns": 0,
+        "title": "Oxford English Dictionary"
+       },
+       {
+        "ns": 0,
+        "title": "Oyster ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "PH"
+       },
+       {
+        "ns": 0,
+        "title": "PMC (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "PMID (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "Papri chaat"
+       },
+       {
+        "ns": 0,
+        "title": "Parfait"
+       },
+       {
+        "ns": 0,
+        "title": "Pasteurized milk"
+       },
+       {
+        "ns": 0,
+        "title": "Peach Melba"
+       },
+       {
+        "ns": 0,
+        "title": "Peanut ice cream roll"
+       },
+       {
+        "ns": 0,
+        "title": "Penny lick"
+       },
+       {
+        "ns": 0,
+        "title": "Pinkberry"
+       },
+       {
+        "ns": 0,
+        "title": "Pistachio ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Plant milk"
+       },
+       {
+        "ns": 0,
+        "title": "Poire belle Hélène"
+       },
+       {
+        "ns": 0,
+        "title": "Private equity"
+       },
+       {
+        "ns": 0,
+        "title": "ProQuest"
+       },
+       {
+        "ns": 0,
+        "title": "Qatiq"
+       },
+       {
+        "ns": 0,
+        "title": "Quark (dairy product)"
+       },
+       {
+        "ns": 0,
+        "title": "Queso ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Raita"
+       },
+       {
+        "ns": 0,
+        "title": "Raspberry ripple"
+       },
+       {
+        "ns": 0,
+        "title": "Reaktion"
+       },
+       {
+        "ns": 0,
+        "title": "Red Mango"
+       },
+       {
+        "ns": 0,
+        "title": "Restaurant"
+       },
+       {
+        "ns": 0,
+        "title": "Rocky road (ice cream)"
+       },
+       {
+        "ns": 0,
+        "title": "Rum raisin"
+       },
+       {
+        "ns": 0,
+        "title": "Ryazhenka"
+       },
+       {
+        "ns": 0,
+        "title": "Saturated fat"
+       },
+       {
+        "ns": 0,
+        "title": "Self-serve"
+       },
+       {
+        "ns": 0,
+        "title": "Semifreddo"
+       },
+       {
+        "ns": 0,
+        "title": "Shave ice"
+       },
+       {
+        "ns": 0,
+        "title": "Shaved ice"
+       },
+       {
+        "ns": 0,
+        "title": "Sherbet (frozen dessert)"
+       },
+       {
+        "ns": 0,
+        "title": "Shrikhand"
+       },
+       {
+        "ns": 0,
+        "title": "Sili ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Sizzling brownie"
+       },
+       {
+        "ns": 0,
+        "title": "Skyr"
+       },
+       {
+        "ns": 0,
+        "title": "Slushy"
+       },
+       {
+        "ns": 0,
+        "title": "Smetana (dairy product)"
+       },
+       {
+        "ns": 0,
+        "title": "Snow cream"
+       },
+       {
+        "ns": 0,
+        "title": "Social media"
+       },
+       {
+        "ns": 0,
+        "title": "Soft serve"
+       },
+       {
+        "ns": 0,
+        "title": "Sorbet"
+       },
+       {
+        "ns": 0,
+        "title": "Sorbetes"
+       },
+       {
+        "ns": 0,
+        "title": "Sour cream"
+       },
+       {
+        "ns": 0,
+        "title": "Soured milk"
+       },
+       {
+        "ns": 0,
+        "title": "South Korea"
+       },
+       {
+        "ns": 0,
+        "title": "Soy milk"
+       },
+       {
+        "ns": 0,
+        "title": "Spaghettieis"
+       },
+       {
+        "ns": 0,
+        "title": "Spain"
+       },
+       {
+        "ns": 0,
+        "title": "Spas (soup)"
+       },
+       {
+        "ns": 0,
+        "title": "Springer Science+Business Media"
+       },
+       {
+        "ns": 0,
+        "title": "Spumoni"
+       },
+       {
+        "ns": 0,
+        "title": "Squround"
+       },
+       {
+        "ns": 0,
+        "title": "Stabilizer (chemistry)"
+       },
+       {
+        "ns": 0,
+        "title": "Standards of identity for food"
+       },
+       {
+        "ns": 0,
+        "title": "Stephen A. Gaymont"
+       },
+       {
+        "ns": 0,
+        "title": "Stevia"
+       },
+       {
+        "ns": 0,
+        "title": "Stir-fried ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Stracciatella (ice cream)"
+       },
+       {
+        "ns": 0,
+        "title": "Strained yogurt"
+       },
+       {
+        "ns": 0,
+        "title": "Strawberry ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Streptococcus thermophilus"
+       },
+       {
+        "ns": 0,
+        "title": "Sucralose"
+       },
+       {
+        "ns": 0,
+        "title": "Sucrose"
+       },
+       {
+        "ns": 0,
+        "title": "Sundae"
+       },
+       {
+        "ns": 0,
+        "title": "Suorat"
+       },
+       {
+        "ns": 0,
+        "title": "Superman (ice cream flavor)"
+       },
+       {
+        "ns": 0,
+        "title": "Supermarket"
+       },
+       {
+        "ns": 0,
+        "title": "SweetFrog"
+       },
+       {
+        "ns": 0,
+        "title": "Sweet Frog"
+       },
+       {
+        "ns": 0,
+        "title": "Sweetener"
+       },
+       {
+        "ns": 0,
+        "title": "Syrup"
+       },
+       {
+        "ns": 0,
+        "title": "TCBY"
+       },
+       {
+        "ns": 0,
+        "title": "Tarator"
+       },
+       {
+        "ns": 0,
+        "title": "Tartufo"
+       },
+       {
+        "ns": 0,
+        "title": "Tasti D-Lite"
+       },
+       {
+        "ns": 0,
+        "title": "Tasting Table"
+       },
+       {
+        "ns": 0,
+        "title": "Teaberry ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "The Boston Globe"
+       },
+       {
+        "ns": 0,
+        "title": "The New York Times"
+       },
+       {
+        "ns": 0,
+        "title": "The New Yorker"
+       },
+       {
+        "ns": 0,
+        "title": "The Wall Street Journal"
+       },
+       {
+        "ns": 0,
+        "title": "Third place"
+       },
+       {
+        "ns": 0,
+        "title": "Tiger tail ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Tramontana (ice cream)"
+       },
+       {
+        "ns": 0,
+        "title": "Tutti frutti"
+       },
+       {
+        "ns": 0,
+        "title": "Tzatziki"
+       },
+       {
+        "ns": 0,
+        "title": "Ube ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "United States"
+       },
+       {
+        "ns": 0,
+        "title": "Vanilla ice cream"
+       },
+       {
+        "ns": 0,
+        "title": "Varenets"
+       },
+       {
+        "ns": 0,
+        "title": "Veganism"
+       },
+       {
+        "ns": 0,
+        "title": "Viili"
+       },
+       {
+        "ns": 0,
+        "title": "West Hollywood, California"
+       },
+       {
+        "ns": 0,
+        "title": "Whey"
+       },
+       {
+        "ns": 0,
+        "title": "Woodhead Publishing"
+       },
+       {
+        "ns": 0,
+        "title": "Yakult"
+       },
+       {
+        "ns": 0,
+        "title": "Yayık ayranı"
+       },
+       {
+        "ns": 0,
+        "title": "Ymer (dairy product)"
+       },
+       {
+        "ns": 0,
+        "title": "Yo-Chi"
+       },
+       {
+        "ns": 0,
+        "title": "Yoajung"
+       },
+       {
+        "ns": 0,
+        "title": "Yogen Früz"
+       },
+       {
+        "ns": 0,
+        "title": "Yogoberry"
+       },
+       {
+        "ns": 0,
+        "title": "Yogurt"
+       },
+       {
+        "ns": 0,
+        "title": "Yogurtland"
+       },
+       {
+        "ns": 0,
+        "title": "Zhoixo"
+       },
+       {
+        "ns": 0,
+        "title": "Zuccotto"
+       },
+       {
+        "ns": 0,
+        "title": "Çılbır"
+       }
+      ],
+      "categories": [
+       {
+        "ns": 14,
+        "title": "Category:Fermented dairy products"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Frozen desserts"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Sour foods"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Yogurts"
+       }
+      ]
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/api/rest_v1/page/summary/Frozen_yogurt",
+  "params": {},
+  "status": 200,
+  "location": null,
+  "body": {
+   "type": "standard",
+   "title": "Frozen yogurt",
+   "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Frozen yogurt</span></span>",
+   "namespace": {
+    "id": 0,
+    "text": ""
+   },
+   "wikibase_item": "Q13319",
+   "titles": {
+    "canonical": "Frozen_yogurt",
+    "normalized": "Frozen yogurt",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Frozen yogurt</span></span>"
+   },
+   "pageid": 369832,
+   "thumbnail": {
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Blueberry_frozen_yoghurt_%284937999312%29.jpg/330px-Blueberry_frozen_yoghurt_%284937999312%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "width": 330,
+    "height": 248
+   },
+   "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Blueberry_frozen_yoghurt_%284937999312%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "width": 2592,
+    "height": 1944
+   },
+   "lang": "en",
+   "dir": "ltr",
+   "revision": "1384288334",
+   "tid": "b24807c5-dabb-11f1-b9d9-54eddcfb281f",
+   "timestamp": "2026-11-07T14:58:31Z",
+   "description": "Frozen dairy dessert",
+   "description_source": "local",
+   "content_urls": {
+    "desktop": {
+     "page": "https://en.wikipedia.org/wiki/Frozen_yogurt",
+     "revisions": "https://en.wikipedia.org/wiki/Frozen_yogurt?action=history",
+     "edit": "https://en.wikipedia.org/wiki/Frozen_yogurt?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Frozen_yogurt"
+    },
+    "mobile": {
+     "page": "https://en.wikipedia.org/wiki/Frozen_yogurt",
+     "revisions": "https://en.wikipedia.org/wiki/Special:History/Frozen_yogurt",
+     "edit": "https://en.wikipedia.org/wiki/Frozen_yogurt?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:Frozen_yogurt"
+    }
+   },
+   "extract": "Frozen yogurt is a frozen dessert made with yogurt or other dairy and non-dairy products. Frozen yogurt is similar in composition to ice cream, with its main ingredient being milk or milk substitutes.",
+   "extract_html": "<p><b>Frozen yogurt</b> is a frozen dessert made with yogurt or other dairy and non-dairy products. Frozen yogurt is similar in composition to ice cream, with its main ingredient being milk or milk substitutes.</p>"
+  }
+ }
+]
