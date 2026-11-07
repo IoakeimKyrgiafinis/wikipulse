@@ -30,6 +30,6 @@ With the services running and `USER_AGENT` set in `.env`:
 | `uv run python -m wikipulse.stream.consume` | Live consumer: English Wikipedia article edits into the Redis Stream `wiki:edits`. Ctrl+C stops it cleanly; it resumes from its checkpoint on the next start. |
 | `uv run python -m wikipulse.stream.stats --watch` | Counters, events per second, bot share, stream length and lag, refreshed every 2 seconds. |
 | `uv run python -m wikipulse.stream.record --minutes 60` | Saves the raw, unfiltered stream to `data/recordings/<start time>.jsonl`. |
-| `uv run python -m wikipulse.stream.replay --file <path> --speed max` | Feeds a recording through the same processing core (`--speed 10` for 10x real time). |
+| `uv run python -m wikipulse.stream.replay --file <path> --speed max` | Feeds a recording through the same processing core (`--speed 10` for 10x real time) into `REPLAY_STREAM_KEY` (`wiki:replay:edits`), not the live stream. |
 | `uv run pytest -m integration` | Integration tests against the Docker Redis. |
 | `uv run python scripts/crash_test.py` | Five-minute crash test: kills and restarts the consumer, then checks nothing was lost or doubled. |

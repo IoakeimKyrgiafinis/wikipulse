@@ -10,10 +10,18 @@ from pathlib import Path
 import fakeredis
 import pytest
 
-from tests.stream.helpers import FakeSource, fixture_messages, with_unique_ids
+from tests.stream.helpers import FIXTURE, FakeSource, fixture_messages, with_unique_ids
+from wikipulse import config
+from wikipulse.stream import replay
 from wikipulse.stream.consumer import Consumer
 from wikipulse.stream.record import Recorder, default_output_path
-from wikipulse.stream.replay import REPLAY_NAMESPACE, parse_speed, replay_keys
+from wikipulse.stream.replay import (
+    REPLAY_NAMESPACE,
+    parse_args,
+    parse_speed,
+    replay_keys,
+    target_stream,
+)
 from wikipulse.stream.resilience import Backoff
 from wikipulse.stream.sources import FileSource
 from wikipulse.stream.stats import render, take_snapshot
@@ -63,6 +71,33 @@ def test_replay_keys_never_touch_the_live_checkpoint() -> None:
     assert keys.stream == "wiki:edits"
     assert keys.checkpoint == f"{REPLAY_NAMESPACE}:last_id"
     assert keys.seen_prefix == f"{REPLAY_NAMESPACE}:run1:seen:"
+
+
+def test_replay_defaults_to_its_own_stream_not_the_live_one(caplog) -> None:
+    settings = config.Settings(_env_file=None)
+    assert settings.replay_stream_key != settings.stream_key
+    with caplog.at_level("WARNING"):
+        assert target_stream(None, settings) == settings.replay_stream_key
+        assert target_stream("wiki:other", settings) == "wiki:other"
+    assert not caplog.records
+
+
+def test_replay_into_the_live_stream_warns_loudly(caplog) -> None:
+    settings = config.Settings(_env_file=None)
+    with caplog.at_level("WARNING"):
+        assert target_stream(settings.stream_key, settings) == settings.stream_key
+    assert any("LIVE stream" in r.getMessage() for r in caplog.records)
+
+
+async def test_replay_run_leaves_the_live_stream_untouched(fake_server, monkeypatch) -> None:
+    settings = config.Settings(_env_file=None)
+    client = fakeredis.FakeAsyncRedis(server=fake_server, decode_responses=True)
+    monkeypatch.setattr(replay.aioredis.Redis, "from_url", lambda *a, **k: client)
+    monkeypatch.setattr(replay, "install_stop_handlers", lambda stop: None)
+    stats = await replay.run(parse_args(["--file", str(FIXTURE)]), settings)
+    check = fakeredis.FakeAsyncRedis(server=fake_server, decode_responses=True)
+    assert await check.xlen(settings.stream_key) == 0
+    assert await check.xlen(settings.replay_stream_key) == int(stats["kept"]) > 0
 
 
 async def test_stats_snapshot_and_render(fake_server, keys) -> None:

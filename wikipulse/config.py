@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     stream_url: str = "https://stream.wikimedia.org/v2/stream/recentchange"
     # Redis Stream that receives the filtered, normalized edits.
     stream_key: str = "wiki:edits"
+    # Redis Stream that `replay` writes to by default. Kept apart from STREAM_KEY so a
+    # replay never puts duplicate events into the live stream.
+    replay_stream_key: str = "wiki:replay:edits"
     # Approximate upper bound on the Redis Stream length (XADD MAXLEN ~).
     stream_maxlen: int = Field(default=1_000_000, gt=0)
     # Longest wait between reconnect attempts, in seconds.

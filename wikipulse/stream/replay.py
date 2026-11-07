@@ -5,10 +5,12 @@ Feeds a recording through exactly the same processing core as the live consumer
 `--speed max` (the default) goes as fast as possible; `--speed N` replays N times
 faster than real time, pacing by the events' own timestamps.
 
-Replay keeps its own checkpoint and stats under `wiki:replay:*`, so it never moves the
-live consumer's checkpoint. Each run deduplicates on its own (fresh dedup keys), so
-replaying the same file twice writes the same events twice. Use `--stream-key` to
-replay into a separate stream.
+Replay writes to its own stream, `REPLAY_STREAM_KEY` (default `wiki:replay:edits`), and
+keeps its own checkpoint and stats under `wiki:replay:*`, so by default it never touches
+the live stream or the live consumer's checkpoint. Each run deduplicates on its own
+(fresh dedup keys), so replaying the same file twice writes the same events twice.
+`--stream-key` picks another stream; pointing it at the live `STREAM_KEY` logs a loud
+warning, because events the live consumer already wrote would then appear twice.
 """
 
 import argparse
@@ -55,20 +57,38 @@ def replay_keys(stream: str, run_id: str) -> RedisKeys:
     )
 
 
+def target_stream(requested: str | None, settings: Settings) -> str:
+    """The stream to replay into: `--stream-key` if given, else REPLAY_STREAM_KEY.
+
+    Warns loudly when the target is the live stream, since a replay there duplicates
+    events the live consumer has already written and distorts the live stats.
+    """
+    stream = requested or settings.replay_stream_key
+    if stream == settings.stream_key:
+        logger.warning(
+            "Replaying into the LIVE stream %s: events the live consumer already wrote "
+            "will be duplicated there, and live stats will be distorted",
+            stream,
+        )
+    return stream
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--file", type=Path, required=True, help="recording to replay")
     parser.add_argument(
         "--speed", type=parse_speed, default=None, help="'max' (default) or a factor like 10"
     )
-    parser.add_argument("--stream-key", help="Redis Stream to write to (default: STREAM_KEY)")
+    parser.add_argument(
+        "--stream-key", help="Redis Stream to write to (default: REPLAY_STREAM_KEY)"
+    )
     return parser.parse_args(argv)
 
 
 async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
     stop = asyncio.Event()
     install_stop_handlers(stop)
-    keys = replay_keys(args.stream_key or settings.stream_key, uuid.uuid4().hex)
+    keys = replay_keys(target_stream(args.stream_key, settings), uuid.uuid4().hex)
     redis = aioredis.Redis.from_url(settings.redis_url, decode_responses=True)
     try:
         await redis.delete(keys.stats)  # stats describe this replay only

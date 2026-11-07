@@ -12,8 +12,15 @@ from collections.abc import AsyncIterator
 import pytest
 import redis.asyncio as aioredis
 
-from tests.stream.helpers import FakeSource, fixture_messages, fixture_raws, with_unique_ids
-from wikipulse.config import get_settings
+from tests.stream.helpers import (
+    FIXTURE,
+    FakeSource,
+    fixture_messages,
+    fixture_raws,
+    with_unique_ids,
+)
+from wikipulse.config import Settings, get_settings
+from wikipulse.stream import replay
 from wikipulse.stream.consumer import Consumer, Outcome, RedisKeys
 from wikipulse.stream.filters import is_wanted
 from wikipulse.stream.models import EditEvent
@@ -99,3 +106,23 @@ async def test_resume_from_checkpoint_after_crash(real_redis, test_keys) -> None
     await second.consume(source, asyncio.Event(), last_event_id=resend_from)
     assert await stream_event_ids(real_redis, test_keys) == WANTED_IDS
     assert await second.load_checkpoint() == messages[-1][0]
+
+
+async def test_replay_by_default_does_not_write_to_the_live_stream(real_redis, monkeypatch) -> None:
+    namespace = f"wikipulse-test:{uuid.uuid4().hex}"
+    settings = Settings(
+        redis_url=get_settings().redis_url,
+        stream_key=f"{namespace}:live",
+        replay_stream_key=f"{namespace}:replay",
+    )
+    # Keep the replay's checkpoint, stats and dedup keys inside the test namespace too.
+    monkeypatch.setattr(replay, "REPLAY_NAMESPACE", namespace)
+    monkeypatch.setattr(replay, "install_stop_handlers", lambda stop: None)
+    try:
+        stats = await replay.run(replay.parse_args(["--file", str(FIXTURE)]), settings)
+        assert await real_redis.exists(settings.stream_key) == 0
+        assert int(stats["kept"]) == len(WANTED_IDS)
+        assert await real_redis.xlen(settings.replay_stream_key) == len(WANTED_IDS)
+    finally:
+        async for key in real_redis.scan_iter(match=f"{namespace}:*", count=1000):
+            await real_redis.delete(key)

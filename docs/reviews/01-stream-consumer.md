@@ -1,0 +1,40 @@
+# Review: Spec 01, Live stream consumer
+
+Reviewed branch `spec-01-stream-consumer` (one commit, `63f58a6`) against `main`, on 2026-11-07.
+The reviewer ran every check below. The spec `Status:` line is left for the coordinator. The
+placeholder User-Agent is intentional. GitHub CI could not be observed because `gh` is not authenticated.
+
+## Acceptance criteria
+
+| # | Criterion | Result | Evidence |
+|---|-----------|--------|----------|
+| 1 | Unit tests pass (filtering, canary, normalization, malformed, dedup, checkpoint, reconnect after a mid-stream failure, graceful shutdown) | pass | `uv run pytest`: 69 passed, 4 deselected, 1.8 s. Each topic has a real test: `test_filters.py` (filter, canary, normalize), `test_consumer.py::test_malformed_messages_are_counted_not_fatal`, `test_duplicates_are_skipped`, `test_checkpoint_is_saved_after_every_message`, `test_reconnect_after_source_fails_mid_stream` (checks the resume id and that nothing is lost or doubled), `test_graceful_shutdown_while_waiting` and `test_graceful_shutdown_finishes_the_current_write`. fakeredis runs the real Lua script. |
+| 2 | Integration tests (`-m integration`, Docker Redis) pass: writes, trimming, resume from a checkpoint | pass | `uv run pytest -m integration`: 4 passed (`test_writes_to_redis_stream`, `test_duplicates_are_skipped_in_real_redis`, `test_stream_is_trimmed_approximately` with 1000 writes and maxlen 20, `test_resume_from_checkpoint_after_crash` including resent messages). |
+| 3 | GitHub Actions runs the integration tests with Redis as a service container | pass (static check only) | `.github/workflows/ci.yml` adds a `redis:7-alpine` service with a health check, sets `REDIS_URL`, and adds a `uv run pytest -m integration` step. `uv lock --check` is consistent, so `uv sync --locked` will work. No integration test needs Postgres, so Redis alone is enough. The workflow has not run on GitHub yet because `gh` is not authenticated. |
+| 4 | Crash test in `scripts/crash_test.py`, with nothing missing and nothing duplicated | pass | The reviewer ran `uv run python scripts/crash_test.py --scale 0.2`, the full timeline scaled to about 1 minute because of the "no long live sessions" instruction. Results: 101 expected, 101 in Redis, 0 missing, 0 extra, 0 duplicates, and all 17 events that arrived during the downtime were recovered. PASS. The author's full 5-minute run is backed by `data/recordings/crashtest-20261107T012834Z.*` (10,509 messages recorded; the consumer resumed from its checkpoint at 03:31:35 and stopped cleanly on SIGBREAK). Its reported 487/487 could not be re-checked because later runs clear the `wiki:crashtest:*` keys. |
+| 5 | `stats --watch` shows a live event rate; report events/s and bot share | pass | The reviewer ran a 22 s live consumer in its own namespace (`wiki:review`) with `stats --watch`. It refreshed every 2 s and showed 20.8 to 39.4 messages/s received, 1.5 to 2.5 kept/s, a bot share of about 40 to 47 %, and a lag under 2 s. The learning note reports about 1.7 kept/s and a 31 % bot share over 3 minutes. Both figures are reported. |
+| - | ruff | pass | `ruff check .` reports "All checks passed!" and `ruff format --check .` reports "68 files already formatted". |
+| - | Learning note | pass | `docs/learning/01-stream-consumer.md` has all the required sections, deviations and results. |
+
+## Problems
+
+1. **medium**, `wikipulse/stream/replay.py:71`. By default, replay writes into the live stream `STREAM_KEY` (`wiki:edits`) with fresh, per-run dedup keys. Replaying any recording that overlaps what the live consumer already wrote therefore puts duplicate events into the production stream. It also distorts the live `stats` rate and lag, which breaks the "each event exactly once in Redis" guarantee the module docstring promises. A safer default would be a separate stream key, or at least a loud warning.
+2. **low**, `wikipulse/stream/consumer.py:197` and `wikipulse/stream/record.py:52`. `backoff.reset()` runs after every single message. A server that accepts the connection, sends one message and drops it, again and again, gets a reconnect every 0.5 to 1 s forever, which isn't polite to Wikimedia. Resetting only after the connection has stayed healthy for a while would fix this.
+3. **low**, `wikipulse/stream/filters.py:20-31`. The docstring says `is_wanted` "never raises", but `raw.get("type") in WANTED_TYPES` raises `TypeError` for an unhashable `type`, such as a list (the reviewer reproduced this). `process` catches it and counts the message as malformed. `scripts/crash_test.py` and `scripts/make_fixture.py` call `is_wanted` with no guard, so they would crash on such a message.
+4. **low**, `wikipulse/stream/sources.py:91` and `wikipulse/stream/consumer.py:92-98`. A recording line like `{"id": "x", "data": null}` parses to `("x", None)`. `json.loads(None)` then raises `TypeError`, which `parse_message` doesn't catch (it only catches `ValueError`), so replay crashes. The reviewer reproduced this. Requirement 8 says malformed input must never crash the consumer.
+5. **low**, `wikipulse/stream/consumer.py:39` and `wikipulse/stream/sources.py:27`. The dedup window (`DEDUP_TTL_S = 3600`) and the HTTP read timeout (60 s) are operational values hard-coded in modules. Under the project convention they belong in `wikipulse/config.py`.
+6. **low**, `wikipulse/stream/stats.py:90`. "kept events/s, last 60 s" always divides by 60. During the first minute after a start it under-reports badly: the reviewer saw 0.27/s while the actual rate was 1.5 to 2.5/s.
+7. **low**, `wikipulse/stream/replay.py:4` and `wikipulse/stream/consumer.py:129`. The docstring says a replay yields "the same Redis Stream entries" as live. However, `received_at` is the wall-clock time of the replay, not the `received_at` already stored in the recording, so the `data` JSON differs between runs. Only `event_time` and the other fields are reproducible.
+8. **low**, `wikipulse/stream/replay.py:74`. Replay writes a checkpoint (`wiki:replay:last_id`) that nothing ever reads, and it deletes the stats hash shared by all replays at start-up, so two concurrent replays clobber each other's stats.
+9. **low**, `wikipulse/stream/sources.py:131-138`. When `FileSource.messages(last_event_id)` is given an id that doesn't appear in the file, it silently yields nothing. Because Wikimedia SSE ids repeat (the learning note counts 47 repeats in 2 minutes), it also resumes after the *first* occurrence of the id. Dedup makes this harmless today, but nothing in the code says so.
+10. **low**, `wikipulse/stream/sources.py:70`. All HTTP errors (429, 503, 4xx) get the same backoff. `Retry-After` and the SSE `retry:` field are ignored, and a permanent client error such as 400 or 403 is retried forever without any distinct log message.
+
+Verdict: fix
+
+The core design is sound and well tested: a Lua script makes dedup, XADD and checkpoint atomic, and every acceptance criterion passes. Problem 1 (replay writes duplicates into the live stream by default) should be fixed before stage 2 starts reading `wiki:edits`. Problems 3 and 4 are one-line hardening fixes worth doing at the same time.
+
+## Questions for the human before merging
+
+1. The consumer's checkpoint is a Wikimedia SSE id that holds timestamps, not unique offsets. Walk through what happens to a message that shares its millisecond timestamp with the last one written before a hard kill. Why does the `SET NX` marker have to be in the *same* atomic step as the `XADD`, rather than set just before or after it?
+2. Discarded and malformed messages also move the checkpoint, through a separate `MULTI`/`EXEC` in `Consumer._skip`. What would go wrong after a restart if they didn't, and why can that path use a plain transaction while the write path needs a Lua script?
+3. If you run `replay --file <recording> --speed max` while the live consumer is running, what ends up in `wiki:edits`, and how would stage 2's spike detection (which uses event time) and `stats` (which uses entry ids) each be affected?

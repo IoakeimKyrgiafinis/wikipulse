@@ -41,6 +41,13 @@ Redis keys (live consumer):
 
 Replay uses `wiki:replay:*` for its checkpoint and stats, so it never moves the live checkpoint.
 
+**Review fix (problem 1):** replay now writes to its own stream, `REPLAY_STREAM_KEY`
+(default `wiki:replay:edits`), instead of the live `wiki:edits`, so replaying a recording can
+no longer put duplicate events into the live stream or distort live `stats`. `--stream-key`
+still picks any stream; `target_stream()` in `replay.py` logs a loud warning if that is the
+live `STREAM_KEY`. Tests: `test_replay_run_leaves_the_live_stream_untouched` (fakeredis) and
+`test_replay_by_default_does_not_write_to_the_live_stream` (integration).
+
 ## Key concepts
 
 ### Streaming and Server-Sent Events
