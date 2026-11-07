@@ -1,6 +1,6 @@
 # Spec 02a: Spike detector
 
-Status: ready
+Status: done
 Stage: 2. Spike detection
 Owner: agent
 Depends on: 01

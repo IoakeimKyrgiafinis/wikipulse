@@ -37,7 +37,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 |---|---|---|
 | 00 | Foundation | done |
 | 01 | Live stream consumer | done |
-| 02a | Spike detector | ready |
+| 02a | Spike detector | done |
 | 02b | Detection evaluation | ready |
 | 03a | Page enrichment | ready |
 | 03b | Event grouping | ready |
