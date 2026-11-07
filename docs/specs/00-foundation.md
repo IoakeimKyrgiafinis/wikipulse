@@ -1,6 +1,6 @@
 # Spec 00: Foundation
 
-Status: ready
+Status: done
 Stage: 0. Foundation
 Owner: agent
 Depends on: none
