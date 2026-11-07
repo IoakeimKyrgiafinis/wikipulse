@@ -134,15 +134,56 @@ def test_pending_titles(conn, tag) -> None:
         upsert_page(conn, PageInfo(requested_title=title, title=title, status=PageStatus.OK))
     record_error(conn, failed, "boom")
     # `stale` was enriched two days ago, before its spike started: due again.
-    conn.execute(
-        "UPDATE pages SET enriched_at = now() - interval '2 days' WHERE title = %s", (stale,)
-    )
     # `old_spike` was enriched two days ago too, but after its spike: nothing new.
-    conn.execute(
-        "UPDATE pages SET enriched_at = now() - interval '2 days' WHERE title = %s",
-        (old_spike,),
-    )
+    for title in (stale, old_spike):
+        conn.execute(
+            "UPDATE pages SET enriched_at = now() - interval '2 days',"
+            " attempted_at = now() - interval '2 days' WHERE title = %s",
+            (title,),
+        )
     assert pending_titles(conn, tag, TTL) == [new, stale]
     assert pending_titles(conn, tag, TTL, error_retry=timedelta(0)) == [new, stale, failed]
     assert pending_titles(conn, tag, TTL, since=now - timedelta(minutes=5)) == [stale]
     assert len(pending_titles(conn, tag, TTL, force=True)) == 5
+
+
+def test_failed_refresh_of_a_good_row_waits_before_retrying(conn, tag) -> None:
+    """Review problem 1: a failed re-enrichment must not be retried on every poll."""
+    now = datetime.now(UTC)
+    title = f"{tag} refresh"
+    upsert_spikes(conn, tag, [spike(title, now)])
+    good = PageInfo(requested_title=title, title=title, status=PageStatus.OK, wikidata_id="Q1")
+    upsert_page(conn, good)
+    conn.execute(
+        "UPDATE pages SET enriched_at = now() - interval '2 days',"
+        " attempted_at = now() - interval '2 days' WHERE title = %s",
+        (title,),
+    )
+    assert pending_titles(conn, tag, TTL) == [title]  # stale, and a new spike: due
+
+    record_error(conn, title, "HTTP 403")
+    assert get_page(conn, title) == good  # the old data is kept
+    error, old_enough = conn.execute(
+        "SELECT error, enriched_at < now() - interval '1 day' FROM pages WHERE title = %s",
+        (title,),
+    ).fetchone()
+    assert error == "HTTP 403" and old_enough  # `enriched_at` is still the data's age
+    assert pending_titles(conn, tag, TTL) == []  # waits for ERROR_RETRY
+    assert pending_titles(conn, tag, TTL, error_retry=timedelta(0)) == [title]
+
+    upsert_page(conn, good)  # a later success clears the error
+    row = conn.execute("SELECT error FROM pages WHERE title = %s", (title,)).fetchone()
+    assert row == (None,)
+    assert pending_titles(conn, tag, TTL, error_retry=timedelta(0)) == []
+
+
+def test_section_redirect_roundtrip(conn, tag) -> None:
+    info = PageInfo(
+        requested_title=f"{tag} Methos",
+        title=f"{tag} List",
+        status=PageStatus.OK,
+        is_redirect=True,
+        redirect_fragment="Recurring characters",
+    )
+    upsert_page(conn, info)
+    assert get_page(conn, info.requested_title) == info

@@ -119,16 +119,76 @@ async def test_enricher_binds_the_settings() -> None:
 @pytest.mark.parametrize(
     ("query", "expected"),
     [
-        ({}, ("a b", False)),
-        ({"normalized": [{"from": "a b", "to": "A b"}]}, ("A b", False)),
+        ({}, ("a b", False, None)),
+        ({"normalized": [{"from": "a b", "to": "A b"}]}, ("A b", False, None)),
         (
             {
                 "normalized": [{"from": "a b", "to": "A b"}],
                 "redirects": [{"from": "A b", "to": "C"}],
             },
-            ("C", True),
+            ("C", True, None),
+        ),
+        (
+            {"redirects": [{"from": "a b", "to": "C", "tofragment": "Early life"}]},
+            ("C", True, "Early life"),
         ),
     ],
 )
-def test_resolve_title(query: dict, expected: tuple[str, bool]) -> None:
+def test_resolve_title(query: dict, expected: tuple[str, bool, str | None]) -> None:
     assert resolve_title("a b", query) == expected
+
+
+SECTION_QUERY = {
+    "batchcomplete": True,
+    "query": {
+        "redirects": [
+            {
+                "from": "Methos",
+                "to": "List of Highlander characters",
+                "tofragment": "Recurring characters",
+            }
+        ],
+        "pages": [
+            {
+                "pageid": 1234,
+                "ns": 0,
+                "title": "List of Highlander characters",
+                "pageprops": {"wikibase_item": "Q6593960"},
+                "links": [{"ns": 0, "title": "Duncan MacLeod"}],
+                "categories": [{"ns": 14, "title": "Category:Highlander (franchise) characters"}],
+            }
+        ],
+    },
+}
+SECTION_SUMMARY = {
+    "type": "standard",
+    "title": "List of Highlander characters",
+    "pageid": 1234,
+    "wikibase_item": "Q6593960",
+    "description": "Wikimedia list article",
+    "extract": "This is a list of characters from the Highlander franchise.",
+}
+
+
+async def test_redirect_to_a_section_has_no_wikidata_id() -> None:
+    """The article's Wikidata item is not the identity of a topic inside one section."""
+    transport = FixtureTransport(
+        overrides={
+            "/w/api.php": lambda request: httpx.Response(200, json=SECTION_QUERY),
+            "/page/summary/": lambda request: httpx.Response(200, json=SECTION_SUMMARY),
+        }
+    )
+    info, _ = await run_enrich("Methos", transport)
+    assert info.status is PageStatus.OK
+    assert info.title == "List of Highlander characters"
+    assert info.is_redirect and info.redirect_fragment == "Recurring characters"
+    assert info.wikidata_id is None and info.description is None
+    assert info.summary  # the article's lead is still useful context
+    assert info.links == ("Duncan MacLeod",)
+    assert info.categories == ("Highlander (franchise) characters",)
+
+
+async def test_redirect_to_a_whole_page_has_no_fragment() -> None:
+    info, _ = await run_enrich("Susan Wiles")
+    assert info.redirect_fragment is None
+    assert info.wikidata_id == "Q113560461"

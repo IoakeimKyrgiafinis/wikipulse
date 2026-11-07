@@ -13,6 +13,11 @@ Two APIs, two kinds of request:
 
 Missing pages, invalid titles, redirects and disambiguation pages all produce a normal
 `PageInfo` with a `status`; they are recorded, never raised.
+
+A redirect to a *section* of another page (Methos -> List of Highlander
+characters#Recurring characters) keeps the section in `redirect_fragment` and gets no
+`wikidata_id` or `description`: those belong to the whole article, not to the topic the
+spike is about, and stage 4 uses Wikidata IDs as entity identity.
 """
 
 import logging
@@ -48,6 +53,7 @@ class PageInfo(BaseModel):
     title: str  # canonical title after normalization and redirects
     status: PageStatus
     is_redirect: bool = False
+    redirect_fragment: str | None = None  # the section a redirect points to, if any
     page_id: int | None = None
     wikidata_id: str | None = None
     description: str | None = None
@@ -64,6 +70,7 @@ class QueryFacts:
     title: str
     status: PageStatus
     is_redirect: bool = False
+    redirect_fragment: str | None = None
     page_id: int | None = None
     wikidata_id: str | None = None
     categories: list[str] = field(default_factory=list)
@@ -97,18 +104,22 @@ def strip_category_prefix(name: str) -> str:
     return name.removeprefix(CATEGORY_PREFIX)
 
 
-def resolve_title(requested: str, query: dict[str, Any]) -> tuple[str, bool]:
-    """Follow the `normalized` and `redirects` lists: (final title, followed a redirect?)."""
+def resolve_title(requested: str, query: dict[str, Any]) -> tuple[str, bool, str | None]:
+    """Follow the `normalized` and `redirects` lists.
+
+    Returns (final title, followed a redirect?, section the last redirect points to).
+    """
     title = requested
     for item in query.get("normalized", []):
         if item.get("from") == title:
             title = item["to"]
-    redirected = False
+    redirected, fragment = False, None
     for item in query.get("redirects", []):
         if item.get("from") == title:
             title = item["to"]
             redirected = True
-    return title, redirected
+            fragment = item.get("tofragment") or None
+    return title, redirected, fragment
 
 
 def find_page(title: str, query: dict[str, Any]) -> dict[str, Any] | None:
@@ -122,18 +133,19 @@ def find_page(title: str, query: dict[str, Any]) -> dict[str, Any] | None:
 def parse_first_query(requested: str, body: dict[str, Any]) -> QueryFacts:
     """Read title, status, IDs, links and categories from the first query response."""
     query = body.get("query", {})
-    title, redirected = resolve_title(requested, query)
+    title, redirected, fragment = resolve_title(requested, query)
     page = find_page(title, query)
+    flags = {"is_redirect": redirected, "redirect_fragment": fragment}
     if page is None or page.get("invalid"):
-        return QueryFacts(title=title, status=PageStatus.INVALID, is_redirect=redirected)
+        return QueryFacts(title=title, status=PageStatus.INVALID, **flags)
     title = page.get("title", title)
     if page.get("missing"):
-        return QueryFacts(title=title, status=PageStatus.MISSING, is_redirect=redirected)
+        return QueryFacts(title=title, status=PageStatus.MISSING, **flags)
     props = page.get("pageprops", {})
     facts = QueryFacts(
         title=title,
         status=PageStatus.DISAMBIGUATION if "disambiguation" in props else PageStatus.OK,
-        is_redirect=redirected,
+        **flags,
         page_id=page.get("pageid"),
         wikidata_id=props.get("wikibase_item"),
     )
@@ -181,14 +193,20 @@ def build_page_info(requested: str, facts: QueryFacts, summary: dict[str, Any]) 
     status = facts.status
     if summary.get("type") == "disambiguation":
         status = PageStatus.DISAMBIGUATION
+    # A section of an article is not the article: its Wikidata item and description
+    # would name the wrong entity. The summary, links and categories stay as context.
+    whole_page = facts.redirect_fragment is None
+    wikidata_id = summary.get("wikibase_item") or facts.wikidata_id
+    description = summary.get("description") or None
     return PageInfo(
         requested_title=requested,
         title=facts.title,
         status=status,
         is_redirect=facts.is_redirect,
+        redirect_fragment=facts.redirect_fragment,
         page_id=facts.page_id or summary.get("pageid"),
-        wikidata_id=summary.get("wikibase_item") or facts.wikidata_id,
-        description=summary.get("description") or None,
+        wikidata_id=wikidata_id if whole_page else None,
+        description=description if whole_page else None,
         summary=summary.get("extract") or None,
         categories=tuple(facts.categories),
         links=tuple(facts.links),

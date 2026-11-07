@@ -134,6 +134,7 @@ the same on Windows and Linux.
 | Case | How it's detected | What is stored |
 |------|------|------|
 | Redirect (*Susan Wiles*) | `query.redirects` in the Action API response (`resolve_title()`) | `title` = the spike's title, `canonical_title` = *Susie Wiles*, `is_redirect` = true, data of the target |
+| Redirect to a section (*Methos* -> *List of Highlander characters#Recurring characters*) | `tofragment` in `query.redirects` | as a redirect, plus `redirect_fragment` = the section; `wikidata_id` and `description` left empty (they describe the whole article, not the topic) |
 | Normalization (*frozen yogurt*) | `query.normalized` | canonical *Frozen yogurt*, not a redirect |
 | Missing page (deleted, never created) | `missing: true` on the page | status `missing`, no summary request |
 | Invalid title (`Invalid [title]`) | `invalid: true` | status `invalid` |
@@ -169,7 +170,7 @@ the same on Windows and Linux.
   stage 2 setting). The detector writes spikes to Postgres only at snapshots, so with
   60 s a spike could reach the enricher up to 60 s after it started, and requirement 1
   ("within a minute") could not hold. 30 s snapshot + 10 s poll + a few seconds of API
-  calls stays under a minute. The 02a learning note still says 60 s; this changed it.
+  calls stays under a minute. The 02a learning note now mentions the change.
 - **Request rate: 2 per second** (`ENRICH_MIN_INTERVAL_S=0.5`, a setting the spec
   didn't ask for). The first version allowed 5 per second and got HTTP 429. With 2 per
   second, Wikimedia still answered 429 now and then (about once a minute, with
@@ -189,6 +190,17 @@ the same on Windows and Linux.
   rate. It also fixed a flaky spacing test: asyncio may wake a sleeper up to one clock
   tick early (about 16 ms on Windows), so `_wait_for_turn()` now sleeps in a loop until
   the start time has really passed.
+- **Review fixes** (migration `0003_pages_attempts_and_fragments.sql`). (1) A failed
+  refresh of an old good row used to leave the row untouched, so the title stayed
+  pending and was retried on every 10 s poll. `pages.attempted_at` now records every
+  attempt; `record_error()` sets it (and the error message) even on a good row, while
+  `enriched_at` and the data stay as they were, and `pending_titles()` waits
+  `ERROR_RETRY` after a failed attempt. (2) A redirect to a section kept the parent
+  article's Wikidata ID, which stage 4 would take as the topic's identity. The section
+  is now stored in `redirect_fragment`, and such rows get no `wikidata_id` or
+  `description`; the summary, links and categories of the article are kept as context.
+  Rows enriched before this fix keep their old values until they are enriched again
+  (`--force` reuses cached responses, which contain `tofragment`).
 - **The User-Agent** in `.env` still contains placeholder text (the check warns about
   it); set your real contact there before running enrichment for long.
 
