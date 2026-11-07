@@ -32,7 +32,7 @@ DetectionRunner ──► SpikeDetector.process(EditEvent)
                         ├─ PageWindows.add()  ──evict after 60 min──►  Baselines.record_page_edit()
                         ├─ Baselines.record_overall_edit()  (daily rhythm)
                         └─ start / continue / end the page's spike
-   every 60 s (wall clock):
+   every 30 s (wall clock; 60 s until spec 03a):
    ├─ changed spikes ──► Postgres `spikes` (upsert)
    └─ MULTI: SET state, HSET changed baselines, XACK processed entries  EXEC
 ```
@@ -68,7 +68,8 @@ order, so a slightly late edit is inserted in its place (`insort`); an edit more
 
 The detector's memory (windows, baselines, active spikes, the watermark) must survive a
 restart, or a restart would forget every burst in progress. `DetectionRunner.snapshot()`
-saves it every `DETECT_SNAPSHOT_INTERVAL_S` (60 s):
+saves it every `DETECT_SNAPSHOT_INTERVAL_S` (60 s in this spec; spec 03a lowered the
+default to 30 s so new spikes reach the page enricher within a minute):
 
 1. Spikes that changed go to Postgres (`upsert_spikes`).
 2. One Redis transaction (`MULTI`/`EXEC`) does three things together: `SET` the state JSON,
@@ -228,7 +229,7 @@ Because of the event-time rule both give the same spikes.
   `active` (the data simply ends; nothing is invented).
 - **One consumer per group**, deliberately (see "Redis consumer groups"). A new group starts
   at `0` (the whole retained stream) by default; `--start-id '$'` starts with new entries.
-- **Snapshot timing is wall clock** (every 60 s), because it only decides how much work a
+- **Snapshot timing is wall clock** (every 60 s here, 30 s since spec 03a), because it only decides how much work a
   crash repeats, never what is computed. Postgres is written at the same moments, so
   `trending` can lag the detector by up to a minute.
 - **Synchronous runner** (redis-py and psycopg, no asyncio): the loop is "read a batch,

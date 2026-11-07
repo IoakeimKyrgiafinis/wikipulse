@@ -1,0 +1,1859 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "OS/2",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "pages": [
+     {
+      "pageid": 22409,
+      "ns": 0,
+      "title": "OS/2",
+      "pageprops": {
+       "wikibase_item": "Q189794"
+      },
+      "links": [
+       {
+        "ns": 0,
+        "title": "32-bit computing"
+       },
+       {
+        "ns": 0,
+        "title": "4690 Operating System"
+       },
+       {
+        "ns": 0,
+        "title": "Abbey National"
+       },
+       {
+        "ns": 0,
+        "title": "Accounting"
+       },
+       {
+        "ns": 0,
+        "title": "Addison-Wesley"
+       },
+       {
+        "ns": 0,
+        "title": "Advanced Program-to-Program Communication"
+       },
+       {
+        "ns": 0,
+        "title": "Amiga"
+       },
+       {
+        "ns": 0,
+        "title": "Andrew Egan (writer)"
+       },
+       {
+        "ns": 0,
+        "title": "Ansi (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Anti-competitive practices"
+       },
+       {
+        "ns": 0,
+        "title": "Append (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Application programming interface"
+       },
+       {
+        "ns": 0,
+        "title": "ArcaOS"
+       },
+       {
+        "ns": 0,
+        "title": "Ars Technica"
+       },
+       {
+        "ns": 0,
+        "title": "Ashton-Tate"
+       },
+       {
+        "ns": 0,
+        "title": "Assembly language"
+       },
+       {
+        "ns": 0,
+        "title": "Assign (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Attrib"
+       },
+       {
+        "ns": 0,
+        "title": "Auditing"
+       },
+       {
+        "ns": 0,
+        "title": "Australia"
+       },
+       {
+        "ns": 0,
+        "title": "Australian Personal Computer"
+       },
+       {
+        "ns": 0,
+        "title": "Automated teller machine"
+       },
+       {
+        "ns": 0,
+        "title": "Azure Linux"
+       },
+       {
+        "ns": 0,
+        "title": "Azure Sphere"
+       },
+       {
+        "ns": 0,
+        "title": "BIOS"
+       },
+       {
+        "ns": 0,
+        "title": "BOS/360"
+       },
+       {
+        "ns": 0,
+        "title": "BSD"
+       },
+       {
+        "ns": 0,
+        "title": "BYTE"
+       },
+       {
+        "ns": 0,
+        "title": "Backup (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Baggage handling system"
+       },
+       {
+        "ns": 0,
+        "title": "Banco do Brasil"
+       },
+       {
+        "ns": 0,
+        "title": "Barrelfish (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "Barry Appelman"
+       },
+       {
+        "ns": 0,
+        "title": "Barry Leiba"
+       },
+       {
+        "ns": 0,
+        "title": "Bill Gates"
+       },
+       {
+        "ns": 0,
+        "title": "Brazil"
+       },
+       {
+        "ns": 0,
+        "title": "Break (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Business Wire"
+       },
+       {
+        "ns": 0,
+        "title": "Byte (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "C++"
+       },
+       {
+        "ns": 0,
+        "title": "CD-ROM"
+       },
+       {
+        "ns": 0,
+        "title": "CLS (command)"
+       },
+       {
+        "ns": 0,
+        "title": "CNK operating system"
+       },
+       {
+        "ns": 0,
+        "title": "COMMAND.COM"
+       },
+       {
+        "ns": 0,
+        "title": "CORBA"
+       },
+       {
+        "ns": 0,
+        "title": "CP/M"
+       },
+       {
+        "ns": 0,
+        "title": "C (language)"
+       },
+       {
+        "ns": 0,
+        "title": "C (programming language)"
+       },
+       {
+        "ns": 0,
+        "title": "Cairo (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "Call (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Cd (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Chcp (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Chkdsk"
+       },
+       {
+        "ns": 0,
+        "title": "Closed source software"
+       },
+       {
+        "ns": 0,
+        "title": "Cmd.exe"
+       },
+       {
+        "ns": 0,
+        "title": "Code bloat"
+       },
+       {
+        "ns": 0,
+        "title": "Code page"
+       },
+       {
+        "ns": 0,
+        "title": "Command (computing)"
+       },
+       {
+        "ns": 0,
+        "title": "Comment (computer programming)"
+       },
+       {
+        "ns": 0,
+        "title": "Commodore International"
+       },
+       {
+        "ns": 0,
+        "title": "Common User Access"
+       },
+       {
+        "ns": 0,
+        "title": "Comp (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Compaq"
+       },
+       {
+        "ns": 0,
+        "title": "Component Object Model"
+       },
+       {
+        "ns": 0,
+        "title": "Computer font"
+       },
+       {
+        "ns": 0,
+        "title": "Computer keyboard"
+       },
+       {
+        "ns": 0,
+        "title": "Computer network"
+       },
+       {
+        "ns": 0,
+        "title": "Computer virus"
+       },
+       {
+        "ns": 0,
+        "title": "Computerworld"
+       },
+       {
+        "ns": 0,
+        "title": "Connectix"
+       },
+       {
+        "ns": 0,
+        "title": "Contactless payment"
+       },
+       {
+        "ns": 0,
+        "title": "Control Program Facility"
+       },
+       {
+        "ns": 0,
+        "title": "Cooperative multitasking"
+       },
+       {
+        "ns": 0,
+        "title": "Copy (command)"
+       },
+       {
+        "ns": 0,
+        "title": "DB2"
+       },
+       {
+        "ns": 0,
+        "title": "DBM (computing)"
+       },
+       {
+        "ns": 0,
+        "title": "DEC MICA"
+       },
+       {
+        "ns": 0,
+        "title": "DOS"
+       },
+       {
+        "ns": 0,
+        "title": "DOS/360 and successors"
+       },
+       {
+        "ns": 0,
+        "title": "DOS/V"
+       },
+       {
+        "ns": 0,
+        "title": "DOS Protected Mode Interface"
+       },
+       {
+        "ns": 0,
+        "title": "DOS extender"
+       },
+       {
+        "ns": 0,
+        "title": "Date (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Dave Cutler"
+       },
+       {
+        "ns": 0,
+        "title": "Deadlock (computer science)"
+       },
+       {
+        "ns": 0,
+        "title": "Debug (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Del (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Denver International Airport"
+       },
+       {
+        "ns": 0,
+        "title": "Desktop computer"
+       },
+       {
+        "ns": 0,
+        "title": "Device driver"
+       },
+       {
+        "ns": 0,
+        "title": "Digital Equipment Corporation"
+       },
+       {
+        "ns": 0,
+        "title": "Dir (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Diskcomp"
+       },
+       {
+        "ns": 0,
+        "title": "Diskcopy"
+       },
+       {
+        "ns": 0,
+        "title": "Display device"
+       },
+       {
+        "ns": 0,
+        "title": "DivX"
+       },
+       {
+        "ns": 0,
+        "title": "Doskey"
+       },
+       {
+        "ns": 0,
+        "title": "Dpath"
+       },
+       {
+        "ns": 0,
+        "title": "Dynamic Data Exchange"
+       },
+       {
+        "ns": 0,
+        "title": "EComStation"
+       },
+       {
+        "ns": 0,
+        "title": "Echo (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Ed Esber"
+       },
+       {
+        "ns": 0,
+        "title": "Ed Iacobucci"
+       },
+       {
+        "ns": 0,
+        "title": "Electronic business"
+       },
+       {
+        "ns": 0,
+        "title": "Embedded operating system"
+       },
+       {
+        "ns": 0,
+        "title": "Endlocal"
+       },
+       {
+        "ns": 0,
+        "title": "Environment subsystem"
+       },
+       {
+        "ns": 0,
+        "title": "Ethernet"
+       },
+       {
+        "ns": 0,
+        "title": "Exit (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Expanded memory"
+       },
+       {
+        "ns": 0,
+        "title": "Extended Attributes"
+       },
+       {
+        "ns": 0,
+        "title": "Fdisk"
+       },
+       {
+        "ns": 0,
+        "title": "Fedora Linux"
+       },
+       {
+        "ns": 0,
+        "title": "File Allocation Table"
+       },
+       {
+        "ns": 0,
+        "title": "File system"
+       },
+       {
+        "ns": 0,
+        "title": "Find (Windows)"
+       },
+       {
+        "ns": 0,
+        "title": "Flat memory model"
+       },
+       {
+        "ns": 0,
+        "title": "FlexOS"
+       },
+       {
+        "ns": 0,
+        "title": "For (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Fork (file system)"
+       },
+       {
+        "ns": 0,
+        "title": "Format (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Galina Kofman"
+       },
+       {
+        "ns": 0,
+        "title": "Gordon Letwin"
+       },
+       {
+        "ns": 0,
+        "title": "Goto"
+       },
+       {
+        "ns": 0,
+        "title": "Graftabl"
+       },
+       {
+        "ns": 0,
+        "title": "Graphics Device Interface"
+       },
+       {
+        "ns": 0,
+        "title": "Green Park tube station"
+       },
+       {
+        "ns": 0,
+        "title": "HPFS filesystem"
+       },
+       {
+        "ns": 0,
+        "title": "Harry McCracken"
+       },
+       {
+        "ns": 0,
+        "title": "Help (command)"
+       },
+       {
+        "ns": 0,
+        "title": "High Performance File System"
+       },
+       {
+        "ns": 0,
+        "title": "History of CP/CMS"
+       },
+       {
+        "ns": 0,
+        "title": "History of the graphical user interface"
+       },
+       {
+        "ns": 0,
+        "title": "HomeOS"
+       },
+       {
+        "ns": 0,
+        "title": "Hotkey"
+       },
+       {
+        "ns": 0,
+        "title": "Howard Stern"
+       },
+       {
+        "ns": 0,
+        "title": "Hybrid kernel"
+       },
+       {
+        "ns": 0,
+        "title": "Hypervisor"
+       },
+       {
+        "ns": 0,
+        "title": "I486"
+       },
+       {
+        "ns": 0,
+        "title": "IA-32"
+       },
+       {
+        "ns": 0,
+        "title": "IBM"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 3494"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 3745"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 3890"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 7090/94 IBSYS"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 8100 DPCX"
+       },
+       {
+        "ns": 0,
+        "title": "IBM 9672"
+       },
+       {
+        "ns": 0,
+        "title": "IBM AIX"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Airline Control Program"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Aptiva"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Common User Access"
+       },
+       {
+        "ns": 0,
+        "title": "IBM DPPX"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Hardware Management Console"
+       },
+       {
+        "ns": 0,
+        "title": "IBM LAN Server"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Notes"
+       },
+       {
+        "ns": 0,
+        "title": "IBM PC DOS"
+       },
+       {
+        "ns": 0,
+        "title": "IBM PS/2 Model 80"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Personal System/2"
+       },
+       {
+        "ns": 0,
+        "title": "IBM RT PC"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Remote Access Computing"
+       },
+       {
+        "ns": 0,
+        "title": "IBM System Object Model"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Systems Application Architecture"
+       },
+       {
+        "ns": 0,
+        "title": "IBM ThinkPad 760"
+       },
+       {
+        "ns": 0,
+        "title": "IBM Works"
+       },
+       {
+        "ns": 0,
+        "title": "IBM i"
+       },
+       {
+        "ns": 0,
+        "title": "IBM mainframe"
+       },
+       {
+        "ns": 0,
+        "title": "INK (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "ISBN (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "ISSN (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "If (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Information Presentation Facility"
+       },
+       {
+        "ns": 0,
+        "title": "InnoTek"
+       },
+       {
+        "ns": 0,
+        "title": "Installable File System"
+       },
+       {
+        "ns": 0,
+        "title": "Intel"
+       },
+       {
+        "ns": 0,
+        "title": "Intel 80286"
+       },
+       {
+        "ns": 0,
+        "title": "Intel 80386"
+       },
+       {
+        "ns": 0,
+        "title": "Internet"
+       },
+       {
+        "ns": 0,
+        "title": "Internet protocol suite"
+       },
+       {
+        "ns": 0,
+        "title": "JFS (file system)"
+       },
+       {
+        "ns": 0,
+        "title": "JOIN (command)"
+       },
+       {
+        "ns": 0,
+        "title": "JPEG"
+       },
+       {
+        "ns": 0,
+        "title": "Java (programming language)"
+       },
+       {
+        "ns": 0,
+        "title": "Jim Manzi"
+       },
+       {
+        "ns": 0,
+        "title": "Joe Belfiore"
+       },
+       {
+        "ns": 0,
+        "title": "John Markoff"
+       },
+       {
+        "ns": 0,
+        "title": "John R. Patrick"
+       },
+       {
+        "ns": 0,
+        "title": "Jubilee Line Extension"
+       },
+       {
+        "ns": 0,
+        "title": "K42"
+       },
+       {
+        "ns": 0,
+        "title": "Kate Mulgrew"
+       },
+       {
+        "ns": 0,
+        "title": "Kernel (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "Keyb (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Keys (command)"
+       },
+       {
+        "ns": 0,
+        "title": "LAN Manager"
+       },
+       {
+        "ns": 0,
+        "title": "Label (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Linux"
+       },
+       {
+        "ns": 0,
+        "title": "Linux on IBM Z"
+       },
+       {
+        "ns": 0,
+        "title": "List of Microsoft operating systems"
+       },
+       {
+        "ns": 0,
+        "title": "List of Unix commands"
+       },
+       {
+        "ns": 0,
+        "title": "London Underground"
+       },
+       {
+        "ns": 0,
+        "title": "Lotus Development"
+       },
+       {
+        "ns": 0,
+        "title": "Lotus SmartSuite"
+       },
+       {
+        "ns": 0,
+        "title": "MP3"
+       },
+       {
+        "ns": 0,
+        "title": "MPEG"
+       },
+       {
+        "ns": 0,
+        "title": "MS-DOS"
+       },
+       {
+        "ns": 0,
+        "title": "MS-DOS 4.0 (multitasking)"
+       },
+       {
+        "ns": 0,
+        "title": "MS-DOS 7"
+       },
+       {
+        "ns": 0,
+        "title": "MS-Net"
+       },
+       {
+        "ns": 0,
+        "title": "MSX-DOS"
+       },
+       {
+        "ns": 0,
+        "title": "MVS"
+       },
+       {
+        "ns": 0,
+        "title": "Mainframe computer"
+       },
+       {
+        "ns": 0,
+        "title": "Mark Zbikowski"
+       },
+       {
+        "ns": 0,
+        "title": "Master of Ceremonies"
+       },
+       {
+        "ns": 0,
+        "title": "McGraw-Hill Osborne Media"
+       },
+       {
+        "ns": 0,
+        "title": "Media Control Interface"
+       },
+       {
+        "ns": 0,
+        "title": "Mem (command)"
+       },
+       {
+        "ns": 0,
+        "title": "MetroCard"
+       },
+       {
+        "ns": 0,
+        "title": "Metropolitan Transportation Authority"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft Kin"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft OS/2"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft Office"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft Press"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft Venus"
+       },
+       {
+        "ns": 0,
+        "title": "Microsoft Windows"
+       },
+       {
+        "ns": 0,
+        "title": "Midori (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "Mkdir"
+       },
+       {
+        "ns": 0,
+        "title": "Mode (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Modular Windows"
+       },
+       {
+        "ns": 0,
+        "title": "More (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Moscow"
+       },
+       {
+        "ns": 0,
+        "title": "Moshe Dunie"
+       },
+       {
+        "ns": 0,
+        "title": "Move (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Multiple Virtual DOS Machine"
+       },
+       {
+        "ns": 0,
+        "title": "NPR"
+       },
+       {
+        "ns": 0,
+        "title": "NT 3.1"
+       },
+       {
+        "ns": 0,
+        "title": "Nathan Myhrvold"
+       },
+       {
+        "ns": 0,
+        "title": "Naveen Jain"
+       },
+       {
+        "ns": 0,
+        "title": "Neasden Depot"
+       },
+       {
+        "ns": 0,
+        "title": "Netscape Navigator"
+       },
+       {
+        "ns": 0,
+        "title": "New Executable"
+       },
+       {
+        "ns": 0,
+        "title": "Nokia Asha platform"
+       },
+       {
+        "ns": 0,
+        "title": "Nokia X platform"
+       },
+       {
+        "ns": 0,
+        "title": "Non-maskable interrupt"
+       },
+       {
+        "ns": 0,
+        "title": "Nortel"
+       },
+       {
+        "ns": 0,
+        "title": "Norton Commander"
+       },
+       {
+        "ns": 0,
+        "title": "OCLC (identifier)"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 1.0"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 1.1"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 1.2"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 1.21"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 1.3"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 2.0"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 2.1"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 Warp 3"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 Warp 4"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 Warp 4.5"
+       },
+       {
+        "ns": 0,
+        "title": "OS/2 Warp Connect"
+       },
+       {
+        "ns": 0,
+        "title": "OS/360 and successors"
+       },
+       {
+        "ns": 0,
+        "title": "OS/390"
+       },
+       {
+        "ns": 0,
+        "title": "OS/400"
+       },
+       {
+        "ns": 0,
+        "title": "OS/VS1"
+       },
+       {
+        "ns": 0,
+        "title": "OS/VS2 (SVS)"
+       },
+       {
+        "ns": 0,
+        "title": "Object-oriented programming"
+       },
+       {
+        "ns": 0,
+        "title": "Object Linking and Embedding"
+       },
+       {
+        "ns": 0,
+        "title": "Object REXX"
+       },
+       {
+        "ns": 0,
+        "title": "Odin (code conversion software)"
+       },
+       {
+        "ns": 0,
+        "title": "Ogg"
+       },
+       {
+        "ns": 0,
+        "title": "Open-source software"
+       },
+       {
+        "ns": 0,
+        "title": "OpenDoc"
+       },
+       {
+        "ns": 0,
+        "title": "OpenVMS"
+       },
+       {
+        "ns": 0,
+        "title": "Operating system"
+       },
+       {
+        "ns": 0,
+        "title": "Oracle Corporation"
+       },
+       {
+        "ns": 0,
+        "title": "PC/IX"
+       },
+       {
+        "ns": 0,
+        "title": "Parallels (company)"
+       },
+       {
+        "ns": 0,
+        "title": "Parallels Workstation"
+       },
+       {
+        "ns": 0,
+        "title": "Pascal Zachary"
+       },
+       {
+        "ns": 0,
+        "title": "Path (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Patrick Stewart"
+       },
+       {
+        "ns": 0,
+        "title": "Pause (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Pentium (original)"
+       },
+       {
+        "ns": 0,
+        "title": "Perisher Ski Resort"
+       },
+       {
+        "ns": 0,
+        "title": "Personal computers"
+       },
+       {
+        "ns": 0,
+        "title": "Peter Rinearson"
+       },
+       {
+        "ns": 0,
+        "title": "Phoenix, Arizona"
+       },
+       {
+        "ns": 0,
+        "title": "Pinball (file system)"
+       },
+       {
+        "ns": 0,
+        "title": "Platform virtualization"
+       },
+       {
+        "ns": 0,
+        "title": "Pmrexx"
+       },
+       {
+        "ns": 0,
+        "title": "Point of sale"
+       },
+       {
+        "ns": 0,
+        "title": "Portable Network Graphics"
+       },
+       {
+        "ns": 0,
+        "title": "PowerPC"
+       },
+       {
+        "ns": 0,
+        "title": "Presentation Manager"
+       },
+       {
+        "ns": 0,
+        "title": "Print (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Program Manager"
+       },
+       {
+        "ns": 0,
+        "title": "Programmer"
+       },
+       {
+        "ns": 0,
+        "title": "Programmer productivity"
+       },
+       {
+        "ns": 0,
+        "title": "Programming language"
+       },
+       {
+        "ns": 0,
+        "title": "Project Monterey"
+       },
+       {
+        "ns": 0,
+        "title": "Project Trillian"
+       },
+       {
+        "ns": 0,
+        "title": "Prompt (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Proprietary software"
+       },
+       {
+        "ns": 0,
+        "title": "Protected mode"
+       },
+       {
+        "ns": 0,
+        "title": "Protection ring"
+       },
+       {
+        "ns": 0,
+        "title": "Public Radio Satellite System"
+       },
+       {
+        "ns": 0,
+        "title": "QBASIC"
+       },
+       {
+        "ns": 0,
+        "title": "Query Management Facility"
+       },
+       {
+        "ns": 0,
+        "title": "Recover (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Red Hat Enterprise Linux"
+       },
+       {
+        "ns": 0,
+        "title": "Rem (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Ren (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Replace (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Restore (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Rexx"
+       },
+       {
+        "ns": 0,
+        "title": "Rmdir"
+       },
+       {
+        "ns": 0,
+        "title": "SONiC (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "SORT (DOS command)"
+       },
+       {
+        "ns": 0,
+        "title": "SUBST"
+       },
+       {
+        "ns": 0,
+        "title": "Safeway Inc"
+       },
+       {
+        "ns": 0,
+        "title": "Security through obsolescence"
+       },
+       {
+        "ns": 0,
+        "title": "SelTrac"
+       },
+       {
+        "ns": 0,
+        "title": "Server (computing)"
+       },
+       {
+        "ns": 0,
+        "title": "Set (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Setlocal"
+       },
+       {
+        "ns": 0,
+        "title": "Shadow (OS/2)"
+       },
+       {
+        "ns": 0,
+        "title": "Share (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Shell (computing)"
+       },
+       {
+        "ns": 0,
+        "title": "Shift (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Singularity (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "SkyTrain (Vancouver)"
+       },
+       {
+        "ns": 0,
+        "title": "Software cracking"
+       },
+       {
+        "ns": 0,
+        "title": "Software license"
+       },
+       {
+        "ns": 0,
+        "title": "Software release life cycle"
+       },
+       {
+        "ns": 0,
+        "title": "SourceForge"
+       },
+       {
+        "ns": 0,
+        "title": "Source Code Control System"
+       },
+       {
+        "ns": 0,
+        "title": "Source lines of code"
+       },
+       {
+        "ns": 0,
+        "title": "Special Real Time Operating System"
+       },
+       {
+        "ns": 0,
+        "title": "Speech recognition"
+       },
+       {
+        "ns": 0,
+        "title": "Stanmore tube station"
+       },
+       {
+        "ns": 0,
+        "title": "Star Trek"
+       },
+       {
+        "ns": 0,
+        "title": "Star Trek: Voyager"
+       },
+       {
+        "ns": 0,
+        "title": "Stardock"
+       },
+       {
+        "ns": 0,
+        "title": "Start (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Stop & Shop"
+       },
+       {
+        "ns": 0,
+        "title": "Stratford Market Depot"
+       },
+       {
+        "ns": 0,
+        "title": "Stratford tube station"
+       },
+       {
+        "ns": 0,
+        "title": "Stratus VOS"
+       },
+       {
+        "ns": 0,
+        "title": "Sun Microsystems"
+       },
+       {
+        "ns": 0,
+        "title": "Suncorp"
+       },
+       {
+        "ns": 0,
+        "title": "Supercomputer"
+       },
+       {
+        "ns": 0,
+        "title": "Susan Kare"
+       },
+       {
+        "ns": 0,
+        "title": "Symmetric multiprocessing"
+       },
+       {
+        "ns": 0,
+        "title": "System/360"
+       },
+       {
+        "ns": 0,
+        "title": "System Object Model"
+       },
+       {
+        "ns": 0,
+        "title": "System Support Program"
+       },
+       {
+        "ns": 0,
+        "title": "System call"
+       },
+       {
+        "ns": 0,
+        "title": "Systems Network Architecture"
+       },
+       {
+        "ns": 0,
+        "title": "TCP/IP stack"
+       },
+       {
+        "ns": 0,
+        "title": "TIME (command)"
+       },
+       {
+        "ns": 0,
+        "title": "TOS/360"
+       },
+       {
+        "ns": 0,
+        "title": "TSS (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "TYPE (DOS command)"
+       },
+       {
+        "ns": 0,
+        "title": "Taligent"
+       },
+       {
+        "ns": 0,
+        "title": "Team OS/2"
+       },
+       {
+        "ns": 0,
+        "title": "TechRepublic"
+       },
+       {
+        "ns": 0,
+        "title": "Text mode"
+       },
+       {
+        "ns": 0,
+        "title": "Textpack"
+       },
+       {
+        "ns": 0,
+        "title": "The Co-operative Bank"
+       },
+       {
+        "ns": 0,
+        "title": "The New York Times"
+       },
+       {
+        "ns": 0,
+        "title": "ThreadX"
+       },
+       {
+        "ns": 0,
+        "title": "Time (magazine)"
+       },
+       {
+        "ns": 0,
+        "title": "Tramlink"
+       },
+       {
+        "ns": 0,
+        "title": "Transaction Processing Facility"
+       },
+       {
+        "ns": 0,
+        "title": "Tree (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Trenitalia"
+       },
+       {
+        "ns": 0,
+        "title": "UNDELETE"
+       },
+       {
+        "ns": 0,
+        "title": "UniVBE"
+       },
+       {
+        "ns": 0,
+        "title": "Unix"
+       },
+       {
+        "ns": 0,
+        "title": "Unix-like"
+       },
+       {
+        "ns": 0,
+        "title": "User interface"
+       },
+       {
+        "ns": 0,
+        "title": "VCPI"
+       },
+       {
+        "ns": 0,
+        "title": "VME (CONFIG.SYS directive)"
+       },
+       {
+        "ns": 0,
+        "title": "VMWare Workstation"
+       },
+       {
+        "ns": 0,
+        "title": "VMware"
+       },
+       {
+        "ns": 0,
+        "title": "VMware ESXi"
+       },
+       {
+        "ns": 0,
+        "title": "VSE (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "Vancouver"
+       },
+       {
+        "ns": 0,
+        "title": "Ver (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Verify (command)"
+       },
+       {
+        "ns": 0,
+        "title": "Verve (operating system)"
+       },
+       {
+        "ns": 0,
+        "title": "VirtualBox"
+       },
+       {
+        "ns": 0,
+        "title": "VirtualPC"
+       },
+       {
+        "ns": 0,
+        "title": "Virtual 8086 mode"
+       },
+       {
+        "ns": 0,
+        "title": "Virtual DOS machine"
+       },
+       {
+        "ns": 0,
+        "title": "Virtual Interrupt Flag"
+       },
+       {
+        "ns": 0,
+        "title": "Virtual Mode Extensions"
+       },
+       {
+        "ns": 0,
+        "title": "Virtual machine"
+       },
+       {
+        "ns": 0,
+        "title": "Vol (command)"
+       },
+       {
+        "ns": 0,
+        "title": "VxD"
+       },
+       {
+        "ns": 0,
+        "title": "Warner Books"
+       },
+       {
+        "ns": 0,
+        "title": "Wayback Machine"
+       },
+       {
+        "ns": 0,
+        "title": "Westminster tube station"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 1.0"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 10 Mobile"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 2.0"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 2.1"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 2.1x"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 2000"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 3.0"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 3.1"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 95"
+       },
+       {
+        "ns": 0,
+        "title": "Windows 9x"
+       },
+       {
+        "ns": 0,
+        "title": "Windows API"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Embedded Automotive"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Embedded Compact"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Embedded Industry"
+       },
+       {
+        "ns": 0,
+        "title": "Windows IoT"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Libraries for OS/2"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Mobile"
+       },
+       {
+        "ns": 0,
+        "title": "Windows NT"
+       },
+       {
+        "ns": 0,
+        "title": "Windows Phone"
+       },
+       {
+        "ns": 0,
+        "title": "Windows XP"
+       },
+       {
+        "ns": 0,
+        "title": "Workplace OS"
+       },
+       {
+        "ns": 0,
+        "title": "Workplace Shell"
+       },
+       {
+        "ns": 0,
+        "title": "Workstation"
+       },
+       {
+        "ns": 0,
+        "title": "X.25"
+       },
+       {
+        "ns": 0,
+        "title": "X11"
+       },
+       {
+        "ns": 0,
+        "title": "X86"
+       },
+       {
+        "ns": 0,
+        "title": "X86 memory segmentation"
+       },
+       {
+        "ns": 0,
+        "title": "Xbox system software"
+       },
+       {
+        "ns": 0,
+        "title": "Xcopy"
+       },
+       {
+        "ns": 0,
+        "title": "Xenix"
+       },
+       {
+        "ns": 0,
+        "title": "Z-DOS"
+       },
+       {
+        "ns": 0,
+        "title": "Z/OS"
+       },
+       {
+        "ns": 0,
+        "title": "ZDNet"
+       },
+       {
+        "ns": 0,
+        "title": "Zune"
+       }
+      ],
+      "categories": [
+       {
+        "ns": 14,
+        "title": "Category:1987 software"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Discontinued operating systems"
+       },
+       {
+        "ns": 14,
+        "title": "Category:IBM operating systems"
+       },
+       {
+        "ns": 14,
+        "title": "Category:Legacy systems"
+       },
+       {
+        "ns": 14,
+        "title": "Category:OS/2"
+       },
+       {
+        "ns": 14,
+        "title": "Category:X86 operating systems"
+       }
+      ]
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/api/rest_v1/page/summary/OS%2F2",
+  "params": {},
+  "status": 200,
+  "location": null,
+  "body": {
+   "type": "standard",
+   "title": "OS/2",
+   "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">OS/2</span></span>",
+   "namespace": {
+    "id": 0,
+    "text": ""
+   },
+   "wikibase_item": "Q189794",
+   "titles": {
+    "canonical": "OS/2",
+    "normalized": "OS/2",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">OS/2</span></span>"
+   },
+   "pageid": 22409,
+   "thumbnail": {
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Os2logo.svg/330px-Os2logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "width": 330,
+    "height": 330
+   },
+   "originalimage": {
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Os2logo.svg/960px-Os2logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "width": 911,
+    "height": 911
+   },
+   "lang": "en",
+   "dir": "ltr",
+   "revision": "1378785330",
+   "tid": "5e52a5b1-c138-11f1-bedf-49973b198884",
+   "timestamp": "2026-10-06T03:45:27Z",
+   "description": "Operating system from IBM",
+   "description_source": "local",
+   "content_urls": {
+    "desktop": {
+     "page": "https://en.wikipedia.org/wiki/OS%2F2",
+     "revisions": "https://en.wikipedia.org/wiki/OS%2F2?action=history",
+     "edit": "https://en.wikipedia.org/wiki/OS%2F2?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:OS%2F2"
+    },
+    "mobile": {
+     "page": "https://en.wikipedia.org/wiki/OS%2F2",
+     "revisions": "https://en.wikipedia.org/wiki/Special:History/OS%2F2",
+     "edit": "https://en.wikipedia.org/wiki/OS%2F2?action=edit",
+     "talk": "https://en.wikipedia.org/wiki/Talk:OS%2F2"
+    }
+   },
+   "extract": "OS/2 is a discontinued proprietary computer operating system for x86 and PowerPC based personal computers created and initially developed jointly by IBM and Microsoft, under the leadership of IBM software designer Ed Iacobucci, intended as a replacement for DOS. The first version was released in 1987. A feud between the two companies beginning in 1990 led to Microsoft's leaving development solely to IBM, which continued development on its own. OS/2 Warp 4 in 1996 was the last major upgrade, after which IBM slowly halted the product as it failed to compete against Microsoft's Windows; updated versions of OS/2 were released by IBM until 2001.",
+   "extract_html": "<p><b>OS/2</b> is a discontinued proprietary computer operating system for x86 and PowerPC based personal computers created and initially developed jointly by IBM and Microsoft, under the leadership of IBM software designer Ed Iacobucci, intended as a replacement for DOS. The first version was released in 1987. A feud between the two companies beginning in 1990 led to Microsoft's leaving development solely to IBM, which continued development on its own. OS/2 Warp 4 in 1996 was the last major upgrade, after which IBM slowly halted the product as it failed to compete against Microsoft's Windows; updated versions of OS/2 were released by IBM until 2001.</p>"
+  }
+ }
+]

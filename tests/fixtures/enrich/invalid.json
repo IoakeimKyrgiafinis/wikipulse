@@ -1,0 +1,37 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "action": "query",
+   "format": "json",
+   "formatversion": "2",
+   "titles": "Invalid [title]",
+   "redirects": "1",
+   "prop": "pageprops|links|categories",
+   "ppprop": "wikibase_item|disambiguation",
+   "plnamespace": "0",
+   "pllimit": "max",
+   "cllimit": "max",
+   "clshow": "!hidden",
+   "maxlag": "5"
+  },
+  "status": 200,
+  "location": null,
+  "body": {
+   "batchcomplete": true,
+   "query": {
+    "pages": [
+     {
+      "title": "Invalid [title]",
+      "invalidreason": "The requested page title contains invalid characters: \"[\".",
+      "invalid": true
+     }
+    ]
+   },
+   "limits": {
+    "links": 500,
+    "categories": 500
+   }
+  }
+ }
+]

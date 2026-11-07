@@ -55,3 +55,20 @@ All thresholds are `DETECT_*` settings (see `.env.example`).
 | `uv run python -m wikipulse.eval.label --run-id <run> --from <date> --to <date>` | Labels a random sample of 50 spikes as news / not news / unsure with a local LLM (`EVAL_LABEL_MODEL`); `--manual` lets you label them yourself. Saved to `evals/labels/spike_labels.jsonl`. |
 | `uv run python -m wikipulse.eval.detection --from <date> --to <date> --name <run>` | Measures recall, precision and time to detection against Wikipedia's "Current events" portal; writes `evals/results/<today>_<run>.md` and `.json`. Pass the run's threshold changes with `--set`. |
 | `uv run python -m wikipulse.eval.detection --compare <run A> <run B>` | Prints how the metrics of two reports differ. |
+
+## Stage 3: event grouping
+
+### Page enrichment
+
+Fetches each spiking page's canonical title, summary, Wikidata ID, categories and
+outgoing article links into the Postgres table `pages` (run `uv run python -m
+wikipulse.db.migrate` first). API responses are cached in the table `api_cache` for
+`ENRICH_CACHE_TTL_H` hours, and requests are limited by `WIKI_API_CONCURRENCY` and
+`ENRICH_MIN_INTERVAL_S`.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.enrich.run` | Live: every `ENRICH_POLL_INTERVAL_S` seconds, enriches the pages of new spikes of run `live`. Run it next to `wikipulse.detect.run`; Ctrl+C stops it after the pages in progress. |
+| `uv run python -m wikipulse.enrich.run --run-id <run> --since <date> --until <date> --once` | Backfill: enriches the pages of a run's spikes that started in [since, until), then prints the pages, API calls and cache hit rate. `--force` enriches fresh pages again (free while the cache is fresh). |
+| `uv run python scripts/enrich_latency.py <run>` | How long after each spike started its page was enriched (the "within a minute" check). |
+| `uv run python scripts/make_enrich_fixtures.py` | Re-records the saved API responses in `tests/fixtures/enrich/` used by the unit tests (touches the real APIs). |
