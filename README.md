@@ -87,3 +87,18 @@ Hugging Face). Weights and thresholds are the `EVENTS_*` settings.
 | `uv run python -m wikipulse.events.feed --run-id <name>` | Prints the active events with their pages (`--all` adds ended ones, `--min-pages 2` hides single pages, `--watch 30` refreshes). |
 | `uv run python -m wikipulse.eval.grouping label --run-id <name> --day <date>` | Samples page pairs of a day (stratified) and has a local LLM label them as same story / different; `--manual` lets you label them. Saved to `evals/labels/grouping_labels.jsonl`. |
 | `uv run python -m wikipulse.eval.grouping report --run-id <name> --day <date>` | Pairwise precision and recall of a grouping run; writes `evals/results/<today>_<name>.md` and `.json`. |
+
+### LLM client
+
+Every LLM call goes through `wikipulse.llm`: `get_client("backend:model")` returns a
+client whose `chat()` takes neutral messages, a system prompt, tools, a JSON schema,
+temperature, max tokens and a thinking switch. The default is the free local model
+`DEFAULT_MODEL=ollama:qwen3:4b` through [Ollama](https://ollama.com) (`ollama pull
+qwen3:4b`); `OLLAMA_NUM_CTX`, `OLLAMA_KEEP_ALIVE` and `LLM_TIMEOUT_S` tune it. An
+optional `anthropic:<model>` backend needs `uv sync --extra anthropic` and
+`ANTHROPIC_API_KEY`.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.llm.check` | Is Ollama reachable, which models are pulled, and one short test question with its tokens and timing (`--model` checks another model). |
+| `uv run pytest -m live tests/llm` | Live tests against the local Ollama: a plain answer, a JSON-schema answer and a tool call. |

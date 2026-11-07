@@ -35,6 +35,7 @@ wikipulse/        main package
   config.py       all settings (pydantic-settings)
   stream/         live stream consumer, recorder, replay (stage 1)
   detect/         spike detection (stage 2)
+  llm/            the LLM client: neutral types, get_client(), backends (stage 4)
   eval/           evaluation code
 tests/            pytest tests, mirroring wikipulse/
   fixtures/       small committed test data (e.g. recorded stream samples)
@@ -78,6 +79,7 @@ If a command doesn't exist yet, say so rather than inventing a workaround.
 - Labels in `evals/labels/` may be produced by an LLM labeler. Every record states its labeler (`llm` or `human`). Never overwrite human labels.
 - Never weaken, skip or delete tests to make them pass.
 - Don't refactor code outside the spec's scope.
+- **All LLM calls go through `wikipulse.llm`** (`get_client(...).chat(...)`). Never import `ollama`, `anthropic` or another provider's package, or call a model's HTTP API, outside `wikipulse/llm/`.
 - Keep functions small, with type hints on public functions. Log with the `logging` module, not `print`, inside the package.
 - If an acceptance step would take more than 60 minutes, run it on a smaller sample instead and record that in the learning note. Don't stop the workflow for it.
 - Don't install system-wide software silently. If a required tool (for example kind, kubectl, helm or terraform) is missing, install it with `winget` and say so in the learning note.

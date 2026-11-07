@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -157,10 +157,8 @@ class Settings(BaseSettings):
     wiki_rest_url: str = "https://en.wikipedia.org/api/rest_v1"
     # Smallest pause between two requests to Wikimedia APIs, in seconds (be polite).
     wiki_api_min_interval_s: float = Field(default=1.0, ge=0)
-    # Model that labels spikes as news / not news, as `backend:model` (only `ollama` so far).
+    # Model that labels spikes as news / not news, as `backend:model` (see `wikipulse.llm`).
     eval_label_model: str = "ollama:qwen3:8b"
-    # Where the local Ollama server listens.
-    ollama_host: str = "http://localhost:11434"
 
     # --- Stage 3: page enrichment ---
     # Most requests to Wikimedia APIs in flight at the same time (async enrichment client).
@@ -194,6 +192,22 @@ class Settings(BaseSettings):
     # A live spike waits at most this long (wall clock) for its page to be enriched
     # before it is grouped without links and summary.
     events_enrich_wait_s: float = Field(default=120, ge=0)
+
+    # --- Stage 4: LLM client (wikipulse.llm) ---
+    # Model used when a caller doesn't name one, as `backend:model` (`ollama:qwen3:4b`,
+    # `anthropic:claude-sonnet-4-5`, ...).
+    default_model: str = "ollama:qwen3:4b"
+    # Where the local Ollama server listens.
+    ollama_host: str = "http://localhost:11434"
+    # Context window (tokens) sent with every Ollama call. Ollama's own default is small
+    # and it silently cuts off longer prompts, so it is always set explicitly.
+    ollama_num_ctx: int = Field(default=8192, ge=512)
+    # How long Ollama keeps a model in (GPU) memory after a call, e.g. "10m", "1h", "0".
+    ollama_keep_alive: str = "10m"
+    # Longest wait for one LLM answer, in seconds (the first call also loads the model).
+    llm_timeout_s: float = Field(default=120, gt=0)
+    # Only for the optional `anthropic` backend; never required.
+    anthropic_api_key: SecretStr | None = None
 
     @field_validator("log_level", mode="before")
     @classmethod
