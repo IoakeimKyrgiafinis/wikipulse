@@ -7,6 +7,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      # Redis for the integration tests (`pytest -m integration`), same image as Compose.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379/0
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -28,3 +41,6 @@ jobs:
 
       - name: Run unit tests
         run: uv run pytest
+
+      - name: Run integration tests
+        run: uv run pytest -m integration

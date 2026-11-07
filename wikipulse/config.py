@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -35,6 +35,19 @@ class Settings(BaseSettings):
     user_agent: str = DEFAULT_USER_AGENT
     log_level: LogLevel = "INFO"
     data_dir: Path = Path("data")
+
+    # --- Stage 1: live stream consumer ---
+    # Wikimedia EventStreams endpoint for all recent changes (Server-Sent Events).
+    stream_url: str = "https://stream.wikimedia.org/v2/stream/recentchange"
+    # Redis Stream that receives the filtered, normalized edits.
+    stream_key: str = "wiki:edits"
+    # Redis Stream that `replay` writes to by default. Kept apart from STREAM_KEY so a
+    # replay never puts duplicate events into the live stream.
+    replay_stream_key: str = "wiki:replay:edits"
+    # Approximate upper bound on the Redis Stream length (XADD MAXLEN ~).
+    stream_maxlen: int = Field(default=1_000_000, gt=0)
+    # Longest wait between reconnect attempts, in seconds.
+    reconnect_max_s: float = Field(default=60.0, gt=0)
 
     @field_validator("log_level", mode="before")
     @classmethod
