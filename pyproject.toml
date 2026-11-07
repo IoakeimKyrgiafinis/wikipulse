@@ -11,6 +11,10 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "httpx>=0.28.1",
     "httpx-sse>=0.4.3",
+    # Stage 3 (spec 03b): summary embeddings for event grouping. torch is listed
+    # directly only so that it comes from the CPU-only index below.
+    "sentence-transformers>=3.3",
+    "torch>=2.5",
 ]
 
 [dependency-groups]
@@ -20,6 +24,16 @@ dev = [
     "pytest-asyncio>=0.24",
     "ruff>=0.8",
 ]
+
+# CPU-only PyTorch builds: the Linux wheels on PyPI pull in several GB of CUDA libraries
+# that WikiPulse doesn't use (CI runs on Linux). Windows wheels are the same either way.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]
