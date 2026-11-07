@@ -1,6 +1,6 @@
 # Spec 03b: Event grouping
 
-Status: ready
+Status: done
 Stage: 3. Event grouping
 Owner: agent
 Depends on: 03a
