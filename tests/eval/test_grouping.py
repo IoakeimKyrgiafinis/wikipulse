@@ -152,6 +152,17 @@ def test_event_sizes_count_the_days_spikes() -> None:
     assert event_sizes(day_pages(), EVENT_OF) == [2, 1, 1, 1]
 
 
+def test_event_sizes_count_distinct_pages_not_spikes() -> None:
+    pages = [
+        *day_pages(),
+        page(6, "Election", 50, embedding=ELECTION),  # Election spikes again, same event
+        page(7, "Elections", 55, canonical="Election", embedding=ELECTION),  # a redirect
+        page(8, "Club", 60, embedding=unit(0, 0, 1)),  # Club spikes again: new event
+    ]
+    event_of = {**EVENT_OF, 6: 1, 7: 1, 8: 5}
+    assert event_sizes(pages, event_of) == [2, 1, 1, 1, 1]
+
+
 def test_report_and_markdown() -> None:
     pages = day_pages()
     pairs = stratify(pages, EVENT_OF)

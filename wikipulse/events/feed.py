@@ -1,7 +1,8 @@
 """Event feed: `uv run python -m wikipulse.events.feed [--run-id live] [--all]`.
 
 Prints the active events of a grouping run with their pages, biggest first, and a
-summary line (events, pages per event). `--all` includes ended events (a replayed day
+summary line (events, pages per event). A page that spiked more than once in an event is
+one page, listed once with its number of spikes. `--all` includes ended events (a replayed day
 has mostly ended events); `--min-pages 2` hides single-page events.
 """
 
@@ -16,7 +17,7 @@ from statistics import mean, median
 import psycopg
 
 from wikipulse.config import get_settings
-from wikipulse.db.events import FeedEvent, feed_events
+from wikipulse.db.events import FeedEvent, FeedPage, feed_events
 from wikipulse.enrich.run import parse_day_or_time
 from wikipulse.logging_setup import setup_logging
 
@@ -32,36 +33,63 @@ def size_histogram(sizes: list[int]) -> dict[str, int]:
     return histogram
 
 
+def distinct_pages(event: FeedEvent) -> list[tuple[FeedPage, int]]:
+    """The event's pages, each once: (its best spike, number of spikes), best first.
+
+    Spikes come ordered by score, so the first spike seen of a page is its best one.
+    """
+    pages: dict[str, tuple[FeedPage, int]] = {}
+    for spike in event.pages:
+        best, count = pages.get(spike.canonical_title, (spike, 0))
+        pages[spike.canonical_title] = (best, count + 1)
+    return list(pages.values())
+
+
+def page_count(event: FeedEvent) -> int:
+    """Distinct pages in the event (a page that spiked twice counts once)."""
+    return len({spike.canonical_title for spike in event.pages})
+
+
+def by_size(events: list[FeedEvent]) -> list[FeedEvent]:
+    """Biggest first (distinct pages), then by score, then oldest number."""
+    return sorted(events, key=lambda e: (-page_count(e), -e.score, e.number))
+
+
 def stats_line(events: list[FeedEvent]) -> str:
-    """Number of events and pages per event."""
-    sizes = [len(e.pages) for e in events]
+    """Number of events and distinct pages per event."""
+    sizes = [page_count(e) for e in events]
     if not sizes:
         return "0 events."
     histogram = ", ".join(f"{k}: {v}" for k, v in size_histogram(sizes).items())
     statuses = Counter(e.status for e in events)
+    spikes = sum(len(e.pages) for e in events)
     return (
         f"{len(events)} events ({', '.join(f'{v} {k}' for k, v in sorted(statuses.items()))}), "
-        f"{sum(sizes)} pages. Pages per event: mean {mean(sizes):.2f}, median "
-        f"{median(sizes):g}, max {max(sizes)}. Events by size: {histogram}."
+        f"{sum(sizes)} pages ({spikes} spikes). Pages per event: mean {mean(sizes):.2f}, "
+        f"median {median(sizes):g}, max {max(sizes)}. Events by size: {histogram}."
     )
 
 
 def render_event(event: FeedEvent, max_pages: int) -> list[str]:
     end = f"{event.ended_at.astimezone(UTC):%m-%d %H:%M}" if event.ended_at else "now"
+    pages = distinct_pages(event)
+    spikes = f", {len(event.pages)} spikes" if len(event.pages) != len(pages) else ""
     lines = [
-        f"#{event.number} {event.title}  [{len(event.pages)} page(s), "
+        f"#{event.number} {event.title}  [{len(pages)} page(s){spikes}, "
         f"{event.started_at.astimezone(UTC):%m-%d %H:%M} to {end}, {event.status}]"
     ]
-    for page in event.pages[:max_pages]:
+    for page, count in pages[:max_pages]:
         name = page.canonical_title
         if page.title != page.canonical_title:
             name += f" (spike title: {page.title})"
+        if count > 1:
+            name += f" ({count} spikes)"
         lines.append(
             f"    {page.score:6.1f}  {page.started_at.astimezone(UTC):%m-%d %H:%M}"
             f"  joined {page.joined_score:.2f}  {name}"
         )
-    if len(event.pages) > max_pages:
-        lines.append(f"    ... and {len(event.pages) - max_pages} more")
+    if len(pages) > max_pages:
+        lines.append(f"    ... and {len(pages) - max_pages} more")
     return lines
 
 
@@ -99,9 +127,9 @@ def main(argv: list[str] | None = None) -> int:
     with psycopg.connect(settings.postgres_dsn, autocommit=True) as conn:
         try:
             while True:
-                events = feed_events(conn, args.run_id, args.all, args.since, args.until)
+                events = by_size(feed_events(conn, args.run_id, args.all, args.since, args.until))
                 stats = stats_line(events)
-                shown = [e for e in events if len(e.pages) >= args.min_pages]
+                shown = [e for e in events if page_count(e) >= args.min_pages]
                 text = render(shown, args.run_id, args.limit, args.max_pages)
                 if args.min_pages > 1:
                     text += f"\n\nAll events, including smaller ones: {stats}"

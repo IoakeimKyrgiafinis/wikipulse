@@ -9,12 +9,39 @@ from wikipulse.events.similarity import cosine, pair_score
 CONFIG = EventsConfig()  # weights 0.4 link, 0.2 time, 0.4 embed; floor 0.5; window 6 h
 
 
-def test_a_link_and_the_same_start_without_similar_summaries() -> None:
+def test_a_link_and_the_same_start_without_similar_summaries_do_not_join() -> None:
     a = page(1, "2026 Ohio gubernatorial election", links=("Vivek Ramaswamy",), embedding=ELECTION)
-    b = page(2, "Vivek Ramaswamy", embedding=FOOTBALL)
+    b = page(2, "Vivek Ramaswamy", embedding=FOOTBALL)  # cosine 0: unrelated summaries
     score = pair_score(a, b, CONFIG)
-    assert (score.link, score.time, score.embed) == (1.0, 1.0, 0.0)
-    assert score.total == pytest.approx(0.6)
+    assert (score.link, score.time, score.embed) == (0.0, 1.0, 0.0)
+    assert score.total == pytest.approx(0.2) and score.total < CONFIG.join_threshold
+    no_gate = EventsConfig(link_min_cosine=0)  # before the review fix: 0.4 + 0.2 joined
+    assert pair_score(a, b, no_gate).total == pytest.approx(0.6)
+
+
+def test_a_link_counts_when_the_summaries_are_at_least_somewhat_alike() -> None:
+    a = page(1, "A", links=("B",), embedding=unit(1, 0))
+    at_gate = page(2, "B", embedding=unit(0.5, (1 - 0.25) ** 0.5))  # cosine 0.5
+    below = page(3, "B", embedding=unit(0.49, (1 - 0.49**2) ** 0.5))  # cosine 0.49
+    assert pair_score(a, at_gate, CONFIG).link == 1.0
+    assert pair_score(a, below, CONFIG).link == 0.0
+
+
+def test_without_an_embedding_the_link_is_not_gated() -> None:
+    a = page(1, "A", links=("B",), embedding=ELECTION)
+    assert pair_score(a, page(2, "B"), CONFIG).link == 1.0
+
+
+def test_deaths_list_and_a_death_join_only_with_some_summary_similarity() -> None:
+    """Deaths in 2026 (387 links, under the hub size) links to every recent death. On
+    2026-11-05 its cosine with *Herbert Blomstedt* was 0.449: link + timing alone gave
+    0.4 + 0.2 * 0.9 = 0.58 and joined; now the link doesn't count."""
+    deaths_links = tuple(f"Person {i}" for i in range(386)) + ("Herbert Blomstedt",)
+    deaths = page(1, "Deaths in 2026", links=deaths_links, embedding=unit(1, 0))
+    blomstedt = page(2, "Herbert Blomstedt", minute=36, embedding=unit(0.449, 0.8935))
+    score = pair_score(deaths, blomstedt, CONFIG)
+    assert score.link == 0.0 and score.total < CONFIG.join_threshold
+    assert pair_score(deaths, blomstedt, EventsConfig(link_min_cosine=0)).total >= 0.55
 
 
 def test_links_count_in_either_direction_and_through_redirect_names() -> None:
@@ -74,7 +101,7 @@ def test_weights_choose_what_matters() -> None:
     b = page(2, "B", embedding=FOOTBALL)
     only_embed = EventsConfig(link_weight=0, time_weight=0, embed_weight=1)
     assert pair_score(a, b, only_embed).total == 0.0
-    only_links = EventsConfig(link_weight=1, time_weight=0, embed_weight=0)
+    only_links = EventsConfig(link_weight=1, time_weight=0, embed_weight=0, link_min_cosine=0)
     assert pair_score(a, b, only_links).total == 1.0
     nothing = EventsConfig(link_weight=0, time_weight=0, embed_weight=0)
     assert pair_score(a, b, nothing).total == 0.0

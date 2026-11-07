@@ -222,9 +222,13 @@ def count_strata(
 
 
 def event_sizes(pages: Sequence[SpikePage], event_of: dict[int, int]) -> list[int]:
-    """Pages per event, counting the day's spikes only."""
-    sizes = Counter(event_of[p.spike_id] for p in pages if p.spike_id in event_of)
-    return sorted(sizes.values(), reverse=True)
+    """Distinct pages per event (a page that spiked twice counts once), over the day's
+    spikes only."""
+    titles: dict[int, set[str]] = {}
+    for p in pages:
+        if p.spike_id in event_of:
+            titles.setdefault(event_of[p.spike_id], set()).add(p.canonical_title)
+    return sorted((len(t) for t in titles.values()), reverse=True)
 
 
 # --- Loading ------------------------------------------------------------------------
@@ -315,6 +319,7 @@ def build_report(
         "config": config,
         "events": {
             "spikes": len(data.pages),
+            "pages": len({p.canonical_title for p in data.pages}),
             "events": len(sizes),
             "pages_per_event_mean": round(mean(sizes), 3) if sizes else None,
             "pages_per_event_median": median(sizes) if sizes else None,
@@ -363,7 +368,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Events",
         "",
-        f"{e['spikes']} spikes in {e['events']} events; pages per event: mean "
+        f"{e['spikes']} spikes of {e['pages']} distinct pages in {e['events']} events; "
+        f"distinct pages per event: mean "
         f"{e['pages_per_event_mean']}, median {e['pages_per_event_median']}, max "
         f"{e['pages_per_event_max']}. {e['multi_page_events']} events have more than one "
         f"page ({e['pages_in_multi_page_events']} pages).",

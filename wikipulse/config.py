@@ -89,6 +89,12 @@ class EventsConfig(BaseModel):
     # many links; long list pages ("Deaths in 2026") link to everything, so a link from
     # them counts proportionally less. 0 switches this off.
     link_hub_size: int = Field(default=1000, ge=0)
+    # A link counts only if the two summaries are at least this similar (cosine). A link
+    # between pages whose summaries look unrelated is usually a list or navigation link
+    # ("Deaths in 2026" -> a conductor), not a shared story; without this rule, link plus
+    # timing alone (0.4 + 0.2) reaches the join threshold and chains unrelated pages
+    # through such a list. 0 switches this off. Not applied when an embedding is missing.
+    link_min_cosine: float = Field(default=0.5, ge=0, le=1)
     # A spike counts as over this many minutes after its last edit (the detector's quiet
     # period), so a replay closes events exactly when the live detector would.
     spike_close_min: float = Field(default=30, gt=0)
@@ -178,6 +184,7 @@ class Settings(BaseSettings):
     events_embed_floor: float = Field(default=0.5, ge=0, lt=1)
     events_join_threshold: float = Field(default=0.55, gt=0, le=1)
     events_link_hub_size: int = Field(default=1000, ge=0)
+    events_link_min_cosine: float = Field(default=0.5, ge=0, le=1)
     events_spike_close_min: float = Field(default=30, gt=0)
     # Sentence-transformers model that embeds page summaries (downloaded once, then cached
     # by Hugging Face on this machine).

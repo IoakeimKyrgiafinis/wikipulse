@@ -32,13 +32,44 @@ def test_timing_alone_is_not_enough() -> None:
     assert grouper.add(page(2, "B", minute=1, embedding=FOOTBALL)).created
 
 
+def test_a_deaths_list_does_not_chain_unrelated_deaths_into_one_event() -> None:
+    """The 2026-11-05 case: *Deaths in 2026* spikes, then several people on it die/spike
+    within the hour. Their summaries are unlike the list's and unlike each other's."""
+    names = ("Herbert Blomstedt", "Kimmarie Johnson", "Ali-Asghar Fani")
+    deaths_links = tuple(f"Person {i}" for i in range(384)) + names
+    grouper = Grouper(CONFIG)
+    grouper.add(page(1, "Deaths in 2026", links=deaths_links, embedding=unit(1, 0, 0, 0)))
+    people = [
+        page(2, names[0], minute=10, embedding=unit(0.45, 0.89, 0, 0)),  # conductor
+        page(3, names[1], minute=20, embedding=unit(0.40, 0, 0.92, 0)),  # TV
+        page(4, names[2], minute=30, embedding=unit(0.49, 0, 0, 0.87)),  # Iranian politician
+    ]
+    assignments = [grouper.add(person) for person in people]
+    assert all(a.created for a in assignments)
+    assert sorted(len(e.pages) for e in grouper.active.values()) == [1, 1, 1, 1]
+    # The same day with the gate off: each joins the list's event through its link.
+    chained = Grouper(EventsConfig(link_min_cosine=0))
+    chained.add(page(1, "Deaths in 2026", links=deaths_links, embedding=unit(1, 0, 0, 0)))
+    for person in people:
+        chained.add(person)
+    assert [len(e.pages) for e in chained.active.values()] == [4]
+
+
+def test_a_death_with_a_related_summary_still_joins_the_deaths_list() -> None:
+    grouper = Grouper(CONFIG)
+    grouper.add(page(1, "Deaths in 2026", links=("Lloyd Geering",), embedding=unit(1, 0)))
+    joined = grouper.add(page(2, "Lloyd Geering", minute=10, embedding=unit(0.7, 0.714)))
+    assert not joined.created and joined.event_number == 1
+
+
 def test_a_spike_similar_to_two_events_merges_them_into_the_oldest() -> None:
     grouper = Grouper(CONFIG)
     grouper.add(page(1, "Election", embedding=unit(1, 0, 0)))
     grouper.add(page(2, "Candidate", minute=5, embedding=unit(0, 1, 0)))
     assert set(grouper.active) == {1, 2}
     grouper.take_changes()
-    bridge = page(3, "Results", minute=10, links=("Election", "Candidate"), embedding=unit(0, 0, 1))
+    # The bridge links to both, and its summary is somewhat like both (cosine 0.71).
+    bridge = page(3, "Results", minute=10, links=("Election", "Candidate"), embedding=unit(1, 1, 0))
     assignment = grouper.add(bridge)
     assert assignment.event_number == 1 and assignment.merged == (2,)
     assert list(grouper.active) == [1]

@@ -3,12 +3,12 @@
   "grouping_run": "03b-close180",
   "spike_run": "02b-loose",
   "day": "2026-11-05",
-  "created_at": "2026-11-07T18:40:46.365955+00:00",
+  "created_at": "2026-11-07T18:56:44.607938+00:00",
   "git": {
-    "commit": "249e36f2293aba2b2c4e126c7cdc47a2f2f74ca7",
+    "commit": "315a5362a7b69ed3665ac0525e9c483a97035f72",
     "dirty": true
   },
-  "note": "Diagnostic: EVENTS_SPIKE_CLOSE_MIN=180 (events stay open 3 h after their last edit); spikes of 02b-loose on 2026-11-05; LLM labels ollama:qwen3:4b, prompt v2",
+  "note": "Diagnostic: EVENTS_SPIKE_CLOSE_MIN=180 (events stay open 3 h after their last edit); spikes of 02b-loose on 2026-11-05; LLM labels ollama:qwen3:4b, prompt v2. Regenerated after the review to count distinct pages per event; this run predates EVENTS_LINK_MIN_COSINE, so it used no link gate (link_min_cosine=0)",
   "config": {
     "link_weight": 0.4,
     "time_weight": 0.2,
@@ -17,16 +17,18 @@
     "embed_floor": 0.5,
     "join_threshold": 0.55,
     "link_hub_size": 1000,
+    "link_min_cosine": 0.0,
     "spike_close_min": 180.0
   },
   "events": {
     "spikes": 665,
+    "pages": 562,
     "events": 481,
-    "pages_per_event_mean": 1.383,
+    "pages_per_event_mean": 1.208,
     "pages_per_event_median": 1,
-    "pages_per_event_max": 36,
-    "multi_page_events": 59,
-    "pages_in_multi_page_events": 243
+    "pages_per_event_max": 29,
+    "multi_page_events": 33,
+    "pages_in_multi_page_events": 133
   },
   "strata": {
     "together": {

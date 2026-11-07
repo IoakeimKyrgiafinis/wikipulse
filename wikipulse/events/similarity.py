@@ -3,9 +3,12 @@
 Three signals, each in [0, 1], combined as a weighted average (weights in
 `EventsConfig`, set with `EVENTS_*_WEIGHT`):
 
-- **link**: one page links to the other. A link from a long list page ("Deaths in
-  2026", thousands of links) says little, so a link from a page with more than
-  `link_hub_size` links counts `link_hub_size / links` instead of 1.
+- **link**: one page links to the other. A link from a page with more than
+  `link_hub_size` links counts `link_hub_size / links` instead of 1. And a link counts
+  only if the two summaries are at least somewhat alike (cosine >= `link_min_cosine`):
+  "Deaths in 2026" links to every recent death, and a conductor's and a politician's
+  deaths are different stories, so link plus timing alone must not join (and chain)
+  them.
 - **time**: the spikes started close together. 1 for the same moment, falling linearly
   to 0 at `time_window_h` hours apart.
 - **embed**: the page summaries mean similar things: the cosine similarity of their
@@ -65,7 +68,20 @@ def link_strength(source: SpikePage, target: SpikePage, hub_size: int) -> float:
 
 
 def link_signal(a: SpikePage, b: SpikePage, config: EventsConfig) -> float:
+    """The stronger link direction; 0 if the summaries look unrelated (see module doc)."""
+    if not content_allows_link(a, b, config):
+        return 0.0
     return max(link_strength(a, b, config.link_hub_size), link_strength(b, a, config.link_hub_size))
+
+
+def content_allows_link(a: SpikePage, b: SpikePage, config: EventsConfig) -> bool:
+    """False when both summaries are known and their cosine is below `link_min_cosine`.
+
+    Without an embedding the content can't be judged, so the link counts as before.
+    """
+    if a.embedding is None or b.embedding is None:
+        return True
+    return cosine(a.embedding, b.embedding) >= config.link_min_cosine
 
 
 def time_signal(a: SpikePage, b: SpikePage, config: EventsConfig) -> float:
