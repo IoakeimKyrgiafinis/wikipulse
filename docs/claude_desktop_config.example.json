@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "wikipulse": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\path\\to\\wikipulse",
+        "run",
+        "python",
+        "-m",
+        "wikipulse.mcp_server.server"
+      ]
+    }
+  }
+}

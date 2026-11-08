@@ -60,6 +60,9 @@ class EventInfo:
     started_at: datetime | None
     page_count: int | None
     pages: tuple[Source, ...] = ()  # highest spike score first
+    status: str | None = None  # "active" or "ended" (stage 3)
+    ended_at: datetime | None = None
+    score: float | None = None  # the best spike score of its pages
 
 
 @dataclass(frozen=True)
@@ -179,14 +182,36 @@ MATCH (ev:Event) WHERE ev.key IN $keys
 OPTIONAL MATCH (p:Page)-[po:PART_OF]->(ev)
 WITH ev, p, po ORDER BY po.score DESC
 WITH ev, [x IN collect({title: p.title, revision: po.revision}) WHERE x.title IS NOT NULL]
-     AS pages
+     AS pages, max(po.score) AS score
 RETURN ev.key AS key, ev.title AS title, ev.description AS description,
-       ev.started_at AS started_at, ev.page_count AS page_count, pages
+       ev.started_at AS started_at, ev.page_count AS page_count, pages,
+       ev.status AS status, ev.ended_at AS ended_at, score
 ORDER BY ev.started_at DESC
 """
 EVENTS_BETWEEN = """
 MATCH (ev:Event) WHERE ev.started_at >= $start AND ev.started_at < $end
 RETURN ev.key AS key ORDER BY ev.page_count DESC, ev.started_at DESC LIMIT $limit
+"""
+TRENDING = """
+MATCH (ev:Event) WHERE ev.status = 'active' OR ev.started_at >= $since
+OPTIONAL MATCH (:Page)-[po:PART_OF]->(ev)
+WITH ev, max(po.score) AS score
+RETURN ev.key AS key
+ORDER BY ev.page_count DESC, score DESC, ev.started_at DESC LIMIT $limit
+"""
+# Read as a map, so a graph without briefings yet (before spec 05d) gives no warning.
+EVENT_BRIEFING = """
+MATCH (ev:Event {key: $key})
+RETURN properties(ev)['briefing'] AS briefing
+"""
+ENTITIES_BY_KEY = """
+MATCH (n:Entity) WHERE n.key IN $keys
+RETURN n.key AS key, n.name AS name, coalesce(n.aliases, []) AS aliases,
+       n.type AS type, n.wikidata_id AS wikidata_id
+"""
+ENTITY_EVENT_COUNTS = """
+MATCH (n:Entity) WHERE n.key IN $keys
+RETURN n.key AS key, COUNT { (n)-[:INVOLVED_IN]->(:Event) } AS events
 """
 EVENTS_BY_NUMBER = """
 MATCH (ev:Event) WHERE ev.number IN $numbers
@@ -312,6 +337,28 @@ class QAGraph:
     def events_by_number(self, numbers: list[int]) -> list[str]:
         return [r["key"] for r in self._read(EVENTS_BY_NUMBER, numbers=numbers)]
 
+    def trending_events(self, since: datetime, limit: int = 10) -> list[str]:
+        """Keys of the active events and of those that started since `since`: most pages
+        first, then the best spike score."""
+        return [r["key"] for r in self._read(TRENDING, since=since, limit=limit)]
+
+    def event_briefing(self, key: str) -> str | None:
+        """The briefing the analyst agent (spec 05d) stored on the event, if any."""
+        rows = self._read(EVENT_BRIEFING, key=key)
+        return rows[0]["briefing"] if rows else None
+
+    def entities_by_key(self, keys: list[str]) -> list[EntityCandidate]:
+        """Entities by their key (the Wikidata ID for linked entities)."""
+        rows = self._read(ENTITIES_BY_KEY, keys=keys)
+        return [
+            EntityCandidate(r["key"], r["name"], tuple(r["aliases"]), r["type"], r["wikidata_id"])
+            for r in rows
+        ]
+
+    def entity_event_counts(self, keys: list[str]) -> dict[str, int]:
+        """How many events each entity is involved in."""
+        return {r["key"]: r["events"] for r in self._read(ENTITY_EVENT_COUNTS, keys=keys)}
+
     # --- Traversal ----------------------------------------------------------------------------
     def events(self, keys: list[str]) -> list[EventInfo]:
         rows = self._read(EVENTS, keys=keys)
@@ -323,6 +370,9 @@ class QAGraph:
                 _native(r["started_at"]),
                 r["page_count"],
                 tuple(_source(p["title"], p["revision"]) for p in r["pages"]),
+                r["status"],
+                _native(r["ended_at"]),
+                r["score"],
             )
             for r in rows
         ]
