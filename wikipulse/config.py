@@ -230,6 +230,21 @@ class Settings(BaseSettings):
     # statements connect two items. Asked in batches, one request at a time.
     wikidata_sparql_url: str = "https://query.wikidata.org/sparql"
 
+    # --- Stage 5: question answering over the graph (wikipulse.qa) ---
+    # Model that writes Cypher and answers questions, as `backend:model`. One model for
+    # both steps, so a question never swaps models on the GPU.
+    qa_model: str = "ollama:qwen3:8b"
+    # A generated Cypher query may return at most this many rows and run at most this
+    # many seconds (the Neo4j transaction timeout).
+    qa_cypher_max_rows: int = Field(default=25, ge=1, le=200)
+    qa_cypher_timeout_s: float = Field(default=5, gt=0)
+    # Vector search: pages and events returned per question, and the lowest cosine
+    # similarity (question vs. text) that still counts as relevant.
+    qa_vector_top_k: int = Field(default=5, ge=1)
+    qa_vector_min_cosine: float = Field(default=0.63, ge=-1, le=1)
+    # Most facts handed to the answering model (keeps the prompt inside OLLAMA_NUM_CTX).
+    qa_max_facts: int = Field(default=60, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

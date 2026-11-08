@@ -126,3 +126,17 @@ stored in Neo4j with its source page and revision. Neo4j Browser: http://localho
 | `uv run python -m wikipulse.eval.extraction label --run-id <name> --events <date> --name <run>` | Has a local LLM (`EVAL_LABEL_MODEL`) judge a fixed sample of 50 extracted relationships against their source text: correct / wrong / unsure; `--manual` lets you label them. Saved to `evals/labels/relation_labels.jsonl`. |
 | `uv run python -m wikipulse.eval.extraction extract --run-id <name> --events <date> --name <run> --prompt extract_v2` | Re-extracts the events with another prompt (or `--model`) into `data/extractions/<run>.jsonl`, without touching the graph; `report` and `label` read it with `--from <run>`. |
 | `uv run python -m wikipulse.eval.extraction compare <run A> <run B>` | Prints the measures of two reports side by side. |
+
+## Stage 5: questions about the graph (GraphRAG)
+
+Answers questions about current events from the knowledge graph, citing the Wikipedia
+pages and revisions every claim comes from. Retrieval combines three channels: graph
+traversal around the entities and events the question names, one read-only Cypher query
+written by the LLM (`QA_MODEL`, default `ollama:qwen3:8b`) and checked before it runs,
+and vector search over page summaries and events. "Today" and "this week" are event
+time: relative to the newest event in the graph.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.qa.index` | Creates the full-text and vector indexes and embeds the pages and events that are new or changed. Run it once, and again after `wikipulse.graph.run` wrote new events. `--force` re-embeds everything. |
+| `uv run python -m wikipulse.qa.ask "How are Ueno Bank and Santiago Peña connected?"` | The answer with numbered citations (page, revision, permanent link) and the facts used. `--show-context` adds every retrieved fact, the generated Cypher and search notes; `--channels graph,cypher,vector`, `--as-of`, `--model`, `--json`. |
