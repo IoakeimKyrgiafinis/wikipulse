@@ -88,8 +88,9 @@ class RunStats:
         llm = self.llm_seconds / self.events if self.events else 0.0
         share = self.linked / self.entities if self.entities else 0.0
         return (
-            f"Processed {self.events} events ({self.failed} failed). Per event, summed: "
-            f"{self.entities} entities, {share:.0%} linked, {self.relations} relations. "
+            f"Processed {self.events} events ({self.failed} failed). Summed over events "
+            f"(an entity counts once per event): {self.entities} entities, {share:.0%} "
+            f"linked, {self.relations} relations. "
             f"Average time per event {average:.1f} s (LLM {llm:.1f} s, "
             f"{self.output_tokens / max(self.events, 1):.0f} tokens out)."
         )

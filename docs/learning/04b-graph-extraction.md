@@ -211,8 +211,8 @@ tiny fraction of the input. Further savings:
 
 - **The model is the installed `qwen3:4b`**, the spec's default `EXTRACT_MODEL`. It is
   the thinking-only 2507 build (see the 04a note). With a JSON schema, constrained
-  decoding leaves it no room for free-text reasoning, so it answers directly (about 600
-  output tokens per event); nothing larger was pulled.
+  decoding leaves it no room for free-text reasoning, so it answers directly (about 500
+  output tokens per event, 6.6 s; see "Results"); nothing larger was pulled.
 - **"Text of recent changes" = the diff of the burst.** For each page the runner asks
   for the revisions between the spike's first and last edit (plus one minute either
   side, in event time), then `action=compare` from the revision before the burst to the
@@ -283,3 +283,158 @@ tiny fraction of the input. Further savings:
   re-enriched the day (`uv run python -m wikipulse.enrich.run --run-id 02b-loose --since
   2026-11-05 --until 2026-11-06 --force --once`: 563 pages in 10 s, 1,313 cache hits, 0
   requests); one page now has a `redirect_fragment` and no ID.
+- **A sample, not the whole day** (AGENTS.md's 60-minute rule). At about 10 s per event
+  the 572 events of 2026-11-05 would take over 90 minutes. The acceptance run covers
+  the 131 events that started between 19:00 and 23:00 UTC, the busiest hours, with the
+  evening wave of US election results; the 101 events from 16:00 to 19:00 were
+  extracted by an earlier run with the same code. The report below uses the 19:00 to
+  23:00 window only, because those numbers come from a run I watched from start to end.
+- **The run report counts per event and per graph.** `RunStats.summary()` adds up
+  entities over the events processed (an entity in three events counts three times),
+  `graph_summary()` counts distinct nodes. The wording of the first line was changed to
+  say so ("Summed over events (an entity counts once per event)").
+
+## Results
+
+All on 2026-11-08 with `ollama:qwen3:4b` (RTX 5060 Laptop GPU, 8 GB, `OLLAMA_NUM_CTX`
+8192), over the events of grouping run `03b-default-fix` (stage 3's replay of
+2026-11-05).
+
+**The replayed sample** (acceptance criterion 2):
+
+```
+uv run python -m wikipulse.graph.run --run-id 03b-default-fix --since 2026-11-05T19:00:00+00:00 --until 2026-11-05T23:00:00+00:00 --once
+```
+
+Final state of the window, after the retries and the forced re-run of 19:00 to 19:30
+described below (times from `graph_extractions`, counts from Neo4j):
+
+| | 19:00 to 23:00 UTC |
+|---|---:|
+| Events processed | **132 of 132** (129 in the first run, 3 failed and succeeded on retry) |
+| Distinct entities in the window's events | 777 |
+| Linked to Wikidata | **619 (80%)**: page 99, link 382, search 138; unlinked 158 |
+| Entity mentions summed over events | 840, of which 680 (81%) linked |
+| Relations | 497 |
+| Average time per event | **9.4 s** (median 8.1 s, 90th percentile 17.6 s, max 32.9 s) |
+| of which waiting for the LLM | 6.7 s on average |
+| Tokens per event | 838 in, 510 out |
+
+The first run printed (before the retries; its slowest event took 44.9 s):
+
+```
+Processed 129 events (3 failed). Summed over events (an entity counts once per event): 810 entities, 81% linked, 479 relations. Average time per event 10.0 s (LLM 6.5 s, 502 tokens out).
+Graph of run 03b-default-fix: 230 events, 1248 distinct entities, 78% linked to Wikidata (page 175, link 585, search 216, none 272), 808 relations.
+Wikimedia API: 664 requests, 32 cache hits, 24 retries.
+LLM ollama:qwen3:4b: 129 calls, 108195 tokens in, 64775 out, 840 s.
+```
+
+The whole graph of the run (both windows, 233 events, no failures left) has 1,280
+distinct entities, 78% linked, and 826 relations. Most entities sit in one event; the
+ones shared most are *United States* (10 events), *Democratic Party* (9), *United States
+Senate* (5), *Republican Party* and *United States House of Representatives* (4).
+
+Where the time goes: the LLM call is two thirds of it. The rest is Wikimedia: the
+first run met HTTP 429 (too many requests) from the Action API 24 times and waited as
+asked (`Retry-After`), which is why the slowest events took up to 45 s. Re-running the
+same events costs almost no requests (72 of 88 lookups were cache hits on the forced
+re-run below).
+
+**Failures and retries** (requirement 3, for real): the laptop went to sleep twice
+during the run (the log has gaps from 11:44 to 16:56 and 16:56 to 18:55). Three events
+failed and were recorded in `graph_extractions` with their error: *Big Brother series
+23* (`LLMUnavailableError: Ollama gave no answer within 120 s`, the call cut by the
+sleep) and *Jose Chameleone* and *Vessel* (`WikiApiError` after `getaddrinfo failed`:
+no network right after waking up). The runner logged each one and went on. Running the
+command again 10 minutes later picked up exactly the events whose retry delay had
+passed and extracted them. Wall-clock time of that run is meaningless (7.5 hours for 21
+minutes of work), so all times above are per event, from `graph_extractions.seconds`.
+
+**Idempotent writes on real data** (requirement 1): I saved the graph's counts, then ran
+the 15 events of 19:00 to 19:30 again with `--force`. Afterwards (before the last
+retry): still 232 `Event` nodes; 1,277 entities (1,266 before: the new answers named a
+few more) with 1,277 distinct keys, and 1,000 distinct Wikidata IDs on 1,000 nodes; 0
+duplicated `INVOLVED_IN` or `RELATED_TO` relationships. Each re-processed event was
+replaced, not added to.
+
+**But a re-run is not a replay.** 6 of those 15 events came back different (*"Frozen
+yogurt definition updated with international standards"*, 3 entities, became *"Frozen
+yogurt's health benefits and origins clarified"*, 10 entities). The input was the same:
+the revisions and diffs came from the same cache entries, and the message built twice
+was byte for byte identical. Three calls in a row with that message gave three
+identical answers, so the model is deterministic *within* a session, but not across
+sessions. The likely cause is that Ollama (llama.cpp) reuses the cached prompt prefix
+from the previous request, which changes how the prompt is split into batches, and
+floating-point sums in a different order can flip one greedy token, after which the
+answer diverges. So the project's event-time rule holds for everything up to the
+LLM (the same revisions and the same diffs are read), and the graph is stable under
+re-processing, but the LLM's answer itself is not guaranteed to repeat. The
+`graph_extractions` table stores model and prompt version, not the answer; storing the
+raw answer would make a replay exactly reproducible (an idea for 04c).
+
+**Quality, by looking** (not a measured evaluation; that is 04c):
+
+- *Ueno Bank* (event 341): "Paraguayan president resigns after Ueno Bank collapse",
+  12 entities, 10 linked, facts like *Pedro Alliana* "became" *President of Paraguay*
+  and *Ueno Bank* "collapsed" *2026 Paraguay banking crisis*, each with its page and
+  revision. *Asunción* is typed "other", because the model named it only in a relation.
+- Search links are the weak step. Of 21 sampled search links, about 15 are right
+  (*Atlanta*, *Lisa Loeb*, *Hanns Seidel Foundation*, *Marathon County*). Wrong ones:
+  *Georgia* in a Europa League story linked to the US state, three G.I. Joe character
+  names (*Airborne*, *Avalanche*, *Altitude*) linked to unrelated items, *Rock of Ages*
+  in a Russell Brand story, and *Polonia* (a football club) linked to Poland.
+- Titles are mostly good headlines. One is plainly wrong: "Lisa Loeb passes away in
+  1999 after health issues", described as "died in 1999 after a fight with Christy".
+  The page's summary says she was born in 1968 and is a living musician; the burst was
+  most likely vandalism, and the model took the added text as fact despite the prompt's
+  rule to leave vandalism out. Telling vandalism from news needs more than a prompt
+  rule (for example the spike's revert counts from stage 2), a topic for 04c.
+- Confidence carries little information: 96% of mentions are "high" (1,380 of 1,438),
+  49 "medium", 9 "low" (whole graph).
+- Types (whole graph): 344 other, 293 person, 258 place, 253 organization, 132 event.
+
+**Tests:** 37 new tests in `tests/graph/`: 28 unit tests (mocked LLM, saved Wikimedia
+answers) for parsing, linking order, inputs and building the graph, and 9 integration
+tests against the Docker Postgres and Neo4j (idempotent writes, one entity per Wikidata
+ID, provenance, type voting, re-extraction when spikes change, failure and retry,
+merged events). `uv run pytest`: 349 passed. `uv run pytest -m integration`: 29 passed.
+`ruff check` and `ruff format --check` are clean.
+
+## Questions to test your understanding
+
+1. The model writes "Trump" in one event and "Donald Trump" in another. Walk through
+   what decides whether the graph gets one node or two, and what would happen if neither
+   name could be linked to Wikidata.
+2. Why is `source` in the extraction schema an `enum` of the event's SOURCE numbers
+   instead of a plain integer, and what would go wrong in the graph without it?
+3. You run `wikipulse.graph.run --force` over yesterday's events. Which parts of the
+   result are guaranteed to be the same as the first run, and which are not? Why?
+
+<details>
+<summary>Answers</summary>
+
+1. `Linker.link()` tries the event's own pages, then the articles they link to, then
+   Wikidata search. If both names reach the same Wikidata ID (say through a link to
+   *Donald Trump* and a search whose alias matches), `entity_key()` gives both the key
+   `Q22686`, `MERGE` finds the same node, and the uniqueness constraints on
+   `Entity.key` and `Entity.wikidata_id` make a second node impossible; both names end
+   up in `aliases`. If neither links, the keys are `name:trump` and `name:donald trump`:
+   two unlinked nodes, because without a stable ID the code has no safe way to know they
+   are the same person (merging by surname would also merge different Trumps).
+2. Every entity and relation gets its `source_title` and `source_revision` from the
+   SOURCE it cites (`parse_extraction()` maps the number to an `EventPage`). With a
+   plain integer the model could cite SOURCE 7 of an event with 3 pages, and the fact
+   would get no page or the wrong one: the provenance, the thing that lets a reader
+   check a fact, would be wrong. With the enum, Ollama's constrained decoding can only
+   produce numbers that exist, so the error can't happen at all.
+3. The inputs are the same: the revisions are chosen by the spikes' event times and
+   the API answers come from the cache, so the message to the model is byte for byte
+   identical. The *structure* is guaranteed too: `write_event()` replaces each event's
+   facts in one transaction, so there are no duplicate events, entities or
+   relationships. The LLM's answer is not guaranteed to repeat: in this project's
+   measurement, 6 of 15 events came back with a different title or entity list,
+   although three calls in a row with the same message agreed. Local inference is not
+   bit-reproducible across sessions, so the titles, entities and relations can change.
+   Storing the raw answers would make a replay exactly reproducible.
+
+</details>
