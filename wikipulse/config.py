@@ -254,6 +254,15 @@ class Settings(BaseSettings):
     # report's scores; every further one judges the same answers, for judge agreement.
     eval_qa_judges: str = "ollama:qwen3:8b,ollama:qwen3:4b"
 
+    # --- Stage 5: MCP server (wikipulse.mcp_server) ---
+    # Address of the HTTP transport (`--transport http`). Only loopback addresses are
+    # accepted: the server has no authentication.
+    mcp_http_host: str = "127.0.0.1"
+    mcp_http_port: int = Field(default=8765, ge=1, le=65535)
+    # "Trending" = active events plus those that started this many hours before the
+    # graph's newest event (event time, so a replayed day has trending events too).
+    mcp_trending_hours: float = Field(default=24, gt=0)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

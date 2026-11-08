@@ -17,6 +17,8 @@ dependencies = [
     "torch>=2.5",
     "ollama>=0.6",
     "neo4j>=5.26",
+    # Stage 5 (spec 05c): the official MCP Python SDK (2.x API: mcp.server.mcpserver.MCPServer).
+    "mcp>=2.3",
 ]
 
 [project.optional-dependencies]

@@ -140,3 +140,42 @@ time: relative to the newest event in the graph.
 |---------|--------------|
 | `uv run python -m wikipulse.qa.index` | Creates the full-text and vector indexes and embeds the pages and events that are new or changed. Run it once, and again after `wikipulse.graph.run` wrote new events. `--force` re-embeds everything. |
 | `uv run python -m wikipulse.qa.ask "How are Ueno Bank and Santiago Peña connected?"` | The answer with numbered citations (page, revision, permanent link) and the facts used. `--show-context` adds every retrieved fact, the generated Cypher and search notes; `--channels graph,cypher,vector`, `--as-of`, `--model`, `--json`. |
+
+### MCP server
+
+WikiPulse as an [MCP](https://modelcontextprotocol.io) server, so Claude Desktop or any
+other MCP client can ask what is happening and explore the graph. All tools are
+read-only (and annotated so): `get_trending_events`, `get_event`, `ask` (the GraphRAG
+answer above, slow), `find_connection`, `search_entities`. Resource template:
+`event://{event_id}`. Prompts: `daily_briefing`, `explain_event`.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.mcp_server.server` | Runs the server over stdio (how Claude Desktop and the MCP Inspector start it). |
+| `uv run python -m wikipulse.mcp_server.server --transport http` | Streamable HTTP at `http://127.0.0.1:8765/mcp` (`MCP_HTTP_HOST`, `MCP_HTTP_PORT`, or `--host`/`--port`). Loopback addresses only: the server has no authentication. |
+| `... --neo4j-uri bolt://localhost:7688` | Serves another graph, e.g. the frozen snapshot of the evaluations. |
+| `npx @modelcontextprotocol/inspector uv run python -m wikipulse.mcp_server.server` | Opens the MCP Inspector in the browser, to list and try every tool, resource and prompt (needs Node.js). |
+
+**Claude Desktop.** Open Settings > Developer > Edit Config, which opens
+`claude_desktop_config.json` (on Windows in `%APPDATA%\Claude\`), and add the
+`wikipulse` entry of [`docs/claude_desktop_config.example.json`](docs/claude_desktop_config.example.json)
+to its `mcpServers`, with the path of your clone:
+
+```json
+{
+  "mcpServers": {
+    "wikipulse": {
+      "command": "uv",
+      "args": [
+        "--directory", "C:\path\to\wikipulse",
+        "run", "python", "-m", "wikipulse.mcp_server.server"
+      ]
+    }
+  }
+}
+```
+
+`--directory` makes uv run in the clone, so the server finds `.env`. Restart Claude
+Desktop; WikiPulse then appears under the tools icon. The Docker services must be
+running, and Ollama for `ask`. If `uv` is not found, give its full path (`where.exe uv`).
+The first `ask` takes up to a minute (it loads the embedding model and the LLM).
