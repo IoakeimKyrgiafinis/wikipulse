@@ -44,7 +44,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 04a | LLM client | done |
 | 04b | Knowledge graph extraction | done |
 | 04c | Extraction evaluation | done |
-| 05a | GraphRAG retrieval and answering | ready |
+| 05a | GraphRAG retrieval and answering | done |
 | 05b | Question-answering evals | ready |
 | 05c | MCP server | ready |
 | 05d | Analyst agent | ready |

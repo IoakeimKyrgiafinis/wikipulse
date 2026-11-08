@@ -1,6 +1,6 @@
 # Spec 05a: GraphRAG retrieval and answering
 
-Status: ready
+Status: done
 Stage: 5. GraphRAG, MCP, agent
 Owner: agent
 Depends on: 04b
