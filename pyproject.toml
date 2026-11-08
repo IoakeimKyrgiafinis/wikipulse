@@ -16,6 +16,7 @@ dependencies = [
     "sentence-transformers>=3.3",
     "torch>=2.5",
     "ollama>=0.6",
+    "neo4j>=5.26",
 ]
 
 [project.optional-dependencies]
@@ -63,6 +64,6 @@ asyncio_default_fixture_loop_scope = "function"
 # overrides this one, e.g. `uv run pytest -m integration`.
 addopts = "-m 'not integration and not live'"
 markers = [
-    "integration: needs the Docker services (Redis, Postgres) running",
+    "integration: needs the Docker services (Redis, Postgres, Neo4j) running",
     "live: touches real outside services (Wikimedia over the network, or the local Ollama)",
 ]

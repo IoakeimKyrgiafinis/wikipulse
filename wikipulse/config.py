@@ -209,6 +209,22 @@ class Settings(BaseSettings):
     # Only for the optional `anthropic` backend; never required.
     anthropic_api_key: SecretStr | None = None
 
+    # --- Stage 4: knowledge graph (wikipulse.graph) ---
+    # Neo4j (docker-compose.yml). The password must match NEO4J_PASSWORD of the container.
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: SecretStr = SecretStr("wikipulse-graph")
+    # Model that extracts entities and relationships from events, as `backend:model`.
+    extract_model: str = "ollama:qwen3:4b"
+    # Wikidata's API, for linking names that the event's own pages don't resolve.
+    wikidata_api_url: str = "https://www.wikidata.org/w/api.php"
+    # The extraction prompt sees at most this many pages per event (highest spike score
+    # first), each trimmed to this many characters of summary and of recent changes.
+    extract_max_pages: int = Field(default=6, ge=1)
+    extract_max_chars: int = Field(default=1200, ge=100)
+    # How often the graph runner looks for new or changed events, in seconds.
+    graph_poll_interval_s: float = Field(default=30, gt=0)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

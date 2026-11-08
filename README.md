@@ -15,7 +15,7 @@ This is an early skeleton; see `docs/ROADMAP.md` for the plan.
    - PowerShell: `Copy-Item .env.example .env`
    - bash: `cp .env.example .env`
 3. Install Python and the dependencies: `uv sync`
-4. Start Redis and Postgres: `docker compose up -d` (check with `docker compose ps`)
+4. Start Redis, Postgres and Neo4j: `docker compose up -d` (check with `docker compose ps`)
 5. Check that the services are reachable: `uv run python -m wikipulse.check`
 6. Run the tests: `uv run pytest`
 
@@ -102,3 +102,18 @@ optional `anthropic:<model>` backend needs `uv sync --extra anthropic` and
 |---------|--------------|
 | `uv run python -m wikipulse.llm.check` | Is Ollama reachable, which models are pulled, and one short test question with its tokens and timing (`--model` checks another model). |
 | `uv run pytest -m live tests/llm` | Live tests against the local Ollama: a plain answer, a JSON-schema answer and a tool call. |
+
+## Stage 4: knowledge graph
+
+For each event, the LLM (`EXTRACT_MODEL`, default `ollama:qwen3:4b`) reads its pages'
+summaries and the text added during their bursts of edits, and names the people,
+organizations, places and events involved and the relationships between them, plus a
+title and a one-sentence description. Names are linked to Wikidata (the event's own
+pages first, then the articles they link to, then Wikidata search) and everything is
+stored in Neo4j with its source page and revision. Neo4j Browser: http://localhost:7474
+(user `neo4j`, password `NEO4J_PASSWORD`).
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.graph.run` | Live: every `GRAPH_POLL_INTERVAL_S` seconds, extracts new events of grouping run `live`, and again those whose spikes changed. Failed events are retried later. |
+| `uv run python -m wikipulse.graph.run --run-id <name> --since <date> --until <date> --once` | A recorded day: extracts the events of a grouping run that started in [since, until), then prints events, entities, linked share and average time per event. `--limit N`, `--force`, `--reset`, `--model` as in `--help`. |

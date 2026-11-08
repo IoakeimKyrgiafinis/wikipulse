@@ -1,12 +1,13 @@
 """Service check: `uv run python -m wikipulse.check`.
 
-Connects to Redis and Postgres, prints their versions, and exits non-zero with a
-helpful message if either one is unreachable. Also warns if USER_AGENT is unset.
+Connects to Redis, Postgres and Neo4j, prints their versions, and exits non-zero with a
+helpful message if one is unreachable. Also warns if USER_AGENT is unset.
 """
 
 import logging
 import sys
 
+import neo4j
 import psycopg
 import redis
 from pydantic import ValidationError
@@ -47,11 +48,21 @@ def postgres_version(dsn: str) -> str:
     return str(row[0]) if row else "unknown"
 
 
+def neo4j_version(settings: Settings) -> str:
+    """Connect to Neo4j and return its server version."""
+    auth = (settings.neo4j_user, settings.neo4j_password.get_secret_value())
+    with neo4j.GraphDatabase.driver(
+        settings.neo4j_uri, auth=auth, connection_timeout=CONNECT_TIMEOUT_SECONDS
+    ) as driver:
+        return driver.get_server_info().agent
+
+
 def check_services(settings: Settings) -> list[str]:
     """Check every service; print versions and return the names of unreachable ones."""
     checks = {
         "Redis": lambda: redis_version(settings.redis_url),
         "Postgres": lambda: postgres_version(settings.postgres_dsn),
+        "Neo4j": lambda: neo4j_version(settings),
     }
     failed: list[str] = []
     for name, get_version in checks.items():
