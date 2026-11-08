@@ -1,7 +1,7 @@
 """Knowledge graph extraction: `uv run python -m wikipulse.graph.run [--run-id live] [--once]`.
 
-Watches the events of a grouping run (stage 3) in Postgres. For each new event, and for
-each event whose spikes changed, it
+Watches the events of a grouping run (stage 3) in Postgres. For each new event, each
+event whose spikes changed, and each event that has just ended, it
 
 1. reads the event's pages (summary, Wikidata ID, links) and fetches the text added
    during each page's burst of edits (`wikipulse.graph.inputs`),
@@ -11,7 +11,8 @@ each event whose spikes changed, it
 4. replaces the event's part of the graph in Neo4j (`wikipulse.graph.store`).
 
 A failure is logged and recorded per event (table `graph_extractions`) and the event is
-tried again later; the other events go on.
+tried again later; the other events go on. Events that were merged into another or
+deleted from Postgres (e.g. by `wikipulse.events.run --reset`) leave the graph.
 
 - Live: run it next to the grouper. Every GRAPH_POLL_INTERVAL_S seconds it processes new
   and changed events, oldest first; Ctrl+C stops it after the current event.
@@ -35,10 +36,10 @@ from neo4j.exceptions import DriverError, Neo4jError
 from wikipulse.config import Settings, get_settings
 from wikipulse.db.graph import (
     ExtractionResult,
+    current_events,
     extracted_events,
     forget_extraction,
     load_event,
-    merged_extracted,
     pending_events,
     record_failure,
     record_success,
@@ -94,6 +95,22 @@ class RunStats:
             f"Average time per event {average:.1f} s (LLM {llm:.1f} s, "
             f"{self.output_tokens / max(self.events, 1):.0f} tokens out)."
         )
+
+
+def stale_events(
+    run_id: str, graph_keys: list[str], extracted: list[int], current: list[int]
+) -> list[int]:
+    """Event numbers in the graph or with an extraction row that are no longer current.
+
+    `current` are the run's events in Postgres that are not merged away. Anything else is
+    an event that was merged into another or deleted (its node would be a phantom).
+    """
+    in_graph = set()
+    for key in graph_keys:
+        key_run, _, number = key.rpartition(":")  # keys are "<run id>:<number>"
+        if key_run == run_id:
+            in_graph.add(int(number))
+    return sorted((in_graph | set(extracted)) - set(current))
 
 
 def graph_summary(run_id: str, counts: GraphCounts) -> str:
@@ -193,12 +210,20 @@ class GraphRunner:
         stats.llm_seconds += result.llm_seconds
         stats.output_tokens += result.output_tokens
 
-    async def remove_merged(self) -> int:
-        """Delete events from the graph that were merged into another since extraction."""
-        numbers = await asyncio.to_thread(merged_extracted, self.conn, self.run_id)
+    async def remove_stale(self) -> int:
+        """Delete events from the graph that were merged away or deleted from Postgres."""
+        # Read Postgres first: an event created after this read is not in the graph yet.
+        current = await asyncio.to_thread(current_events, self.conn, self.run_id)
+        extracted = await asyncio.to_thread(extracted_events, self.conn, self.run_id)
+        graph_keys = await asyncio.to_thread(self.store.event_keys, self.run_id)
+        numbers = stale_events(self.run_id, graph_keys, extracted, current)
         for number in numbers:
             await asyncio.to_thread(self.store.delete_event, event_key(self.run_id, number))
             await asyncio.to_thread(forget_extraction, self.conn, self.run_id, number)
+        if numbers:
+            logger.info(
+                "Removed %d stale event(s) of run %s from the graph", len(numbers), self.run_id
+            )
         return len(numbers)
 
     async def step(
@@ -209,8 +234,8 @@ class GraphRunner:
         limit: int | None = None,
         stop: asyncio.Event | None = None,
     ) -> int:
-        """One round: drop merged events, then process pending ones. Returns the count."""
-        await self.remove_merged()
+        """One round: drop stale events, then process pending ones. Returns the count."""
+        await self.remove_stale()
         numbers = await asyncio.to_thread(
             pending_events, self.conn, self.run_id, RETRY, since, until, force, limit
         )

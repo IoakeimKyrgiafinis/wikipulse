@@ -196,10 +196,10 @@ detector found 665 spikes in the day's edit stream (hundreds of thousands of Eng
 article edits) and the grouper made 572 events of them, so the expensive step sees a
 tiny fraction of the input. Further savings:
 
-- an event is extracted again only when its spikes change (`fingerprint` in
-  `graph_extractions`), not on every poll;
+- an event is extracted again only when its spikes change or it ends (`fingerprint` in
+  `graph_extractions`, see `event_fingerprint()`), not on every poll;
 - a failed event waits 10 minutes, doubling with each failure in a row, up to about 5
-  hours (`PENDING` in `wikipulse/db/graph.py`), so a broken event doesn't burn GPU time
+  hours (`CANDIDATES` and `needs_extraction()` in `wikipulse/db/graph.py`), so a broken event doesn't burn GPU time
   every 30 s;
 - at most `EXTRACT_MAX_PAGES` (6) pages per event, each trimmed to `EXTRACT_MAX_CHARS`
   (1200) characters of summary and of added text, keep the prompt well inside the 8192
@@ -232,9 +232,9 @@ tiny fraction of the input. Further savings:
   score (`EXTRACT_MAX_PAGES`).
 - **Postgres tracks the work** (table `graph_extractions`, not in the spec): the graph
   lives in Neo4j, but "which events are done, which failed and when to retry" belongs
-  next to the events. An event is extracted again when its spike ids change
-  (`fingerprint`), and removed from the graph when stage 3 merges it into another
-  (`GraphRunner.remove_merged()`).
+  next to the events. An event is extracted again when its spike ids change or when it
+  ends (`fingerprint`), and removed from the graph when stage 3 merges it into another
+  or it is deleted from Postgres (`GraphRunner.remove_stale()`).
 - **Failures**: any error of one event (LLM, Wikimedia, Neo4j, an unexpected answer) is
   logged with the event's key and title and stored in `graph_extractions.error`; the
   runner goes on with the next event. The event is retried 10 minutes later, then 20,
@@ -285,7 +285,7 @@ tiny fraction of the input. Further savings:
   requests); one page now has a `redirect_fragment` and no ID.
 - **A sample, not the whole day** (AGENTS.md's 60-minute rule). At about 10 s per event
   the 572 events of 2026-11-05 would take over 90 minutes. The acceptance run covers
-  the 131 events that started between 19:00 and 23:00 UTC, the busiest hours, with the
+  the 132 events that started between 19:00 and 23:00 UTC, the busiest hours, with the
   evening wave of US election results; the 101 events from 16:00 to 19:00 were
   extracted by an earlier run with the same code. The report below uses the 19:00 to
   23:00 window only, because those numbers come from a run I watched from start to end.
@@ -399,6 +399,30 @@ tests against the Docker Postgres and Neo4j (idempotent writes, one entity per W
 ID, provenance, type voting, re-extraction when spikes change, failure and retry,
 merged events). `uv run pytest`: 349 passed. `uv run pytest -m integration`: 29 passed.
 `ruff check` and `ruff format --check` are clean.
+
+**Review fixes** (`docs/reviews/04b-graph-extraction.md`, problems 1, 2 and 12):
+
+- *Stale live events.* The fingerprint used to be only the spike ids, but spikes keep
+  their id while they grow, so an event extracted in its first minutes stayed stale
+  after it ended. The rule is now `event_fingerprint()` in `wikipulse/db/graph.py`: the
+  sorted spike ids, plus `|active` while the event is active. An event is extracted
+  when it appears, again when a spike joins, and once more when it ends (its spikes are
+  finished by then, so the diff covers the whole burst). Spike growth alone during the
+  active phase does not trigger an LLM call: at most one extra call per event. Ended
+  events keep the old fingerprint format, so the stored sample is not re-extracted;
+  only events that were stored while still active get one catch-up extraction. The
+  decision moved from SQL to Python (`needs_extraction()`), so it has unit tests. The
+  comment in migration 0005 still describes the old rule; applied migrations are not
+  edited.
+- *Phantom events.* `GraphRunner.remove_merged()` became `remove_stale()`: every round
+  it compares the run's `Event` nodes (and extraction rows) with the events that exist
+  in Postgres and are not merged (`current_events()`), and deletes the rest from Neo4j
+  (`stale_events()` in `wikipulse/graph/run.py`). Events deleted by
+  `wikipulse.events.run --reset` no longer linger in the graph or in `run_counts()`.
+- New tests: 5 unit tests in `tests/graph/test_runner_rules.py` and 2 integration
+  tests in `tests/graph/test_run_db.py` (an active event re-extracted once when it
+  ends; a deleted event leaving the graph). `uv run pytest`: 354 passed.
+  `uv run pytest -m integration`: 31 passed. The sample was not re-run.
 
 ## Questions to test your understanding
 

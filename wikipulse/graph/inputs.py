@@ -60,7 +60,7 @@ class EventInput:
     title: str  # stage 3's provisional title (the highest-scoring page)
     started_at: datetime
     ended_at: datetime | None
-    fingerprint: str  # its spike ids: when they change, the event is extracted again
+    fingerprint: str  # spike ids (+ active mark): when it changes, extract again
     pages: tuple[EventPage, ...]
 
     @property

@@ -90,11 +90,13 @@ def add_spike(conn, run_id: str, title: str, minute: int) -> int:
     return row[0]
 
 
-def add_event(conn, run_id: str, number: int, spike_ids: list[int], title: str) -> None:
+def add_event(
+    conn, run_id: str, number: int, spike_ids: list[int], title: str, status: str = "ended"
+) -> None:
     conn.execute(
         "INSERT INTO events (run_id, spike_run_id, number, status, title, started_at, "
-        "last_spike_at, page_count, score) VALUES (%s, %s, %s, 'ended', %s, %s, %s, %s, 5)",
-        (run_id, run_id, number, title, T0, T0, len(spike_ids)),
+        "last_spike_at, page_count, score) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 5)",
+        (run_id, run_id, number, status, title, T0, T0, len(spike_ids)),
     )
     join_event(conn, run_id, number, spike_ids)
 
@@ -218,3 +220,57 @@ async def test_merged_events_leave_the_graph(conn, store, tag) -> None:
         await graph.step()
     assert graph_titles(store, tag) == []
     assert store.run_counts(tag).entities == 0
+
+
+async def test_an_event_extracted_while_active_is_extracted_again_once_it_ends(
+    conn, store, tag
+) -> None:
+    spike = add_spike(conn, tag, f"{tag} Delta", 0)
+    add_event(conn, tag, 1, [spike], "Delta", status="active")
+    name = f"Delta Person {tag}"
+    llm = ScriptedClient(
+        [
+            answer([entity(name, "person")], title="Early title"),
+            answer([entity(name, "person")], title="Final title"),
+        ]
+    )
+    async with make_client(httpx.MockTransport(quiet_wikimedia)) as client:
+        graph = runner(conn, store, client, llm, tag)
+        assert await graph.step() == 1
+        assert await graph.step() == 0  # still active, nothing joined: no LLM call
+        # The spike grows and the event ends.
+        conn.execute("UPDATE spikes SET total_edits = 40 WHERE id = %s", (spike,))
+        conn.execute(
+            "UPDATE events SET status = 'ended', ended_at = %s WHERE run_id = %s",
+            (T0 + timedelta(minutes=30), tag),
+        )
+        assert await graph.step() == 1  # ended: extracted again
+        assert await graph.step() == 0  # ... and only once
+    assert graph_titles(store, tag) == ["Final title"]
+    assert len(llm.requests) == 2
+    with store.driver.session() as session:
+        ended_at = session.run(
+            "MATCH (ev:Event {run_id: $run}) RETURN ev.ended_at AS ended_at", run=tag
+        ).single()["ended_at"]
+    assert ended_at is not None
+
+
+async def test_events_deleted_from_postgres_leave_the_graph(conn, store, tag) -> None:
+    for number, word in ((1, "Kept"), (2, "Deleted")):
+        add_event(conn, tag, number, [add_spike(conn, tag, f"{tag} {word}", number)], word)
+    llm = ScriptedClient(
+        [
+            answer([entity(f"Kept Person {tag}")], title="Kept"),
+            answer([entity(f"Deleted Person {tag}")], title="Deleted"),
+        ]
+    )
+    async with make_client(httpx.MockTransport(quiet_wikimedia)) as client:
+        graph = runner(conn, store, client, llm, tag)
+        await graph.step()
+        assert graph_titles(store, tag) == ["Kept", "Deleted"]
+        # E.g. the grouper was re-run with --reset and did not recreate event 2.
+        conn.execute("DELETE FROM events WHERE run_id = %s AND number = 2", (tag,))
+        assert await graph.step() == 0
+    assert graph_titles(store, tag) == ["Kept"]
+    assert store.run_counts(tag).events == 1
+    assert store.run_counts(tag).entities == 1

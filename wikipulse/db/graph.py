@@ -1,9 +1,10 @@
 """The `graph_extractions` table (migration 0005) and the events the graph runner reads.
 
-An event needs extraction when it has no row yet, when its spikes changed since its
-last extraction (`fingerprint`), or when its last attempt failed and the retry delay has
-passed. The delay doubles with every failure in a row (10 min, 20 min, ... up to 5 h 20
-min with the default), so a broken event doesn't cost an LLM call on every poll.
+An event needs extraction when it has no row yet, when it changed materially since its
+last extraction (its `fingerprint`, see `event_fingerprint()`), or when its last attempt
+failed and the retry delay has passed. The delay doubles with every failure in a row
+(10 min, 20 min, ... up to 5 h 20 min with the default), so a broken event doesn't cost
+an LLM call on every poll.
 """
 
 from dataclasses import dataclass
@@ -14,10 +15,13 @@ from psycopg.rows import dict_row
 
 from wikipulse.graph.inputs import EventInput, pages_from_rows
 
-# Each event's spike ids, in a fixed order: when it changes, the event changed.
+# Marks the fingerprint of an event that is still active (see `event_fingerprint()`).
+ACTIVE_MARK = "|active"
+
+# The run's events that are not merged away, with their spike ids in a fixed order.
 CURRENT = """
 SELECT ev.run_id, ev.number, ev.status, ev.title, ev.started_at, ev.ended_at,
-       string_agg(ep.spike_id::text, ',' ORDER BY ep.spike_id) AS fingerprint
+       string_agg(ep.spike_id::text, ',' ORDER BY ep.spike_id) AS spike_ids
 FROM events ev
 JOIN event_pages ep ON ep.run_id = ev.run_id AND ep.event_number = ev.number
 WHERE ev.run_id = %(run_id)s AND ev.status <> 'merged'
@@ -26,18 +30,16 @@ WHERE ev.run_id = %(run_id)s AND ev.status <> 'merged'
 GROUP BY ev.run_id, ev.number, ev.status, ev.title, ev.started_at, ev.ended_at
 """
 
-PENDING = f"""
+# Every current event with what its last extraction stored; Python decides what is due.
+CANDIDATES = f"""
 WITH current AS ({CURRENT})
-SELECT c.number
+SELECT c.number, c.status, c.spike_ids, g.fingerprint AS stored,
+       g.status = 'error'
+       AND g.attempted_at < now() - %(retry)s * power(2, least(g.failures - 1, 5))
+       AS retry_due
 FROM current c
 LEFT JOIN graph_extractions g ON g.run_id = c.run_id AND g.event_number = c.number
-WHERE %(force)s
-   OR g.run_id IS NULL
-   OR g.fingerprint <> c.fingerprint
-   OR (g.status = 'error'
-       AND g.attempted_at < now() - %(retry)s * power(2, least(g.failures - 1, 5)))
 ORDER BY c.started_at, c.number
-LIMIT %(limit)s
 """
 
 EVENT_SPIKES = """
@@ -98,6 +100,28 @@ class ExtractionResult:
     llm_seconds: float
 
 
+def event_fingerprint(spike_ids: str, status: str) -> str:
+    """What an event's extraction depends on; when it changes, the event is extracted again.
+
+    The rule is cheap on purpose: the sorted spike ids, plus a mark while the event is
+    still active. So an event is extracted again when a spike joins it (or it absorbs
+    another event), and once more when it ends, by which time its spikes have finished
+    growing and the diff covers the whole burst. Growth of a spike while the event is
+    active does not trigger a new LLM call; the extraction at the end catches it up.
+    Ended events keep the plain id list, which is the format of the first version.
+    """
+    return spike_ids + ACTIVE_MARK if status == "active" else spike_ids
+
+
+def needs_extraction(
+    spike_ids: str, status: str, stored: str | None, retry_due: bool | None, force: bool
+) -> bool:
+    """Whether an event is due: forced, never tried, changed, or a failure ready to retry."""
+    if force or stored is None:
+        return True
+    return stored != event_fingerprint(spike_ids, status) or bool(retry_due)
+
+
 def pending_events(
     conn: psycopg.Connection,
     run_id: str,
@@ -108,15 +132,15 @@ def pending_events(
     limit: int | None = None,
 ) -> list[int]:
     """Numbers of the run's events that need extraction, oldest first."""
-    params = {
-        "run_id": run_id,
-        "since": since,
-        "until": until,
-        "force": force,
-        "retry": retry,
-        "limit": limit,
-    }
-    return [row[0] for row in conn.execute(PENDING, params).fetchall()]
+    params = {"run_id": run_id, "since": since, "until": until, "retry": retry}
+    with conn.cursor(row_factory=dict_row) as cur:
+        rows = cur.execute(CANDIDATES, params).fetchall()
+    numbers = [
+        row["number"]
+        for row in rows
+        if needs_extraction(row["spike_ids"], row["status"], row["stored"], row["retry_due"], force)
+    ]
+    return numbers if limit is None else numbers[:limit]
 
 
 def load_event(conn: psycopg.Connection, run_id: str, number: int) -> EventInput | None:
@@ -128,7 +152,8 @@ def load_event(conn: psycopg.Connection, run_id: str, number: int) -> EventInput
         if event is None:
             return None
         spikes = cur.execute(EVENT_SPIKES, (run_id, number)).fetchall()
-    return EventInput(**event, pages=tuple(pages_from_rows(spikes)))
+    fingerprint = event_fingerprint(event.pop("spike_ids"), event["status"])
+    return EventInput(**event, fingerprint=fingerprint, pages=tuple(pages_from_rows(spikes)))
 
 
 def record_success(conn: psycopg.Connection, event: EventInput, result: ExtractionResult) -> None:
@@ -160,15 +185,10 @@ def record_failure(conn: psycopg.Connection, event: EventInput, error: str, seco
     )
 
 
-def merged_extracted(conn: psycopg.Connection, run_id: str) -> list[int]:
-    """Events merged into another since they were extracted (their node must go)."""
+def current_events(conn: psycopg.Connection, run_id: str) -> list[int]:
+    """Numbers of the run's events that exist in Postgres and are not merged away."""
     rows = conn.execute(
-        """
-        SELECT g.event_number FROM graph_extractions g
-        JOIN events ev ON ev.run_id = g.run_id AND ev.number = g.event_number
-        WHERE g.run_id = %s AND ev.status = 'merged'
-        """,
-        (run_id,),
+        "SELECT number FROM events WHERE run_id = %s AND status <> 'merged'", (run_id,)
     ).fetchall()
     return [row[0] for row in rows]
 
