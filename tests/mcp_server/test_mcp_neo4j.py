@@ -106,6 +106,15 @@ async def test_the_server_over_stdio(snapshot_uri: str) -> None:
     assert not result.is_error and len(result.structured_content["events"]) == 2
 
 
+def _wait_or_kill(process: subprocess.Popen) -> None:
+    """Wait for the server to exit; kill it if it hangs, so no orphan holds the port."""
+    try:
+        process.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=30)
+
+
 def _free_port() -> int:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -145,7 +154,7 @@ async def test_the_server_over_http(snapshot_uri: str) -> None:
                 result = await client.call_tool("search_entities", {"name": "Paraguay"})
     finally:
         process.terminate()
-        process.wait(timeout=30)
+        _wait_or_kill(process)
     assert names == TOOLS
     assert result.structured_content["entities"][0]["name"] == "Paraguay"
 
@@ -174,7 +183,9 @@ def test_an_older_client_lists_everything_over_raw_json_rpc(snapshot_uri: str) -
         message = {"jsonrpc": "2.0", "id": number, "method": method, "params": params}
         process.stdin.write(json.dumps(message) + "\n")
         process.stdin.flush()
-        return json.loads(lines.get(timeout=TIMEOUT_S))["result"]
+        response = json.loads(lines.get(timeout=TIMEOUT_S))
+        assert response["id"] == number, f"{method}: reply to request {response.get('id')}"
+        return response["result"]
 
     try:
         hello = request(
@@ -193,7 +204,7 @@ def test_an_older_client_lists_everything_over_raw_json_rpc(snapshot_uri: str) -
         prompts = request(4, "prompts/list", {})["prompts"]
     finally:
         process.stdin.close()  # end of input: the server exits
-        process.wait(timeout=30)
+        _wait_or_kill(process)  # a hang shows up as a non-zero exit code below
     assert hello["protocolVersion"] == "2025-06-18"
     assert hello["serverInfo"]["name"] == "wikipulse"
     assert {t["name"] for t in tools} == TOOLS

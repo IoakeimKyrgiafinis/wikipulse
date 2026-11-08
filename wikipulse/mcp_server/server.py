@@ -113,7 +113,10 @@ def _add_tools(server: MCPServer, explorer: Explorer) -> None:
             Field(
                 gt=0,
                 le=MAX_HOURS,
-                description="Look back this many hours from the newest event (default 24).",
+                description=(
+                    "Look back this many hours from the newest event "
+                    "(default: the server's MCP_TRENDING_HOURS setting)."
+                ),
             ),
         ] = None,
     ) -> TrendingEvents:

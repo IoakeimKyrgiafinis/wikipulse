@@ -167,7 +167,7 @@ to its `mcpServers`, with the path of your clone:
     "wikipulse": {
       "command": "uv",
       "args": [
-        "--directory", "C:\path\to\wikipulse",
+        "--directory", "C:\\path\\to\\wikipulse",
         "run", "python", "-m", "wikipulse.mcp_server.server"
       ]
     }

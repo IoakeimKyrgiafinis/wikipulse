@@ -238,6 +238,13 @@ differently. Both shape the API:
 - **Claude Desktop configuration** is an example file in the repo
   (`docs/claude_desktop_config.example.json`) plus the README section; I did not touch
   the human's own Claude configuration.
+- **Review fixes.** The example config and the README snippet first wrote the path as
+  `"C:\path\to\wikipulse"`, which is invalid JSON (`\p` is not an escape, and `\t` would
+  be a tab); in JSON a Windows backslash must be doubled, `"C:\\path\\to\\wikipulse"`.
+  `tests/mcp_server/test_client_config.py` now parses both with `json.loads`. The `hours`
+  description no longer claims "default 24" (the default is `MCP_TRENDING_HOURS`), and
+  the subprocess integration tests kill a server that hangs on shutdown and check that
+  each JSON-RPC response's `id` matches its request.
 - **The MCP Inspector was not run by me** (see "Results").
 
 ## Results
