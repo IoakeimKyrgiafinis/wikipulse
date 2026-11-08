@@ -1,6 +1,6 @@
 # Spec 05c: MCP server
 
-Status: ready
+Status: done
 Stage: 5. GraphRAG, MCP, agent
 Owner: agent
 Depends on: 05a
