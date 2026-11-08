@@ -1,0 +1,43 @@
+# Review: 05b-qa-evals
+
+Reviewer: independent agent. Branch `spec-05b-qa-evals` (1 commit, 75f4ba0) against `main`.
+22 files, about 5,400 lines added. No file outside the spec's area was changed: no 05a code
+(`wikipulse/qa/`) and no existing labels.
+
+## Acceptance criteria
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Unit tests with mocked LLM for metrics and judge parsing | pass | `tests/eval/test_qa_judge.py` (parse_correctness/parse_faithfulness, batching, append-only file, find_judgement; `ScriptedClient`, so no LLM is called), `test_qa_metrics.py` (recall, summarize, percentile, failure split, kappa against known values, agreement), `test_qa_eval.py` (answer/judge/report/rate with fakes). `uv run pytest`: **523 passed, 44 deselected**. `ruff check .`: clean. `ruff format --check .`: 244 files already formatted. |
+| A run on the generated questions completes; report the numbers | pass | I ran `--steps report --results-dir <scratch>` for `05b-v1` again. Every number matches the committed `evals/results/2026-11-08_05b-v1.{md,json}`; only `commit`/`dirty` differ (the committed report came from the uncommitted tree on 1cf426b). Result: 25 questions, correctness 1.20 of 2, 48.0% fully correct, faithfulness 95.9%, entity recall 92.3%, event recall 82.2%, correct refusals 80%, false refusals 20%, median latency 4.8 s. I also ran a 2-question smoke run (q07, q21) through answer → judge (both judges) → report, with every output in scratch (`DATA_DIR`, `--judgements`, `--results-dir`). It finished cleanly, and `evals/labels/qa_judgements.jsonl` was byte-identical afterwards. |
+| Judge reliability: two judge models on the same answers, agreement reported | pass | qwen3:8b against qwen3:4b on 25 answers. Correctness: 88% exact agreement, 96% within one point, linear-weighted kappa 0.82, plus a confusion matrix. Faithfulness: 49 claims, 93.9% agreement, kappa −0.03 (the learning note explains this correctly as the kappa paradox). The judgements file has 134 records, all `labeler: llm`, each with model and prompt version. |
+| Context: 25 questions generated from the snapshot with deterministic queries, all 05a types, unanswerable ones included | pass | `uv run pytest -m integration tests/eval/test_qa_questions_graph.py`: 1 passed. I regenerated the questions from the restored snapshot in memory and they are **identical** to the committed `evals/labels/qa_questions.jsonl` (25 = 25). The set has 5 of each type: time, event, connection, aggregation, unanswerable. |
+| Outputs: `scripts/snapshot_graph.py` (dump and restore), `qa.py --name` with separate answer and judge passes, prompts in `wikipulse/eval/prompts/`, metrics overall and per type | pass | All present. The steps run answer-all, then judge-all per model, then report. The snapshot runs as a second Neo4j server under the compose `eval` profile, a deviation that is justified (Community edition has one user database) and recorded. I didn't re-run dump/restore, because dump stops the live `neo4j` container; the unit tests cover command construction. |
+| Rules: no real email committed, no `data/` committed, no `print` in the package except CLI output, LLM calls only via `wikipulse.llm` | pass | No email address appears anywhere in the diff. No files under `data/`. The judge uses `get_client()`/`LLMClient.chat`. `print` appears only in `main()`/CLI paths and the interactive `--rate`. |
+
+## Problems
+
+1. **medium**, `docs/learning/05b-qa-evals.md:310-314` and `:435-437`. The note calls q17's generated query "a correct query" and suggests q17 as the test for a validator fix, but `ev.started_at < date($today_start) + duration({days:1})` compares a DateTime with a Date. That returns `null` in Cypher, so the query counts **0** events. I checked on the snapshot: `RETURN datetime(t) < date(t) + duration({days:1})` gives `null`, and the full query gives `c = 0`. Fixing the validator alone would turn a refusal into a confidently wrong "0", and the diagnosis and "Open points" mislead the next spec.
+2. **medium**, `wikipulse/eval/qa_metrics.py:202`. `correct_refusals` (and `false_refusals`) count a record with `error` (the pipeline crashed, so `answered=False`) as a refusal. A Neo4j or Ollama outage therefore scores unanswerable questions as 100% correct refusals, while the judge step skips those same records (`qa.py` `judge_all`), so the two metrics count different populations.
+3. **low**, `wikipulse/eval/qa_metrics.py:93`. `key in text` is a substring test, so expected key `…:40` counts as found when the facts mention `…:404` (keys are `03b-default-fix:<number>`). A boundary-aware match would avoid that.
+4. **low**, `wikipulse/eval/qa_metrics.py:302`. `claim_agreement` zips two judges' verdict lists with `strict=False`. Faithfulness judgements are keyed on the answer hash, not on the claim split, so after a change to `answer_claims()`/`claims()` an old and a new judgement can be silently misaligned claim by claim.
+5. **low**, `wikipulse/eval/qa_questions.py:557` and `:571`. `people[0]` and `next(r for r in orgs if r["qid"])` raise a bare `IndexError`/`StopIteration` on a snapshot without people or linked organizations "today". The other generators exit with a clear `SystemExit` message instead.
+6. **low**, `wikipulse/eval/qa_questions.py:609-617`. The Ueno Bank near-miss question is tied to this snapshot. If a future snapshot doesn't mention "Ueno", the anchored check searches nothing and passes, and the expected answer still claims "The graph knows Ueno Bank". The anchor's presence should be checked too.
+7. **low**, `scripts/snapshot_graph.py:170` and `:176-181`. The manifest describes the graph *before* the container is stopped, so a write by the pipeline in between makes `restore` report a mismatch (this fails safe, but is confusing). Separately, a `wait_until_ready` failure in the `finally` block hides the original dump error.
+8. **low**, `wikipulse/eval/qa.py:338`. `str(args.questions)` writes a Windows path (`evals\labels\qa_questions.jsonl`) into the committed report, so the same run gives a different report on Linux CI. `as_posix()` would avoid that.
+9. **low**, `wikipulse/eval/qa_metrics.py:27` and `wikipulse/eval/qa_questions.py:51`. `RETRIEVAL_OK = 0.8` (a threshold that decides the retrieval/generation split) and `TUNED_EVENT_NUMBERS` (snapshot-specific) are module constants. They are defensible as part of the eval's definition, but they are the kind of value AGENTS.md wants in config or at least visible in the run config. The report does print RETRIEVAL_OK; TUNED_EVENT_NUMBERS is not shown anywhere.
+10. **low**, `wikipulse/eval/qa.py:402`. `rate_manually` uses `continue` once the limit is reached instead of `break`, so it keeps looping over the remaining questions doing nothing.
+
+On the 05a `validate_cypher` false positive (`) + duration(...)` read as a quantified path): leaving it alone was right. It is 05a code, AGENTS.md forbids out-of-scope changes, this spec's job is to *measure* retrieval, and the validator errs on the safe side. It belongs in a small follow-up spec, together with a correct date-arithmetic example in the Cypher prompt (see problem 1: the query in question is also semantically wrong).
+
+Not counted as problems: `labeler: llm` on code-generated questions (it is documented, and the rules only allow `llm`/`human`), and the fact that answers live in `data/qa_eval/` (not committed), so the committed report can't be rebuilt from the repository alone. That follows the `data/` rule, but the human should know it.
+
+Verdict: merge
+
+The two medium problems are a wrong diagnosis in the learning note and a metric edge case that didn't occur in this run (0 errors). Neither changes the reported numbers, and both are worth fixing in the follow-up spec.
+
+## Questions for the human before merging
+
+1. q17 was refused because the validator rejected its Cypher. If you fix only the validator, what will the system answer to "How many events started today?", and how would the current metrics (entity/event recall, failure split) classify that answer?
+2. The primary judge (qwen3:8b) is the same model that wrote the answers. Why does that matter for correctness scores, what does the 0.82 kappa against qwen3:4b tell you and not tell you, and what would you need before trusting a 0.1 improvement in mean correctness?
+3. Faithfulness is 95.9%, yet only 8 of the 20 answerable questions are fully correct. Using `failure_split()` and the per-type table, explain which half of the pipeline you would change first for time questions and for aggregation questions, and why the report's evidence points there.

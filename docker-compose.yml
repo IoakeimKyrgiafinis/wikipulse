@@ -59,7 +59,34 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  neo4j-eval:
+    # A frozen copy of the knowledge graph for evaluations (spec 05b). Neo4j Community
+    # has one user database per server, so the "separate database" is a second server
+    # with its own volume. Filled by `uv run python scripts/snapshot_graph.py restore`;
+    # only started with the "eval" profile (`docker compose --profile eval up -d`).
+    image: neo4j:5-community
+    profiles: ["eval"]
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-wikipulse-graph}
+      HEALTHCHECK_PASSWORD: ${NEO4J_PASSWORD:-wikipulse-graph}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+      NEO4J_server_memory_pagecache_size: 512m
+    ports:
+      - "${NEO4J_EVAL_HTTP_PORT:-7475}:7474"
+      - "${NEO4J_EVAL_BOLT_PORT:-7688}:7687"
+    volumes:
+      - neo4j-eval-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p $${HEALTHCHECK_PASSWORD} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   redis-data:
   postgres-data:
   neo4j-data:
+  neo4j-eval-data:
