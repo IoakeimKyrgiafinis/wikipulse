@@ -9,6 +9,7 @@ from wikipulse.qa.answer import (
     Answerer,
     build_message,
     cited_ids,
+    drop_sentences,
     drop_unknown_ids,
     uncited_sentences,
 )
@@ -74,11 +75,52 @@ def test_uncited_claims_get_one_retry_with_the_sentences_named() -> None:
     assert result.text == "Ueno Bank collapsed [1]." and result.uncited_sentences == []
 
 
-def test_claims_still_uncited_after_the_retry_are_reported() -> None:
+def test_claims_still_uncited_after_the_retry_are_removed_and_reported() -> None:
     answer = "Ueno Bank collapsed [F2]. Peña was a famous economist."
     result = Answerer(ScriptedClient([reply(answer), reply(answer)])).answer(context())
-    assert result.uncited_sentences == ["Peña was a famous economist."]
-    assert "Warning: sentences without a cited fact" in render(result)
+    assert result.text == "Ueno Bank collapsed [1]."
+    assert result.fact_text == "Ueno Bank collapsed [F2]."
+    assert result.removed_sentences == ["Peña was a famous economist."]
+    assert result.uncited_sentences == []
+    shown = render(result)
+    assert "Removed from the answer" in shown and "- Peña was a famous economist." in shown
+
+
+def test_short_claims_and_list_items_must_be_cited_too() -> None:
+    assert uncited_sentences("Peña resigned. Bank failed [F1].") == ["Peña resigned."]
+    assert uncited_sentences("Organizations:\n- Ueno Bank\n- Democratic Party [F1]") == [
+        "Ueno Bank"
+    ]
+    assert uncited_sentences("1. Ueno Bank\n2. Peña [F2]") == ["Ueno Bank"]
+
+
+def test_uncited_short_claims_and_list_items_are_removed_after_the_retry() -> None:
+    answer = "Organizations:\n- Ueno Bank\n- Democratic Party [F2]\n\nPeña resigned. Done [F1]."
+    client = ScriptedClient([reply(answer), reply(answer)])
+    result = Answerer(client).answer(context())
+    retry = client.requests[1].messages[-1].content
+    assert "- Ueno Bank" in retry and "- Peña resigned." in retry
+    assert result.fact_text == "Organizations:\n- Democratic Party [F2]\n\nDone [F1]."
+    assert result.removed_sentences == ["Ueno Bank", "Peña resigned."]
+
+
+def test_a_list_cut_at_a_limit_is_told_to_the_model_and_the_user() -> None:
+    ctx = context()
+    ctx.limits.append("The query results stop at the limit of 25 rows; there may be more.")
+    message = build_message(ctx)
+    assert "Incomplete lists (do not present these lists as complete):\n- The query" in message
+    result = Answerer(ScriptedClient([reply("Ueno Bank collapsed [F2].")])).answer(ctx)
+    assert result.text == (
+        "Ueno Bank collapsed [1].\n\n"
+        "Note: The query results stop at the limit of 25 rows; there may be more."
+    )
+    assert result.limits == ctx.limits
+    assert "there may be more" in render(result)  # without --show-context
+
+
+def test_drop_sentences_keeps_bullets_and_the_rest_of_a_line() -> None:
+    text = "Intro [F1].\n- A [F1]. B.\n- C.\n\n\n1. D [F2]"
+    assert drop_sentences(text, ["B.", "C."]) == "Intro [F1].\n- A [F1].\n\n1. D [F2]"
 
 
 def test_an_answer_that_cites_nothing_becomes_a_refusal() -> None:

@@ -407,8 +407,14 @@ class Retriever:
         if window is None:
             return
         start, end, label = window
-        found.period_events += self.graph.events_between(start, end, self.config.period_events)
+        listed = self.graph.events_between(start, end, self.config.period_events)
+        found.period_events += listed
         context.notes.append(f"The biggest events of {label} (by pages touched) were looked up.")
+        if len(listed) >= self.config.period_events:
+            context.limits.append(
+                f"Only the {len(listed)} biggest events of {label} were looked up; "
+                "there may be more."
+            )
 
     def _connect(
         self, entities: Sequence[EntityCandidate], context: Context, found: _Found
@@ -480,8 +486,9 @@ class Retriever:
                         sources.append(citation)
             found.query.append(query_fact(row, sources[:MAX_ROW_SOURCES], "cypher"))
         if len(rows) >= self.config.max_rows:
-            context.notes.append(
-                f"cypher: the query returned the maximum of {len(rows)} rows; there may be more."
+            context.limits.append(
+                f"The query results stop at the limit of {self.config.max_rows} rows; "
+                "there may be more."
             )
 
     def _vector(self, question: str, context: Context, found: _Found) -> None:

@@ -171,6 +171,23 @@ def test_a_validated_query_returns_at_most_the_limit(qa_graph, world):
     assert len(rows) == 1 and rows[0]["event_key"].startswith(world.run_id)
 
 
+def test_the_added_limits_hold_in_neo4j_for_comments_and_every_union_branch(qa_graph):
+    commented = validate_cypher("UNWIND range(1, 100) AS x RETURN x // LIMIT 1000", max_rows=3)
+    assert len(qa_graph.run_query(commented, {}, timeout_s=5, max_rows=100)) == 3
+    union = validate_cypher(
+        "UNWIND range(1, 100) AS x RETURN x UNION ALL UNWIND range(1, 100) AS x RETURN x",
+        max_rows=3,
+    )
+    assert len(qa_graph.run_query(union, {}, timeout_s=5, max_rows=100)) == 6
+
+
+def test_a_bounded_quantified_path_is_valid_cypher(qa_graph):
+    query = validate_cypher(
+        "MATCH (a:QaNoSuchLabel)-[:RELATED_TO]-{1,3}(b) RETURN b.name AS name", max_rows=3
+    )
+    assert qa_graph.run_query(query, {}, timeout_s=5, max_rows=3) == []
+
+
 def one_hot(index: int) -> list[float]:
     vector = np.zeros(DIMENSIONS, dtype=np.float32)
     vector[index] = 1.0

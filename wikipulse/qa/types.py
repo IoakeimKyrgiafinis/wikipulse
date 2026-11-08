@@ -69,6 +69,8 @@ class Context(BaseModel):
     cypher: str | None = None
     cypher_rows: int | None = None
     notes: list[str] = Field(default_factory=list)  # what went wrong or found nothing
+    # Lists in the facts that stopped at a limit, so there may be more than the facts show.
+    limits: list[str] = Field(default_factory=list)
     seconds: dict[str, float] = Field(default_factory=dict)
     max_facts: int = 60
 
@@ -106,6 +108,11 @@ class Answer(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
     facts: list[Fact] = Field(default_factory=list)
     model: str | None = None
+    # Sentences left in `text` whose facts have no source page to cite.
     uncited_sentences: list[str] = Field(default_factory=list)
+    # Sentences the model wrote without a fact id even after the retry; not in `text`.
+    removed_sentences: list[str] = Field(default_factory=list)
+    # Lists in the facts that stopped at a limit (also added to `text` as notes).
+    limits: list[str] = Field(default_factory=list)
     context: Context | None = None
     seconds: dict[str, float] = Field(default_factory=dict)

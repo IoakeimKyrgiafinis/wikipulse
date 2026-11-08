@@ -52,8 +52,12 @@ def render(result: Answer, show_context: bool = False) -> str:
         lines.append("Facts used:")
         lines += [f"  {fact.id} ({fact.channel}) {fact.text}" for fact in result.facts]
         lines.append("")
+    if result.removed_sentences:
+        lines.append("Removed from the answer (the model cited no fact for them):")
+        lines += [f"  - {sentence}" for sentence in result.removed_sentences]
+        lines.append("")
     if result.uncited_sentences:
-        lines.append("Warning: sentences without a cited fact:")
+        lines.append("Warning: sentences whose facts have no source page:")
         lines += [f"  - {sentence}" for sentence in result.uncited_sentences]
         lines.append("")
     context = result.context

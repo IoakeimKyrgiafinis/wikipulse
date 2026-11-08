@@ -115,9 +115,11 @@ data it has read (prompt injection). Three layers make it harmless:
    write or admin clause (`CREATE`, `MERGE`, `SET`, `DELETE`, `REMOVE`, `DROP`,
    `FOREACH`, `LOAD CSV`, `CALL`, `SHOW`, ...), more than one statement, a query that
    does not start with `MATCH`/`OPTIONAL MATCH`/`WITH`/`UNWIND`/`RETURN` or has no
-   `RETURN`, and variable-length patterns without an upper bound or longer than 6 steps
-   (`-[*]-` may walk the whole graph). Then it forces a result limit: a query without a
-   final `LIMIT` gets `LIMIT 25`, a larger limit is lowered. `CALL` is refused entirely,
+   `RETURN`, and paths without an upper bound or longer than 6 steps: variable-length
+   patterns (`-[*]-` may walk the whole graph) and quantified path patterns (`-[:R]-+`,
+   `-->*`, `-{1,}`, `((a)-->(b))+`, and with them `SHORTEST` searches without a
+   bound). Then it forces a result limit on every branch of a `UNION`: a branch
+   without a final `LIMIT` gets `LIMIT 25`, a larger limit is lowered. `CALL` is refused entirely,
    because procedures can write and `CALL { ... } IN TRANSACTIONS` is a bulk-write tool.
 2. **The database refuses too.** `QAGraph.run_query()` runs the query in a session
    opened with `READ_ACCESS`; Neo4j then rejects any write ("Writing in read access
@@ -213,12 +215,14 @@ check every claim. The design puts the checking in code, not in the model's good
   the prompt (`answer_v1.md`) demands fact ids at the end of every sentence and list
   item. Copying "[F7]" is much easier for a model than copying "revision 1383953174".
 - **Code checks the citations.** `drop_unknown_ids()` removes ids that don't exist;
-  `uncited_sentences()` finds sentences without any id (headings ending in ":" and
-  fragments under three words don't count, and "U.S." does not end a sentence). If
-  there are any, the model gets one retry that names them. Whatever is still uncited is
-  kept in `Answer.uncited_sentences` and printed as a warning, and so is a sentence
-  that cites only facts without a source (a query row naming no event): its citation
-  would show no page. An answer that claims to
+  `uncited_sentences()` finds sentences and list items without any id, however short
+  (headings such as "Events:" or "**Events**" and a lone "Yes." don't count, and
+  "U.S." does not end a sentence). If there are any, the model gets one retry that
+  names them. Whatever is still uncited is removed from the answer
+  (`drop_sentences()`) and listed in `Answer.removed_sentences`, which the CLI prints.
+  A sentence that cites only facts without a source (a query row naming no event)
+  stays, but is listed in `Answer.uncited_sentences` as a warning: its citation would
+  show no page. An answer that claims to
   answer but cites nothing at all becomes a refusal (`NOTHING_CITED`): nothing in it
   could be checked.
 - **Code resolves the citations.** `resolve_citations()` turns each run of fact ids
@@ -435,7 +439,49 @@ Measured by re-asking the same questions (`data/qa/run1.log` to `final2.log`):
   (unique run id, 2031 dates, invented page titles) and deletes only them; afterwards
   the graph had exactly its 233 events, 1,285 entities and 243 pages again.
 - `uv run pytest`: 439 passed. `uv run pytest -m integration`: 38 passed. `ruff check`
-  and `ruff format --check`: clean.
+  and `ruff format --check`: clean. (After the review fixes below: 465 and 40.)
+
+### Review fixes
+
+The review (`docs/reviews/05a-graph-retrieval.md`) found four medium problems; all are
+fixed.
+
+1. **The forced LIMIT could be fooled.** `_with_limit()` used to search the raw query,
+   so `RETURN n.name // LIMIT 1000` counted as limited (the LIMIT was in a comment), and
+   in a `UNION` only the last branch got one. It now works on `mask()`, a version of
+   the query where comments and strings are blanked but every character keeps its
+   position, splits the query at top-level `UNION`s (`_branches()`), and gives each
+   branch its own final LIMIT. A LIMIT inside a subquery's braces (`COUNT { ... LIMIT
+   5 }`) or followed by another clause does not count.
+2. **Quantified paths slipped through.** Neo4j 5 also writes repetition after a
+   relationship: `(a)-[:R]-+(b)`, `-->*`, `-{1,}`. `_check_quantifiers()` now finds a
+   quantifier after `-`, `>` or `)`, and treats it like `[*..n]`: it needs an upper
+   bound of at most `MAX_HOPS` (`{1,3}` and `{,4}` pass, `+`, `*` and `{1,}` don't).
+   `SHORTEST` needs no rule of its own: its pattern is quantified, so an unbounded one is
+   caught. I kept `MAX_HOPS` (6) as the one limit for both kinds of pattern; aligning it
+   with traversal's 4 is the separate low problem 5.
+3. **Short uncited claims escaped.** `claims()` skipped pieces under three words, so
+   "Peña resigned." or a list item "- Ueno Bank" needed no citation. Now every sentence
+   or list item with a letter in it is a claim (`is_claim()`), except headings and a lone
+   "Yes."/"No.". And what is still uncited after the retry is now *removed* from the
+   answer (`drop_sentences()`), listed in `Answer.removed_sentences` and printed by the
+   CLI, instead of staying in the text with a warning.
+4. **Cut-off lists looked complete.** When the generated query returns
+   `QA_CYPHER_MAX_ROWS` rows, or the "today"/"this week" listing returns its maximum,
+   retrieval adds a line to `Context.limits` (no longer a search note). The model sees
+   it under "Incomplete lists (do not present these lists as complete)", rule 10 of
+   `answer_v1.md` asks it to say "include" rather than present the list as complete,
+   and the code appends it to the answer as a "Note: ..." line, so the user sees it
+   without `--show-context`.
+
+Re-run of the five acceptance questions with `qwen3:8b` (`data/qa/review-fixes.log`):
+no regression. Q1 lists 11 events of the day, now including SAFF Championship and the
+Senate races, and ends with both limit notes. Q2 names 13 entities, now including Mario
+Abdo Benítez and Carlos Carvallo, all cited. Q3 is the same connection through the two
+banking-crisis events. Q4 lists 22 organizations, introduced as "... include:", and
+ends with "Note: The query results stop at the limit of 25 rows; there may be more."
+Q5 still refuses with 0 facts and no model call. Two answers needed the one retry; no
+sentence had to be removed.
 
 ## Questions to test your understanding
 

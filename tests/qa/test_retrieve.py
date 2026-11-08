@@ -106,6 +106,32 @@ def test_a_generated_query_runs_with_time_parameters_and_its_rows_cite_event_pag
     assert second.sources == [Citation(title="A page", revision=5)]  # the row's own source
 
 
+def test_a_query_that_hits_the_row_cap_marks_its_list_incomplete() -> None:
+    graph = FakeGraph(rows=[{"organization": f"Org {n}"} for n in range(5)])
+    writer = FixedWriter("MATCH (o:Entity) RETURN o.name AS organization")
+    question = "Which organizations appear in more than one event this week?"
+    context = retriever(
+        graph, cypher_writer=writer, channels=["cypher"], config={"max_rows": 3}
+    ).retrieve(question)
+    assert context.cypher_rows == 3
+    assert context.limits == ["The query results stop at the limit of 3 rows; there may be more."]
+    under = FakeGraph(rows=[{"organization": "Org 1"}])
+    context = retriever(under, cypher_writer=writer, channels=["cypher"]).retrieve(question)
+    assert context.limits == []
+
+
+def test_a_period_listing_that_hits_its_limit_marks_its_list_incomplete() -> None:
+    config = {"period_events": 2}
+    context = retriever(FakeGraph(), channels=["graph"], config=config).retrieve(
+        "What happened today?"
+    )
+    assert context.limits == [
+        "Only the 2 biggest events of today were looked up; there may be more."
+    ]
+    context = retriever(FakeGraph(), channels=["graph"]).retrieve("What happened today?")
+    assert context.limits == []
+
+
 def test_an_unsafe_query_never_reaches_the_graph() -> None:
     graph = FakeGraph()
     writer = FixedWriter("MATCH (n) DETACH DELETE n")

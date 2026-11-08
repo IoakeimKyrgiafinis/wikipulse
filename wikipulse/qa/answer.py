@@ -5,12 +5,16 @@ The answering model sees the question and the retrieved facts, numbered F1, F2, 
 comes from. Then the code, not the model, checks and turns the ids into citations:
 
 - ids that don't exist are removed;
-- sentences without any id are found (`uncited_sentences()`); the model gets one chance
-  to fix them, and those still left are reported in `Answer.uncited_sentences`;
+- sentences and list items without any id, however short, are found
+  (`uncited_sentences()`); the model gets one chance to fix them, and those still left
+  are removed from the answer (`drop_sentences()`) and listed in
+  `Answer.removed_sentences`;
 - an "answerable" answer that cites no fact at all is replaced by a refusal, because
   nothing in it could be checked;
 - every fact id becomes the numbers of its sources: [F3] -> [1][2], where [1] is a page
-  title and the revision the fact was read from (`Answer.citations`).
+  title and the revision the fact was read from (`Answer.citations`);
+- when a list in the facts stopped at a limit (`Context.limits`), the model is told,
+  and the answer ends with a note saying the list may be incomplete.
 
 With no facts at all, the answer is a refusal without asking the model.
 """
@@ -52,6 +56,10 @@ _SPACED_RUN = re.compile(rf"(\s*)({_MARKER_RUN.pattern})")
 # A sentence ends at . ! or ? before a space, but not after an initial or abbreviation
 # such as "U.S." or "J." (a capital letter and a dot).
 _SENTENCE_END = re.compile(r"(?<![A-Z]\.)(?<=[.!?])\s+(?=\S)")
+_BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")
+_HEADING = re.compile(r"^(?:#+\s|\*\*[^*]+\*\*$)")
+_LETTER = re.compile(r"[^\W\d_]")
+_NOT_CLAIMS = {"yes", "no"}
 
 ANSWER_SCHEMA = {
     "type": "object",
@@ -71,6 +79,9 @@ def build_message(context: Context) -> str:
         lines += [f"Current time (newest event in the graph): {context.as_of.isoformat()}", ""]
     lines.append("Facts:")
     lines += [f"[{fact.id}] {fact.text}" for fact in context.facts]
+    if context.limits:
+        lines += ["", "Incomplete lists (do not present these lists as complete):"]
+        lines += [f"- {limit}" for limit in context.limits]
     if context.notes:
         lines += ["", "Search notes (not facts, do not cite):"]
         lines += [f"- {note}" for note in context.notes]
@@ -101,20 +112,53 @@ def strip_markers(text: str) -> str:
     return re.sub(rf"\s*{_MARKER_RUN.pattern}", "", text).strip()
 
 
+def _split_line(line: str) -> tuple[str, list[str]]:
+    """A line's list bullet ("- ", "* ", "1. "; may be empty) and its sentences."""
+    stripped = line.strip()
+    bullet = _BULLET.match(stripped)
+    prefix = bullet.group(0) if bullet else ""
+    pieces = [p.strip() for p in _SENTENCE_END.split(stripped[len(prefix) :])]
+    return prefix, [p for p in pieces if p]
+
+
+def is_claim(piece: str) -> bool:
+    """Whether a sentence or list item states something: everything except headings
+    ("Events:", "**Events**", "# Events"), bare markers and a lone "Yes." or "No."."""
+    text = _MARKER.sub("", piece).strip()
+    if not _LETTER.search(text) or text.endswith(":") or _HEADING.match(text):
+        return False
+    words = text.split()
+    return not (len(words) == 1 and words[0].strip(".!?,").lower() in _NOT_CLAIMS)
+
+
 def claims(text: str) -> list[str]:
-    """Sentences and list items that make a claim (not headings like "Events:")."""
-    pieces = []
-    for line in text.splitlines():
-        for piece in _SENTENCE_END.split(line.strip()):
-            piece = piece.strip().lstrip("-*• ").strip()
-            words = _MARKER.sub("", piece).split()
-            if len(words) >= 3 and not piece.endswith(":"):
-                pieces.append(piece)
-    return pieces
+    """Sentences and list items that make a claim, however short ("Peña resigned.")."""
+    return [
+        piece for line in text.splitlines() for piece in _split_line(line)[1] if is_claim(piece)
+    ]
 
 
 def uncited_sentences(text: str) -> list[str]:
     return [piece for piece in claims(text) if not _MARKER.search(piece)]
+
+
+def drop_sentences(text: str, drop: Iterable[str]) -> str:
+    """`text` without the given sentences and list items; a list item or line left
+    empty goes too."""
+    dropped = set(drop)
+    lines: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            lines.append("")
+            continue
+        prefix, pieces = _split_line(line)
+        kept = [piece for piece in pieces if piece not in dropped]
+        if kept == pieces:
+            lines.append(line.rstrip())
+        elif kept:
+            indent = line[: len(line) - len(line.lstrip())]
+            lines.append(indent + prefix + " ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
 
 
 def resolve_citations(text: str, context: Context) -> tuple[str, list[Citation], list[Fact]]:
@@ -181,15 +225,22 @@ class Answerer:
             answerable, text = self._ask(messages)
             text = drop_unknown_ids(text, known)
             missing = uncited_sentences(text) if answerable else []
+        # Claims that are still without a fact id are not shown: nothing backs them.
+        removed = missing
+        if removed:
+            logger.info("Removing %d sentences still uncited after the retry", len(removed))
+            text = drop_sentences(text, removed)
         fact_text = text
+        missing = []
         if answerable and not cited_ids(text):
-            answerable, text, missing = False, NOTHING_CITED, []
+            answerable, text = False, NOTHING_CITED
         if not answerable:
             final, citations, facts = strip_markers(text), [], []
         else:
             final, citations, facts = resolve_citations(text, context)
             # A sentence that cites only facts without a source has no page to show.
-            missing += [c for c in claims(final) if not _NUMBER.search(c) and c not in missing]
+            missing = [c for c in claims(final) if not _NUMBER.search(c)]
+            final += "".join(f"\n\nNote: {limit}" for limit in context.limits)
         return Answer(
             question=context.question,
             text=final,
@@ -199,6 +250,8 @@ class Answerer:
             facts=facts,
             model=self.client.setting,
             uncited_sentences=missing,
+            removed_sentences=removed,
+            limits=list(context.limits) if answerable else [],
             context=context,
             seconds={"answer": round(time.monotonic() - started, 3)},
         )

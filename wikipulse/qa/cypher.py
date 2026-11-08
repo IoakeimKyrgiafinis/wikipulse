@@ -4,8 +4,10 @@ A generated query is untrusted input. Three layers keep it harmless:
 
 1. `validate_cypher()` (here) rejects anything that is not a single read query: write
    and admin clauses (CREATE, MERGE, SET, DELETE, CALL, LOAD CSV, ...), several
-   statements, unbounded variable-length patterns. It also forces a result limit:
-   a missing LIMIT is added, a larger one lowered.
+   statements, and paths without an upper bound of at most `MAX_HOPS` (`-[*]-`,
+   `-[*2..]-`, quantified patterns such as `-[:R]-+`, `-->*` or `{1,}`, and so any
+   SHORTEST search without a bound). It also forces a result limit on every branch
+   of a UNION: a missing LIMIT is added, a larger one lowered.
 2. `QAGraph.run_query()` runs it in a READ transaction, which Neo4j itself refuses to
    write in, with a transaction timeout, and reads at most the limit of rows.
 3. Results are only ever shown to the answering model as facts; they are never executed.
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 PROMPT_VERSION = "cypher_v1"
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 MAX_QUERY_CHARS = 3000
-MAX_HOPS = 6  # longest variable-length pattern allowed, e.g. -[*1..6]-
+MAX_HOPS = 6  # longest path pattern allowed, e.g. -[*1..6]- or -[:R]-{1,6}
 
 # Clauses that write, call procedures, or administer the database. CALL is refused as a
 # whole: procedures can write, and CALL { ... } IN TRANSACTIONS is a write tool too.
@@ -67,8 +69,15 @@ _COMMENT_OR_TEXT = re.compile(
 _WORD = re.compile(r"(?<![.\w$])([A-Za-z]+)(?!\w)")
 _REL_PATTERN = re.compile(r"-\s*\[([^\]]*)\]")
 _HOPS = re.compile(r"\*\s*(\d*)\s*(\.\.\s*(\d*))?")
-_QUANTIFIER = re.compile(r"\)\s*(\{\s*\d*\s*,\s*\d*\s*\}|[+*])")
-_FINAL_LIMIT = re.compile(r"\bLIMIT\s+(\S+)\s*$", re.IGNORECASE)
+# A quantifier after a group "(...)" or a relationship ("-[...]-", "-->", "<--"):
+# + (one or more), * (any number), {n}, {n,m}, {n,} or {,m}.
+_QUANTIFIER = re.compile(r"[-)>]\s*(\{\s*(\d*)\s*(,\s*(\d*))?\s*\}|\+|\*)")
+_LIMIT = re.compile(r"\bLIMIT\b", re.IGNORECASE)
+_UNION = re.compile(r"\bUNION(\s+ALL)?\b", re.IGNORECASE)
+# Clauses that can follow a LIMIT; when one does, that LIMIT is not the final one.
+_CLAUSE = re.compile(
+    r"\b(MATCH|OPTIONAL|WITH|UNWIND|RETURN|WHERE|ORDER|SKIP|OFFSET|UNION)\b", re.IGNORECASE
+)
 _FENCE = re.compile(r"^```[a-zA-Z]*\s*|\s*```$")
 
 
@@ -88,6 +97,44 @@ def blank_out(query: str) -> str:
     return _COMMENT_OR_TEXT.sub(replace, query)
 
 
+def mask(query: str) -> str:
+    """Like `blank_out`, but every character keeps its place (comments and the inside of
+    strings become spaces), so a position in the mask is the same position in `query`."""
+
+    def replace(match: re.Match[str]) -> str:
+        text = match.group(0)
+        if text.startswith(("//", "/*")):
+            return re.sub(r"[^\n]", " ", text)
+        return text[0] + " " * (len(text) - 2) + text[-1]
+
+    return _COMMENT_OR_TEXT.sub(replace, query)
+
+
+def _depths(masked: str) -> list[int]:
+    """The bracket depth at each character: 0 outside any (), [] or {}."""
+    depths, depth = [], 0
+    for char in masked:
+        if char in ")]}":
+            depth -= 1
+        depths.append(depth)
+        if char in "([{":
+            depth += 1
+    return depths
+
+
+def _check_quantifiers(skeleton: str) -> None:
+    for found in _QUANTIFIER.finditer(skeleton):
+        symbol, lower, comma, upper = found.groups()
+        limit = None if symbol in "+*" else (upper if comma else lower)
+        if not limit:
+            raise UnsafeCypherError(
+                f"quantified path pattern {found.group(0).strip()!r} needs an upper bound "
+                f"(at most {MAX_HOPS}, e.g. {{1,3}})"
+            )
+        if int(limit) > MAX_HOPS:
+            raise UnsafeCypherError(f"quantified path pattern longer than {MAX_HOPS} hops")
+
+
 def _check_hops(skeleton: str) -> None:
     for pattern in _REL_PATTERN.findall(skeleton):
         hops = _HOPS.search(pattern)
@@ -105,19 +152,45 @@ def _check_hops(skeleton: str) -> None:
             )
         if int(limit) > MAX_HOPS:
             raise UnsafeCypherError(f"variable-length pattern longer than {MAX_HOPS} hops")
-    if _QUANTIFIER.search(skeleton):
-        raise UnsafeCypherError("quantified path patterns are not allowed")
+    _check_quantifiers(skeleton)
+
+
+def _branches(masked: str) -> list[tuple[int, int]]:
+    """Start and end of each part of a UNION (one part without UNION)."""
+    depths = _depths(masked)
+    starts, ends = [0], []
+    for union in _UNION.finditer(masked):
+        if depths[union.start()] == 0:
+            ends.append(union.start())
+            starts.append(union.end())
+    return list(zip(starts, [*ends, len(masked)], strict=True))
+
+
+def _limit_branch(text: str, masked: str, max_rows: int) -> str:
+    """One query part (`text`, with its mask) with a final LIMIT of at most `max_rows`."""
+    depths = _depths(masked)
+    limits = [m for m in _LIMIT.finditer(masked) if depths[m.start()] == 0]
+    last = limits[-1] if limits else None
+    if last is not None and not _CLAUSE.search(masked[last.end() :]):
+        value = masked[last.end() :].strip()
+        if value.isdigit() and int(value) <= max_rows:
+            return text
+        trailing = text[len(text.rstrip()) :]
+        return text[: last.start()] + f"LIMIT {max_rows}" + trailing
+    body = text.rstrip()
+    return body + f"\nLIMIT {max_rows}" + text[len(body) :]
 
 
 def _with_limit(query: str, max_rows: int) -> str:
-    """`query` with a final LIMIT of at most `max_rows`."""
-    found = _FINAL_LIMIT.search(query)
-    if found is None:
-        return f"{query}\nLIMIT {max_rows}"
-    value = found.group(1)
-    if value.isdigit() and int(value) <= max_rows:
-        return query
-    return query[: found.start()] + f"LIMIT {max_rows}"
+    """`query` with a final LIMIT of at most `max_rows` on every branch of a UNION.
+
+    The LIMIT is looked for in the mask, so one inside a comment or a string does not
+    count, and neither does one inside a subquery's braces."""
+    masked = mask(query)
+    for start, end in reversed(_branches(masked)):
+        limited = _limit_branch(query[start:end], masked[start:end], max_rows)
+        query = query[:start] + limited + query[end:]
+    return query
 
 
 def validate_cypher(query: str, max_rows: int = 25) -> str:

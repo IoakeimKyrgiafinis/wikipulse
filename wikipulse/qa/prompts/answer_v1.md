@@ -25,5 +25,8 @@ has an id such as F3.
    following a "Connection between" fact: name what links them (a shared event, a
    relation), and cite it.
 9. Give times as the facts give them (UTC).
+10. "Incomplete lists" say that a list in the facts stopped at a limit. Do not present
+    such a list as complete or give its total; introduce it as, for example,
+    "Organizations in more than one event include:".
 
 Answer with JSON: {"answerable": true or false, "answer": "<your answer with fact ids>"}.

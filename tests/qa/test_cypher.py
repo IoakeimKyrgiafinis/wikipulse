@@ -6,6 +6,7 @@ import pytest
 
 from tests.llm.helpers import ScriptedClient
 from wikipulse.qa.cypher import (
+    MAX_HOPS,
     CypherWriter,
     TimeParameters,
     UnsafeCypherError,
@@ -86,6 +87,82 @@ def test_blank_out_keeps_the_structure_but_not_the_text() -> None:
 def test_rejections_say_why(query: str, reason: str) -> None:
     with pytest.raises(UnsafeCypherError, match=reason):
         validate_cypher(query)
+
+
+def test_a_limit_inside_a_comment_or_string_does_not_count() -> None:
+    query = "MATCH (n) RETURN n.name // LIMIT 1000"
+    assert validate_cypher(query, 25) == query + "\nLIMIT 25"
+    query = "MATCH (n) RETURN n.name /* LIMIT 3 */"
+    assert validate_cypher(query, 25).endswith("\nLIMIT 25")
+    query = "MATCH (n) RETURN 'LIMIT 3' AS x"
+    assert validate_cypher(query, 25) == query + "\nLIMIT 25"
+    # A large limit followed by a comment is lowered (the comment goes).
+    assert validate_cypher("MATCH (n) RETURN n LIMIT 1000 // ok", 25) == (
+        "MATCH (n) RETURN n LIMIT 25"
+    )
+
+
+def test_every_branch_of_a_union_gets_a_limit() -> None:
+    query = "MATCH (n) RETURN n.name AS name LIMIT 1000 UNION MATCH (m) RETURN m.name AS name"
+    assert validate_cypher(query, 25) == (
+        "MATCH (n) RETURN n.name AS name LIMIT 25 UNION MATCH (m) RETURN m.name AS name\nLIMIT 25"
+    )
+    query = "MATCH (n) RETURN n.name AS name\nUNION ALL\nMATCH (m) RETURN m.name AS name LIMIT 5"
+    assert validate_cypher(query, 25) == (
+        "MATCH (n) RETURN n.name AS name\nLIMIT 25\nUNION ALL\n"
+        "MATCH (m) RETURN m.name AS name LIMIT 5"
+    )
+
+
+def test_a_limit_inside_a_subquery_does_not_count_for_the_result() -> None:
+    query = "MATCH (n) RETURN n.name, COUNT { MATCH (n)--() RETURN 1 LIMIT 5 } AS c"
+    assert validate_cypher(query, 25) == query + "\nLIMIT 25"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "MATCH (a)-[:RELATED_TO]-+(b) RETURN b.name",
+        "MATCH (a)-[:RELATED_TO]-*(b) RETURN b.name",
+        "MATCH (a)-[:RELATED_TO]-{1,}(b) RETURN b.name",
+        "MATCH (a)<-[:RELATED_TO]-{2,}(b) RETURN b.name",
+        "MATCH (a)-->+(b) RETURN b.name",
+        "MATCH (a)--*(b) RETURN b.name",
+        "MATCH p = SHORTEST 1 (a)-[:R]-+(b) RETURN p",
+        "MATCH p = ANY SHORTEST (a)-[:R]-*(b) RETURN p",
+        "MATCH p = ((a)-->(b)){1,} RETURN p",
+        "MATCH p = ((a)-->(b))* RETURN p",
+    ],
+)
+def test_unbounded_quantified_paths_are_rejected(query: str) -> None:
+    with pytest.raises(UnsafeCypherError, match="quantified path pattern .* upper bound"):
+        validate_cypher(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "MATCH (a)-[:RELATED_TO]-{1,9}(b) RETURN b.name",
+        "MATCH (a)-->{7}(b) RETURN b.name",
+        "MATCH p = SHORTEST 1 (a)-[:R]-{,10}(b) RETURN p",
+    ],
+)
+def test_quantified_paths_longer_than_the_hop_limit_are_rejected(query: str) -> None:
+    with pytest.raises(UnsafeCypherError, match=f"longer than {MAX_HOPS} hops"):
+        validate_cypher(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "MATCH (a)-[:RELATED_TO]-{1,3}(b) RETURN b.name",
+        "MATCH (a)<-[:RELATED_TO]-{,4}(b) RETURN b.name",
+        "MATCH p = ANY SHORTEST (a)-[:R]-{1,4}(b) RETURN p",
+        "MATCH p = ((a)-->(b)){2} RETURN p",
+    ],
+)
+def test_bounded_quantified_paths_are_accepted(query: str) -> None:
+    assert validate_cypher(query) == query + "\nLIMIT 25"
 
 
 def test_bounded_paths_fenced_answers_and_a_trailing_semicolon_are_accepted() -> None:
