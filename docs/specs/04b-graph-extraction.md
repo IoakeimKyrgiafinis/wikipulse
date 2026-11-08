@@ -1,6 +1,6 @@
 # Spec 04b: Knowledge graph extraction
 
-Status: ready
+Status: done
 Stage: 4. Knowledge graph
 Owner: agent
 Depends on: 03b, 04a
