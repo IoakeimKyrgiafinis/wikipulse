@@ -45,7 +45,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 04b | Knowledge graph extraction | done |
 | 04c | Extraction evaluation | done |
 | 05a | GraphRAG retrieval and answering | done |
-| 05b | Question-answering evals | ready |
+| 05b | Question-answering evals | done |
 | 05c | MCP server | ready |
 | 05d | Analyst agent | ready |
 | 05e | API and live web page | ready |

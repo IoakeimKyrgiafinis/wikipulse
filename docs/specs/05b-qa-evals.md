@@ -1,6 +1,6 @@
 # Spec 05b: Question-answering evals
 
-Status: ready
+Status: done
 Stage: 5. GraphRAG, MCP, agent
 Owner: agent
 Depends on: 05a
