@@ -1,0 +1,422 @@
+[
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "prop": "revisions",
+   "rvdir": "older",
+   "rvend": "2026-11-05T15:50:54Z",
+   "action": "query",
+   "format": "json",
+   "rvprop": "ids|timestamp",
+   "titles": "2026 SAFF Championship",
+   "rvlimit": "50",
+   "rvstart": "2026-11-05T16:03:04Z",
+   "redirects": "1",
+   "formatversion": "2"
+  },
+  "status": 200,
+  "body": {
+   "query": {
+    "pages": [
+     {
+      "ns": 0,
+      "title": "2026 SAFF Championship",
+      "pageid": 77232427,
+      "revisions": [
+       {
+        "revid": 1383918312,
+        "parentid": 1383918168,
+        "timestamp": "2026-11-05T16:02:02Z"
+       },
+       {
+        "revid": 1383918168,
+        "parentid": 1383918119,
+        "timestamp": "2026-11-05T16:00:53Z"
+       },
+       {
+        "revid": 1383918119,
+        "parentid": 1383917783,
+        "timestamp": "2026-11-05T16:00:33Z"
+       },
+       {
+        "revid": 1383917783,
+        "parentid": 1383917066,
+        "timestamp": "2026-11-05T15:57:59Z"
+       },
+       {
+        "revid": 1383917066,
+        "parentid": 1383917032,
+        "timestamp": "2026-11-05T15:52:10Z"
+       },
+       {
+        "revid": 1383917032,
+        "parentid": 1383911557,
+        "timestamp": "2026-11-05T15:51:52Z"
+       }
+      ]
+     }
+    ]
+   },
+   "batchcomplete": true
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "prop": "diff",
+   "torev": "1383918312",
+   "action": "compare",
+   "format": "json",
+   "fromrev": "1383911557",
+   "difftype": "table",
+   "formatversion": "2"
+  },
+  "status": 200,
+  "body": {
+   "compare": {
+    "body": "<tr>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 15:</td>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 15:</td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| count              = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| count              = </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| second             = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| second             = </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\" data-marker=\"−\"></td>\n  <td class=\"diff-deletedline diff-side-deleted\"><div>| matches            = <del class=\"diffchange diffchange-inline\">1</del></div></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>| matches            = <ins class=\"diffchange diffchange-inline\">2</ins></div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\" data-marker=\"−\"></td>\n  <td class=\"diff-deletedline diff-side-deleted\"><div>| goals              = <del class=\"diffchange diffchange-inline\">5</del></div></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>| goals              = <ins class=\"diffchange diffchange-inline\">6</ins></div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| attendance         = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| attendance         = </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| top_scorer         = [[Suhail Ahmad Bhat|Suhail Bhat]] (2 goals)</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| top_scorer         = [[Suhail Ahmad Bhat|Suhail Bhat]] (2 goals)</div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 178:</td>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 178:</td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| time       = 20:00</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| time       = 20:00</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| team1      = {{fb-rt|BHU}}</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| team1      = {{fb-rt|BHU}}</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\" data-marker=\"−\"></td>\n  <td class=\"diff-deletedline diff-side-deleted\"><div>| score      = </div></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>| score      = <ins class=\"diffchange diffchange-inline\">0–1</ins></div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| report     = [ SAFF]&lt;br&gt;[https://www.fifa.com/en/match-centre/match/cvr0kb0e33p2twejhzn0tzyks/b35wvqrbk45c0ux8032pq6d5g/b3va7colgwnginzmc8kpej8yc/7yuypdr28ajyswnzzzrpnmdw?date=2026-11-10 FIFA] </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| report     = [ SAFF]&lt;br&gt;[https://www.fifa.com/en/match-centre/match/cvr0kb0e33p2twejhzn0tzyks/b35wvqrbk45c0ux8032pq6d5g/b3va7colgwnginzmc8kpej8yc/7yuypdr28ajyswnzzzrpnmdw?date=2026-11-10 FIFA] </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| team2      = {{fb|BAN}}</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| team2      = {{fb|BAN}}</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| goals1     = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| goals1     = </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| goals2     = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| goals2     = </div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-empty diff-side-deleted\"></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>*[[Mohammad Ibrahim (footballer, born 1997)|Ibrahim]] {{goal|69}}</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| stadium    = [[National Stadium, Dhaka|National Stadium]]</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| stadium    = [[National Stadium, Dhaka|National Stadium]]</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| location   = [[Dhaka]]</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| location   = [[Dhaka]]</div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 227:</td>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 228:</td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| team1      = {{fb-rt|PAK}}</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| team1      = {{fb-rt|PAK}}</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| score      = 2–3</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| score      = 2–3</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\" data-marker=\"−\"></td>\n  <td class=\"diff-deletedline diff-side-deleted\"><div>| report     = [https://saffederation.org/wp-content/uploads/2026/11/MATCH_REPORT-1-PAKISTAN<del class=\"diffchange diffchange-inline\">-MENS</del>-vs-INDIA<del class=\"diffchange diffchange-inline\">-MENS</del>.pdf SAFF]&lt;br&gt;[https://www.fifa.com/en/match-centre/match/cvr0kb0e33p2twejhzn0tzyks/b35wvqrbk45c0ux8032pq6d5g/b3va7colgwnginzmc8kpej8yc/2nclcvmjhnftz2dvletfqeqz8?date=2026-11-05 FIFA] </div></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>| report     = [https://saffederation.org/wp-content/uploads/2026/11/MATCH_REPORT-1-PAKISTAN-vs-INDIA.pdf SAFF]&lt;br&gt;[https://www.fifa.com/en/match-centre/match/cvr0kb0e33p2twejhzn0tzyks/b35wvqrbk45c0ux8032pq6d5g/b3va7colgwnginzmc8kpej8yc/2nclcvmjhnftz2dvletfqeqz8?date=2026-11-05 FIFA] </div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| team2      = {{fb|IND}}</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| team2      = {{fb|IND}}</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>| goals1     = </div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>| goals1     = </div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 362:</td>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 363:</td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>=== Goalscorers ===</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>=== Goalscorers ===</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>{{Goalscorers</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>{{Goalscorers</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\" data-marker=\"−\"></td>\n  <td class=\"diff-deletedline diff-side-deleted\"><div>|goals=<del class=\"diffchange diffchange-inline\">5</del> |matches=<del class=\"diffchange diffchange-inline\">1</del></div></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>|goals=<ins class=\"diffchange diffchange-inline\">6</ins> |matches=<ins class=\"diffchange diffchange-inline\">2</ins></div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><br /></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><br /></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>|2 goals=</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>|2 goals=</div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 368:</td>\n  <td colspan=\"2\" class=\"diff-lineno\">Line 369:</td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><br /></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><br /></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>|1 goal=</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>|1 goal=</div></td>\n</tr>\n<tr>\n  <td colspan=\"2\" class=\"diff-empty diff-side-deleted\"></td>\n  <td class=\"diff-marker\" data-marker=\"+\"></td>\n  <td class=\"diff-addedline diff-side-added\"><div>*{{fbicon|BAN}} [[Mohammad Ibrahim (footballer, born 1997)|Mohammad Ibrahim]]</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>*{{fbicon|IND}} [[Manglenthang Kipgen]]</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>*{{fbicon|IND}} [[Manglenthang Kipgen]]</div></td>\n</tr>\n<tr>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-deleted\"><div>*{{fbicon|PAK}} [[Najeeb Ullah Khan]]</div></td>\n  <td class=\"diff-marker\"></td>\n  <td class=\"diff-context diff-side-added\"><div>*{{fbicon|PAK}} [[Najeeb Ullah Khan]]</div></td>\n</tr>\n"
+   }
+  }
+ },
+ {
+  "url": "https://en.wikipedia.org/w/api.php",
+  "params": {
+   "prop": "pageprops",
+   "action": "query",
+   "format": "json",
+   "ppprop": "wikibase_item|disambiguation",
+   "titles": "Bangladesh|Bangladesh Football Federation|South Asian Football Federation",
+   "redirects": "1",
+   "formatversion": "2"
+  },
+  "status": 200,
+  "body": {
+   "query": {
+    "pages": [
+     {
+      "ns": 0,
+      "title": "Bangladesh",
+      "pageid": 3454,
+      "pageprops": {
+       "wikibase_item": "Q902"
+      }
+     },
+     {
+      "ns": 0,
+      "title": "Bangladesh Football Federation",
+      "pageid": 5125254,
+      "pageprops": {
+       "wikibase_item": "Q806536"
+      }
+     },
+     {
+      "ns": 0,
+      "title": "South Asian Football Federation",
+      "pageid": 13883894,
+      "pageprops": {
+       "wikibase_item": "Q1375117"
+      }
+     }
+    ]
+   },
+   "batchcomplete": true
+  }
+ },
+ {
+  "url": "https://www.wikidata.org/w/api.php",
+  "params": {
+   "type": "item",
+   "limit": "5",
+   "action": "wbsearchentities",
+   "format": "json",
+   "search": "Fortis",
+   "uselang": "en",
+   "language": "en"
+  },
+  "status": 200,
+  "body": {
+   "search": [
+    {
+     "id": "Q141478605",
+     "url": "//www.wikidata.org/wiki/Q141478605",
+     "label": "Fortis Energy",
+     "match": {
+      "text": "Fortis Energy",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q141478605",
+     "pageid": 135037740,
+     "display": {
+      "label": {
+       "value": "Fortis Energy",
+       "language": "en"
+      },
+      "description": {
+       "value": "Dutch renewable energy investor and independent power producer",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q141478605",
+     "repository": "wikidata",
+     "description": "Dutch renewable energy investor and independent power producer"
+    },
+    {
+     "id": "Q833362",
+     "url": "//www.wikidata.org/wiki/Q833362",
+     "label": "Fortis",
+     "match": {
+      "text": "Fortis",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q833362",
+     "pageid": 786045,
+     "display": {
+      "label": {
+       "value": "Fortis",
+       "language": "en"
+      },
+      "description": {
+       "value": "finance company",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q833362",
+     "repository": "wikidata",
+     "description": "finance company"
+    },
+    {
+     "id": "Q1125297",
+     "url": "//www.wikidata.org/wiki/Q1125297",
+     "label": "Alberto Fortis",
+     "match": {
+      "text": "Fortis",
+      "type": "alias",
+      "language": "en"
+     },
+     "title": "Q1125297",
+     "pageid": 1072358,
+     "aliases": [
+      "Fortis"
+     ],
+     "display": {
+      "label": {
+       "value": "Alberto Fortis",
+       "language": "en"
+      },
+      "description": {
+       "value": "Italian musician",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q1125297",
+     "repository": "wikidata",
+     "description": "Italian musician"
+    },
+    {
+     "id": "Q30078376",
+     "url": "//www.wikidata.org/wiki/Q30078376",
+     "label": "Fortis",
+     "match": {
+      "text": "Fortis",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q30078376",
+     "pageid": 31691813,
+     "display": {
+      "label": {
+       "value": "Fortis",
+       "language": "en"
+      },
+      "description": {
+       "value": "family name",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q30078376",
+     "repository": "wikidata",
+     "description": "family name"
+    },
+    {
+     "id": "Q104262299",
+     "url": "//www.wikidata.org/wiki/Q104262299",
+     "label": "Fortissimo",
+     "match": {
+      "text": "Fortissimo",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q104262299",
+     "pageid": 99709387,
+     "display": {
+      "label": {
+       "value": "Fortissimo",
+       "language": "en"
+      },
+      "description": {
+       "value": "vocal track by Mina; 1990 studio recording; cover version",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q104262299",
+     "repository": "wikidata",
+     "description": "vocal track by Mina; 1990 studio recording; cover version"
+    }
+   ],
+   "success": 1,
+   "searchinfo": {
+    "search": "Fortis"
+   },
+   "search-continue": 5
+  }
+ },
+ {
+  "url": "https://www.wikidata.org/w/api.php",
+  "params": {
+   "type": "item",
+   "limit": "5",
+   "action": "wbsearchentities",
+   "format": "json",
+   "search": "Bend",
+   "uselang": "en",
+   "language": "en"
+  },
+  "status": 200,
+  "body": {
+   "search": [
+    {
+     "id": "Q37170392",
+     "url": "//www.wikidata.org/wiki/Q37170392",
+     "label": "Bend",
+     "match": {
+      "text": "Bend",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q37170392",
+     "pageid": 38548746,
+     "display": {
+      "label": {
+       "value": "Bend",
+       "language": "en"
+      },
+      "description": {
+       "value": "family name",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q37170392",
+     "repository": "wikidata",
+     "description": "family name"
+    },
+    {
+     "id": "Q671288",
+     "url": "//www.wikidata.org/wiki/Q671288",
+     "label": "Bend",
+     "match": {
+      "text": "Bend",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q671288",
+     "pageid": 632187,
+     "display": {
+      "label": {
+       "value": "Bend",
+       "language": "en"
+      },
+      "description": {
+       "value": "city in and county seat of Deschutes County, Oregon, United States",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q671288",
+     "repository": "wikidata",
+     "description": "city in and county seat of Deschutes County, Oregon, United States"
+    },
+    {
+     "id": "Q497793",
+     "url": "//www.wikidata.org/wiki/Q497793",
+     "label": "Bendigo",
+     "match": {
+      "text": "Bendigo",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q497793",
+     "pageid": 468273,
+     "display": {
+      "label": {
+       "value": "Bendigo",
+       "language": "en"
+      },
+      "description": {
+       "value": "regional city in Victoria, Australia",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q497793",
+     "repository": "wikidata",
+     "description": "regional city in Victoria, Australia"
+    },
+    {
+     "id": "Q192176",
+     "url": "//www.wikidata.org/wiki/Q192176",
+     "label": "Bender",
+     "match": {
+      "text": "Bender",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q192176",
+     "pageid": 190374,
+     "display": {
+      "label": {
+       "value": "Bender",
+       "language": "en"
+      },
+      "description": {
+       "value": "city in Pridnestrovie, Republic of Moldova",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q192176",
+     "repository": "wikidata",
+     "description": "city in Pridnestrovie, Republic of Moldova"
+    },
+    {
+     "id": "Q1158266",
+     "url": "//www.wikidata.org/wiki/Q1158266",
+     "label": "Bender",
+     "match": {
+      "text": "Bender",
+      "type": "label",
+      "language": "en"
+     },
+     "title": "Q1158266",
+     "pageid": 1104535,
+     "display": {
+      "label": {
+       "value": "Bender",
+       "language": "en"
+      },
+      "description": {
+       "value": "family name",
+       "language": "en"
+      }
+     },
+     "concepturi": "http://www.wikidata.org/entity/Q1158266",
+     "repository": "wikidata",
+     "description": "family name"
+    }
+   ],
+   "success": 1,
+   "searchinfo": {
+    "search": "Bend"
+   },
+   "search-continue": 5
+  }
+ }
+]
