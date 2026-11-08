@@ -225,6 +225,11 @@ class Settings(BaseSettings):
     # How often the graph runner looks for new or changed events, in seconds.
     graph_poll_interval_s: float = Field(default=30, gt=0)
 
+    # --- Stage 4: extraction evaluation (wikipulse.eval.extraction) ---
+    # Wikidata Query Service (SPARQL): which items carry a name as their label, and which
+    # statements connect two items. Asked in batches, one request at a time.
+    wikidata_sparql_url: str = "https://query.wikidata.org/sparql"
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

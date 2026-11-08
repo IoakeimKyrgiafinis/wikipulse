@@ -1,0 +1,494 @@
+[
+ {
+  "url": "https://query.wikidata.org/sparql",
+  "params": {
+   "query": "SELECT ?label ?item WHERE {\n  VALUES ?label { \"Bend\"@en \"Bend\"@mul \"bend\"@en \"bend\"@mul \"Frozen yogurt\"@en \"Frozen yogurt\"@mul \"frozen yogurt\"@en \"frozen yogurt\"@mul \"Lisa Loeb\"@en \"Lisa Loeb\"@mul \"lisa Loeb\"@en \"lisa Loeb\"@mul \"Netanyahu\"@en \"Netanyahu\"@mul \"netanyahu\"@en \"netanyahu\"@mul \"Paraguay\"@en \"Paraguay\"@mul \"paraguay\"@en \"paraguay\"@mul \"Pedro Alliana\"@en \"Pedro Alliana\"@mul \"pedro Alliana\"@en \"pedro Alliana\"@mul \"Santiago Peña\"@en \"Santiago Peña\"@mul \"santiago Peña\"@en \"santiago Peña\"@mul \"Ueno Bank\"@en \"Ueno Bank\"@mul \"ueno Bank\"@en \"ueno Bank\"@mul }\n  ?item rdfs:label ?label .\n  FILTER NOT EXISTS { ?item wdt:P31 ?class . VALUES ?class { wd:Q4167410 wd:Q4167836 wd:Q11266439 wd:Q13406463 wd:Q101352 wd:Q202444 wd:Q12308941 wd:Q11879590 } }\n}",
+   "format": "json"
+  },
+  "status": 200,
+  "body": {
+   "head": {
+    "vars": [
+     "label",
+     "item"
+    ]
+   },
+   "results": {
+    "bindings": [
+     {
+      "label": {
+       "xml:lang": "mul",
+       "type": "literal",
+       "value": "Lisa Loeb"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q237654"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Lisa Loeb"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q237654"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q671288"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q805079"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q4886971"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q4886974"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q4886973"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q4886978"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Paraguay"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q7134655"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q9654010"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q14600097"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Paraguay"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q20600986"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q20646927"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "mul",
+       "type": "literal",
+       "value": "Santiago Peña"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q22695687"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Santiago Peña"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q22695687"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q23709327"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "mul",
+       "type": "literal",
+       "value": "Paraguay"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q23862201"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q24854068"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q24900533"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q25096396"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q27985871"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "mul",
+       "type": "literal",
+       "value": "Pedro Alliana"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q51885479"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Pedro Alliana"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q51885479"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q63861035"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Santiago Peña"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q86976107"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "mul",
+       "type": "literal",
+       "value": "Lisa Loeb"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q100998596"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Lisa Loeb"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q100998596"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Paraguay"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q106292441"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q116697317"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q119432627"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q136665137"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Bend"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q141759397"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "Paraguay"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q733"
+      }
+     },
+     {
+      "label": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "frozen yogurt"
+      },
+      "item": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q13319"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://query.wikidata.org/sparql",
+  "params": {
+   "query": "SELECT DISTINCT ?a ?b ?property ?propertyLabel WHERE {\n  VALUES (?a ?b) { (wd:Q22686 wd:Q29468) (wd:Q22695687 wd:Q733) (wd:Q29468 wd:Q22686) (wd:Q34071 wd:Q51885479) (wd:Q51885479 wd:Q34071) (wd:Q733 wd:Q22695687) }\n  ?a ?direct ?b .\n  ?property wikibase:directClaim ?direct .\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}",
+   "format": "json"
+  },
+  "status": 200,
+  "body": {
+   "head": {
+    "vars": [
+     "a",
+     "b",
+     "property",
+     "propertyLabel"
+    ]
+   },
+   "results": {
+    "bindings": [
+     {
+      "a": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q22695687"
+      },
+      "b": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q733"
+      },
+      "property": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/P27"
+      },
+      "propertyLabel": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "country of citizenship"
+      }
+     },
+     {
+      "a": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q22686"
+      },
+      "b": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q29468"
+      },
+      "property": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/P102"
+      },
+      "propertyLabel": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "member of political party"
+      }
+     },
+     {
+      "a": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q34071"
+      },
+      "b": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q51885479"
+      },
+      "property": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/P1308"
+      },
+      "propertyLabel": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "position holder"
+      }
+     },
+     {
+      "a": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q51885479"
+      },
+      "b": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/Q34071"
+      },
+      "property": {
+       "type": "uri",
+       "value": "http://www.wikidata.org/entity/P39"
+      },
+      "propertyLabel": {
+       "xml:lang": "en",
+       "type": "literal",
+       "value": "position held"
+      }
+     }
+    ]
+   }
+  }
+ }
+]

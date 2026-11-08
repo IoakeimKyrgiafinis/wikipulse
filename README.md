@@ -117,3 +117,12 @@ stored in Neo4j with its source page and revision. Neo4j Browser: http://localho
 |---------|--------------|
 | `uv run python -m wikipulse.graph.run` | Live: every `GRAPH_POLL_INTERVAL_S` seconds, extracts new events of grouping run `live`, and again those whose spikes changed. Failed events are retried later. |
 | `uv run python -m wikipulse.graph.run --run-id <name> --since <date> --until <date> --once` | A recorded day: extracts the events of a grouping run that started in [since, until), then prints events, entities, linked share and average time per event. `--limit N`, `--force`, `--reset`, `--model` as in `--help`. |
+
+### Evaluating extraction
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.eval.extraction report --run-id <name> --events <date> --name <run>` | Linking accuracy (against exact Wikidata labels), relation support in Wikidata (a lower bound) and labeled precision, per entity type; writes `evals/results/<today>_<run>.md` and `.json`. `--events` also takes event numbers (`341,356`) or `<start>..<end>`. |
+| `uv run python -m wikipulse.eval.extraction label --run-id <name> --events <date> --name <run>` | Has a local LLM (`EVAL_LABEL_MODEL`) judge a fixed sample of 50 extracted relationships against their source text: correct / wrong / unsure; `--manual` lets you label them. Saved to `evals/labels/relation_labels.jsonl`. |
+| `uv run python -m wikipulse.eval.extraction extract --run-id <name> --events <date> --name <run> --prompt extract_v2` | Re-extracts the events with another prompt (or `--model`) into `data/extractions/<run>.jsonl`, without touching the graph; `report` and `label` read it with `--from <run>`. |
+| `uv run python -m wikipulse.eval.extraction compare <run A> <run B>` | Prints the measures of two reports side by side. |

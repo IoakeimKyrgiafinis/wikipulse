@@ -1,0 +1,1455 @@
+{
+  "name": "04c-v2",
+  "grouping_run": "03b-default-fix",
+  "source": "data/extractions/04c-v2.jsonl",
+  "events_selected": "events started from 2026-11-05T00:00:00+00:00 until 2026-11-06T00:00:00+00:00",
+  "created_at": "2026-11-08T18:10:38.929267+00:00",
+  "git": {
+    "commit": "9fa84f22b1acd719bbfe9c177192b4f41e51c740",
+    "dirty": true
+  },
+  "note": "re-extraction of the same 233 events with prompt extract_v2 (stricter relation rules), not written to the graph; labels by the LLM judge (judge prompt v2)",
+  "config": {
+    "extraction": {
+      "source": "data/extractions/04c-v2.jsonl",
+      "models": [
+        "ollama:qwen3:4b"
+      ],
+      "prompt_versions": [
+        "extract_v2"
+      ],
+      "extract_max_pages": 6,
+      "extract_max_chars": 1200
+    },
+    "labels": {
+      "judge_model": "ollama:qwen3:8b",
+      "judge_prompt_version": 2,
+      "sample_size": 50,
+      "seed": 2026,
+      "labels_file": "evals/labels/relation_labels.jsonl"
+    },
+    "wikidata": {
+      "sparql_url": "https://query.wikidata.org/sparql",
+      "label_languages": [
+        "en",
+        "mul"
+      ],
+      "excluded_classes": {
+        "Q4167410": "Wikimedia disambiguation page",
+        "Q4167836": "Wikimedia category",
+        "Q11266439": "Wikimedia template",
+        "Q13406463": "Wikimedia list article",
+        "Q101352": "family name",
+        "Q202444": "given name",
+        "Q12308941": "male given name",
+        "Q11879590": "female given name"
+      },
+      "cache_ttl_days": 30
+    }
+  },
+  "overview": {
+    "events": 233,
+    "entities": 1248,
+    "entity_mentions": 1400,
+    "linked": 963,
+    "linked_share": 0.7716346153846154,
+    "by_link_method": {
+      "page": 182,
+      "link": 570,
+      "search": 211,
+      "none": 285
+    },
+    "by_type": {
+      "person": 310,
+      "other": 291,
+      "organization": 276,
+      "place": 245,
+      "event": 126
+    },
+    "relations": 823,
+    "relations_both_linked": 542
+  },
+  "linking": {
+    "all": {
+      "names": 1265,
+      "no_label": 426,
+      "unique_correct": 453,
+      "unique_wrong": 19,
+      "unique_unlinked": 2,
+      "shared_candidate": 329,
+      "shared_other": 31,
+      "shared_unlinked": 5,
+      "accuracy": 0.9597457627118644,
+      "accuracy_margin_95": 0.01773245942944937,
+      "shared_rate": 0.9138888888888889
+    },
+    "by_method": {
+      "page": {
+        "names": 186,
+        "no_label": 26,
+        "unique_correct": 114,
+        "unique_wrong": 1,
+        "unique_unlinked": 0,
+        "shared_candidate": 41,
+        "shared_other": 4,
+        "shared_unlinked": 0,
+        "accuracy": 0.991304347826087,
+        "accuracy_margin_95": 0.01696921438576993,
+        "shared_rate": 0.9111111111111111
+      },
+      "link": {
+        "names": 579,
+        "no_label": 76,
+        "unique_correct": 284,
+        "unique_wrong": 12,
+        "unique_unlinked": 0,
+        "shared_candidate": 194,
+        "shared_other": 13,
+        "shared_unlinked": 0,
+        "accuracy": 0.9594594594594594,
+        "accuracy_margin_95": 0.022468200865781517,
+        "shared_rate": 0.9371980676328503
+      },
+      "search": {
+        "names": 215,
+        "no_label": 46,
+        "unique_correct": 55,
+        "unique_wrong": 6,
+        "unique_unlinked": 0,
+        "shared_candidate": 94,
+        "shared_other": 14,
+        "shared_unlinked": 0,
+        "accuracy": 0.9016393442622951,
+        "accuracy_margin_95": 0.07473401051194291,
+        "shared_rate": 0.8703703703703703
+      },
+      "none": {
+        "names": 285,
+        "no_label": 278,
+        "unique_correct": 0,
+        "unique_wrong": 0,
+        "unique_unlinked": 2,
+        "shared_candidate": 0,
+        "shared_other": 0,
+        "shared_unlinked": 5,
+        "accuracy": null,
+        "accuracy_margin_95": null,
+        "shared_rate": null
+      }
+    }
+  },
+  "support": {
+    "relations": 823,
+    "both_linked": 542,
+    "supported": 191,
+    "support_rate": 0.35239852398523985,
+    "support_margin_95": 0.04021864024418412,
+    "properties": {
+      "P161 cast member": 19,
+      "P17 country": 17,
+      "P27 country of citizenship": 12,
+      "P131 located in the administrative territorial entity": 10,
+      "P40 child": 8,
+      "P276 location": 8,
+      "P127 owned by": 7,
+      "P102 member of political party": 7,
+      "P39 position held": 7,
+      "P400 platform": 7,
+      "P19 place of birth": 6,
+      "P175 performer": 6,
+      "P108 employer": 5,
+      "P69 educated at": 5,
+      "P57 director": 5
+    }
+  },
+  "labels": {
+    "sampled": 50,
+    "correct": 45,
+    "wrong": 4,
+    "unsure": 1,
+    "unlabeled": 0,
+    "precision": 0.9183673469387755,
+    "precision_margin_95": 0.07666518779999279,
+    "labelers": {
+      "llm (ollama:qwen3:8b, judge prompt v2)": 50
+    }
+  },
+  "by_type": {
+    "person": {
+      "entities": 310,
+      "linked": 240,
+      "linked_share": 0.7741935483870968,
+      "linking": {
+        "names": 311,
+        "no_label": 84,
+        "unique_correct": 142,
+        "unique_wrong": 3,
+        "unique_unlinked": 0,
+        "shared_candidate": 75,
+        "shared_other": 3,
+        "shared_unlinked": 4,
+        "accuracy": 0.9793103448275862,
+        "accuracy_margin_95": 0.023169084184092373,
+        "shared_rate": 0.9615384615384616
+      },
+      "support": {
+        "relations": 408,
+        "both_linked": 267,
+        "supported": 91,
+        "support_rate": 0.3408239700374532,
+        "support_margin_95": 0.05685467867492608,
+        "properties": {
+          "P27 country of citizenship": 12,
+          "P40 child": 8,
+          "P161 cast member": 8,
+          "P39 position held": 7,
+          "P19 place of birth": 6,
+          "P102 member of political party": 6,
+          "P108 employer": 5,
+          "P69 educated at": 5,
+          "P20 place of death": 4,
+          "P22 father": 4,
+          "P25 mother": 4,
+          "P6 head of government": 3,
+          "P463 member of": 3,
+          "P26 spouse": 3,
+          "P937 work location": 2
+        }
+      },
+      "labels": {
+        "sampled": 19,
+        "correct": 17,
+        "wrong": 2,
+        "unsure": 0,
+        "unlabeled": 0,
+        "precision": 0.8947368421052632,
+        "precision_margin_95": 0.13799556483762943,
+        "labelers": {
+          "llm (ollama:qwen3:8b, judge prompt v2)": 19
+        }
+      }
+    },
+    "organization": {
+      "entities": 276,
+      "linked": 203,
+      "linked_share": 0.7355072463768116,
+      "linking": {
+        "names": 278,
+        "no_label": 105,
+        "unique_correct": 105,
+        "unique_wrong": 4,
+        "unique_unlinked": 1,
+        "shared_candidate": 54,
+        "shared_other": 9,
+        "shared_unlinked": 0,
+        "accuracy": 0.963302752293578,
+        "accuracy_margin_95": 0.035297258022983675,
+        "shared_rate": 0.8571428571428571
+      },
+      "support": {
+        "relations": 131,
+        "both_linked": 76,
+        "supported": 25,
+        "support_rate": 0.32894736842105265,
+        "support_margin_95": 0.10563085019354511,
+        "properties": {
+          "P17 country": 4,
+          "P127 owned by": 4,
+          "P118 league or competition": 3,
+          "P112 founder": 2,
+          "P102 member of political party": 1,
+          "P488 chairperson": 1,
+          "P1365 replaces": 1,
+          "P7888 merged into": 1,
+          "P131 located in the administrative territorial entity": 1,
+          "P241 military branch": 1,
+          "P1416 affiliation": 1,
+          "P1830 owner of": 1,
+          "P749 parent organization or unit": 1,
+          "P159 headquarters location": 1,
+          "P527 has part(s)": 1
+        }
+      },
+      "labels": {
+        "sampled": 13,
+        "correct": 13,
+        "wrong": 0,
+        "unsure": 0,
+        "unlabeled": 0,
+        "precision": 1.0,
+        "precision_margin_95": 0.0,
+        "labelers": {
+          "llm (ollama:qwen3:8b, judge prompt v2)": 13
+        }
+      }
+    },
+    "place": {
+      "entities": 245,
+      "linked": 222,
+      "linked_share": 0.9061224489795918,
+      "linking": {
+        "names": 249,
+        "no_label": 49,
+        "unique_correct": 69,
+        "unique_wrong": 3,
+        "unique_unlinked": 0,
+        "shared_candidate": 123,
+        "shared_other": 5,
+        "shared_unlinked": 0,
+        "accuracy": 0.9583333333333334,
+        "accuracy_margin_95": 0.046157523496269164,
+        "shared_rate": 0.9609375
+      },
+      "support": {
+        "relations": 45,
+        "both_linked": 23,
+        "supported": 11,
+        "support_rate": 0.4782608695652174,
+        "support_margin_95": 0.2041508925168513,
+        "properties": {
+          "P131 located in the administrative territorial entity": 7,
+          "P17 country": 4,
+          "P150 contains the administrative territorial entity": 3,
+          "P115 home venue": 1,
+          "P466 occupant": 1,
+          "P36 capital": 1,
+          "P1376 capital of": 1,
+          "P1001 applies to jurisdiction": 1,
+          "P1313 office held by the head of government": 1,
+          "P710 participant": 1
+        }
+      },
+      "labels": {
+        "sampled": 5,
+        "correct": 4,
+        "wrong": 1,
+        "unsure": 0,
+        "unlabeled": 0,
+        "precision": 0.8,
+        "precision_margin_95": 0.350615458871967,
+        "labelers": {
+          "llm (ollama:qwen3:8b, judge prompt v2)": 5
+        }
+      }
+    },
+    "event": {
+      "entities": 126,
+      "linked": 102,
+      "linked_share": 0.8095238095238095,
+      "linking": {
+        "names": 129,
+        "no_label": 36,
+        "unique_correct": 60,
+        "unique_wrong": 2,
+        "unique_unlinked": 1,
+        "shared_candidate": 28,
+        "shared_other": 1,
+        "shared_unlinked": 1,
+        "accuracy": 0.967741935483871,
+        "accuracy_margin_95": 0.04398039850112562,
+        "shared_rate": 0.9655172413793104
+      },
+      "support": {
+        "relations": 106,
+        "both_linked": 73,
+        "supported": 23,
+        "support_rate": 0.3150684931506849,
+        "support_margin_95": 0.1065664997602658,
+        "properties": {
+          "P17 country": 8,
+          "P276 location": 8,
+          "P361 part of": 2,
+          "P726 candidate": 2,
+          "P3450 sports season of league or competition": 1,
+          "P127 owned by": 1,
+          "P1830 owner of": 1,
+          "P1001 applies to jurisdiction": 1,
+          "P2715 elected in": 1,
+          "P131 located in the administrative territorial entity": 1,
+          "P527 has part(s)": 1,
+          "P800 notable work": 1,
+          "P664 organizer": 1,
+          "P170 creator": 1,
+          "P195 collection": 1
+        }
+      },
+      "labels": {
+        "sampled": 10,
+        "correct": 8,
+        "wrong": 1,
+        "unsure": 1,
+        "unlabeled": 0,
+        "precision": 0.8888888888888888,
+        "precision_margin_95": 0.20532285794453828,
+        "labelers": {
+          "llm (ollama:qwen3:8b, judge prompt v2)": 10
+        }
+      }
+    },
+    "other": {
+      "entities": 291,
+      "linked": 196,
+      "linked_share": 0.6735395189003437,
+      "linking": {
+        "names": 298,
+        "no_label": 152,
+        "unique_correct": 77,
+        "unique_wrong": 7,
+        "unique_unlinked": 0,
+        "shared_candidate": 49,
+        "shared_other": 13,
+        "shared_unlinked": 0,
+        "accuracy": 0.9166666666666666,
+        "accuracy_margin_95": 0.059105993930552596,
+        "shared_rate": 0.7903225806451613
+      },
+      "support": {
+        "relations": 133,
+        "both_linked": 103,
+        "supported": 41,
+        "support_rate": 0.39805825242718446,
+        "support_margin_95": 0.09453399410142221,
+        "properties": {
+          "P161 cast member": 11,
+          "P400 platform": 7,
+          "P57 director": 5,
+          "P58 screenwriter": 4,
+          "P171 parent taxon": 3,
+          "P306 operating system": 3,
+          "P175 performer": 3,
+          "P50 author": 2,
+          "P5202 adapted by": 2,
+          "P676 lyricist": 2,
+          "P86 composer": 2,
+          "P1433 published in": 1,
+          "P17 country": 1,
+          "P131 located in the administrative territorial entity": 1,
+          "P150 contains the administrative territorial entity": 1
+        }
+      },
+      "labels": {
+        "sampled": 3,
+        "correct": 3,
+        "wrong": 0,
+        "unsure": 0,
+        "unlabeled": 0,
+        "precision": 1.0,
+        "precision_margin_95": 0.0,
+        "labelers": {
+          "llm (ollama:qwen3:8b, judge prompt v2)": 3
+        }
+      }
+    }
+  },
+  "sample": [
+    {
+      "event": "03b-default-fix:446",
+      "subject": "Ben Nighthorse Campbell (Q816576)",
+      "relation": "represented",
+      "object": "Colorado (Q1261)",
+      "subject_type": "person",
+      "source_title": "Ben Nighthorse Campbell",
+      "source_revision": 1383949232,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "Subject: The source states that Ben Nighthorse Campbell represented Colorado's 3rd congressional district. Object: The source refers to Colorado as the state, which matches the object. Relation: The relation 'represented' is specific and matches the source's statement.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:399",
+      "subject": "Mariposa Food Co-op",
+      "relation": "received funding from",
+      "object": "Reinvestment Fund (Q141802564)",
+      "subject_type": "organization",
+      "source_title": "Mariposa Food Co-op",
+      "source_revision": 1383939363,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the new building was purchased for $2.5 million, which included funding from the Philadelphia Industrial Development Corporation, the Reinvestment Fund, and the Pennsylvania Department of Community and Economic Development. This directly supports the claim that Mariposa Food Co-op received funding from the Reinvestment Fund.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:476",
+      "subject": "East Atlantic Biosphere Reserve Network",
+      "relation": "connects",
+      "object": "Madeira (Q26253)",
+      "subject_type": "organization",
+      "source_title": "East Atlantic Biosphere Reserve Network",
+      "source_revision": 1383955889,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that the East Atlantic Biosphere Reserve Network connects biosphere reserves in the Macaronesian region, which includes Madeira (Portugal). The subject is directly linked to the object as described.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:397",
+      "subject": "New Caledonia national football team (Q328295)",
+      "relation": "participates in",
+      "object": "OFC Men's Nations Cup (Q213070)",
+      "subject_type": "organization",
+      "source_title": "New Caledonia national football team",
+      "source_revision": 1383938593,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the New Caledonia national football team has been participating in the OFC Nations Cup since its inception, confirming the subject, object, and relation.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:389",
+      "subject": "Samuel de Champlain (Q68529)",
+      "relation": "founded",
+      "object": "Quebec City (Q2145)",
+      "subject_type": "person",
+      "source_title": "Samuel de Champlain",
+      "source_revision": 1383940362,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Samuel de Champlain 'founded Quebec City' directly, confirming the subject, object, and relation accurately.",
+      "wikidata": [
+        "founder",
+        "place of burial",
+        "place of death"
+      ]
+    },
+    {
+      "event": "03b-default-fix:351",
+      "subject": "Skateboarding at the 2026 Summer Youth Olympics – Women's street (Q142023376)",
+      "relation": "part of",
+      "object": "2026 Summer Youth Olympics (Q97622525)",
+      "subject_type": "event",
+      "source_title": "Skateboarding at the 2026 Summer Youth Olympics – Women's street",
+      "source_revision": 1383927113,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the women's street competition at the 2026 Summer Youth Olympics took place, confirming that it is part of the 2026 Summer Youth Olympics.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:548",
+      "subject": "Ben Adams (Q706286)",
+      "relation": "lead singer of",
+      "object": "A1 (Q279634)",
+      "subject_type": "person",
+      "source_title": "Ben Adams",
+      "source_revision": 1383974944,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Ben Adams is 'also known as the lead singer of the British-Norwegian boy band A1', confirming the subject (Ben Adams) has the relation (lead singer of) to the object (A1).",
+      "wikidata": [
+        "has part(s)",
+        "member of"
+      ]
+    },
+    {
+      "event": "03b-default-fix:492",
+      "subject": "Ramayana: Part 1 (Q135196186)",
+      "relation": "based on",
+      "object": "Valmiki (Q715607)",
+      "subject_type": "other",
+      "source_title": "Ramayana: Part 1",
+      "source_revision": 1383963419,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that 'the film is based on the epic poem Ramayana by Valmiki', confirming that 'Ramayana: Part 1' is based on Valmiki's work. The relation is specific and directly supported.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:465",
+      "subject": "2028 European Men's Handball Championship qualification (Q110923064)",
+      "relation": "part of",
+      "object": "European Handball Federation (Q601860)",
+      "subject_type": "event",
+      "source_title": "2028 European Men's Handball Championship qualification",
+      "source_revision": 1383962656,
+      "label": "unsure",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source mentions the EHF Euro Cup alongside the qualification tournament, implying the EHF (European Handball Federation) is involved. However, it does not explicitly state that the 2028 European Men's Handball Championship qualification is part of the EHF. The relation is not clearly stated as 'part of' in the source.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:460",
+      "subject": "Moses Harris (Q720166)",
+      "relation": "encouraged in entomology by",
+      "object": "Society of the Aurelians",
+      "subject_type": "person",
+      "source_title": "Moses Harris",
+      "source_revision": 1383951014,
+      "label": "wrong",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Harris was encouraged in entomology by his uncle, a member of the Society of the Aurelians. The claim incorrectly attributes the encouragement to the Society of the Aurelians itself, not his uncle. The relation is not accurately represented.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:545",
+      "subject": "Princess Jalila of Hejaz (Q22687354)",
+      "relation": "daughter of",
+      "object": "Ali bin Hussein, King of Hejaz (Q2304055)",
+      "subject_type": "person",
+      "source_title": "Princess Jalila of Hejaz",
+      "source_revision": 1383973761,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Princess Jalila of Hejaz was the daughter of Ali, King of Hejaz, and Princess Nafeesa. It also explicitly mentions her father as Ali bin Hussein, King of Hejaz. The claim accurately reflects this relationship.",
+      "wikidata": [
+        "child",
+        "father"
+      ]
+    },
+    {
+      "event": "03b-default-fix:327",
+      "subject": "Ohio's 15th congressional district (Q7080686)",
+      "relation": "is part of",
+      "object": "Ohio (Q1397)",
+      "subject_type": "place",
+      "source_title": "Don Leonard (politician)",
+      "source_revision": 1383922091,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Don Leonard is the representative-elect for Ohio's 15th congressional district, which is a district within the state of Ohio. The claim is correct as it reflects a specific fact about the district being part of Ohio.",
+      "wikidata": [
+        "located in the administrative territorial entity"
+      ]
+    },
+    {
+      "event": "03b-default-fix:516",
+      "subject": "James Beck (Q1680022)",
+      "relation": "criticized",
+      "object": "Madonna of the Pinks (Q1245388)",
+      "subject_type": "person",
+      "source_title": "Madonna of the Pinks",
+      "source_revision": 1383966162,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that James Beck was an early critic of the attribution of the Madonna of the Pinks to Raphael, which directly supports the claim that he criticized the painting. The relation is specific and the subject and object are correctly identified.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:458",
+      "subject": "Richard Allen Davis (Q784690)",
+      "relation": "is associated with",
+      "object": "Polly Klaas (Q2089955)",
+      "subject_type": "person",
+      "source_title": "Richard Allen Davis",
+      "source_revision": 1383951251,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "Subject: The source directly mentions Richard Allen Davis in relation to Polly Klaas. Object: Polly Klaas is exactly named. Relation: The source states that Davis was convicted of first-degree murder with special circumstances involving Polly Klaas, which supports the association.",
+      "wikidata": [
+        "killed by",
+        "significant person"
+      ]
+    },
+    {
+      "event": "03b-default-fix:395",
+      "subject": "Josh Shapiro (Q6289368)",
+      "relation": "served as",
+      "object": "48th governor of Pennsylvania",
+      "subject_type": "person",
+      "source_title": "2028 Democratic Party presidential primaries",
+      "source_revision": 1383942327,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that 'Josh Shapiro has served as the 48th governor of Pennsylvania since 2023,' which directly confirms the claim that 'Josh Shapiro' served as '48th governor of Pennsylvania.' The subject, object, and relation are all accurately represented in the source.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:445",
+      "subject": "Nic Cravillion (Q142067548)",
+      "relation": "serves in",
+      "object": "108th Wisconsin Legislature (Q136669218)",
+      "subject_type": "person",
+      "source_title": "Nic Cravillion",
+      "source_revision": 1383948832,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "Subject: The source states Nic Cravillion is a member-elect of the Wisconsin Senate. Object: The 108th Wisconsin Legislature is explicitly mentioned as the legislative body he will represent. Relation: The source directly states he will represent the 108th Wisconsin Legislature, confirming the specific fact.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:435",
+      "subject": "Genshin Impact (Q65059474)",
+      "relation": "released for",
+      "object": "Xbox Series X and Series S (Q98973368)",
+      "subject_type": "other",
+      "source_title": "Genshin Impact",
+      "source_revision": 1383950482,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Genshin Impact was released for Xbox Series X/S in 2024, which directly supports the claim that 'Genshin Impact' was released for 'Xbox Series X and Series S'. The relation is specific and the object is exactly what the source names.",
+      "wikidata": [
+        "platform"
+      ]
+    },
+    {
+      "event": "03b-default-fix:378",
+      "subject": "Hyderabad International Convention Centre (Q39974131)",
+      "relation": "connected to",
+      "object": "Novotel Hyderabad",
+      "subject_type": "place",
+      "source_title": "Hyderabad International Convention Centre",
+      "source_revision": 1383934678,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the Hyderabad International Convention Centre is connected to Novotel Hyderabad, an international business hotel. This directly supports the claim that the Hyderabad International Convention Centre is connected to Novotel Hyderabad.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:338",
+      "subject": "Daulatpur–Saturia tornado (Q5228013)",
+      "relation": "occurred in",
+      "object": "Bangladesh (Q902)",
+      "subject_type": "event",
+      "source_title": "Daulatpur–Saturia tornado",
+      "source_revision": 1383923028,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the Daulatpur–Saturia tornado occurred in Manikganj District, Bangladesh, confirming the location. The relation 'occurred in' is specific and directly supported by the source.",
+      "wikidata": [
+        "country"
+      ]
+    },
+    {
+      "event": "03b-default-fix:481",
+      "subject": "Donald Trump (Q22686)",
+      "relation": "opposed by",
+      "object": "Protests against Donald Trump (Q23058648)",
+      "subject_type": "person",
+      "source_title": "Protests against Donald Trump",
+      "source_revision": 1383955739,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that protests have occurred against Donald Trump, expressing opposition to his campaign, ideology, electoral win, and various policies. The claim is supported by the source, which directly links Donald Trump to being the subject of these protests.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:380",
+      "subject": "Cyclone Murasu (Q141985400)",
+      "relation": "affected",
+      "object": "Andhra Pradesh (Q1159)",
+      "subject_type": "event",
+      "source_title": "Cyclone Murasu",
+      "source_revision": 1383938879,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Cyclone Murasu affected South India and specifically mentions Andhra Pradesh suffering the heaviest toll, with detailed impacts such as damage to agricultural farms, electric poles, houses, and power blackouts. This confirms the subject, object, and relation as stated in the claim.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:400",
+      "subject": "Grace Groner (Q16018769)",
+      "relation": "left money to",
+      "object": "Lake Forest College (Q6475861)",
+      "subject_type": "person",
+      "source_title": "Grace Groner",
+      "source_revision": 1383939517,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Grace Groner left a posthumous gift of seven million dollars to Lake Forest College, confirming the subject, object, and relation accurately.",
+      "wikidata": [
+        "educated at"
+      ]
+    },
+    {
+      "event": "03b-default-fix:493",
+      "subject": "Newhart (Q3643961)",
+      "relation": "aired on",
+      "object": "CBS (Q43380)",
+      "subject_type": "organization",
+      "source_title": "Newhart",
+      "source_revision": 1383962470,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that 'Newhart is an American television sitcom that aired on CBS from October 25, 1982, to May 21, 1990.' This confirms the subject (Newhart) aired on the object (CBS).",
+      "wikidata": [
+        "original broadcaster"
+      ]
+    },
+    {
+      "event": "03b-default-fix:527",
+      "subject": "Country Club of Fairfield",
+      "relation": "was altered by",
+      "object": "Geoffrey Cornish (Q1502952)",
+      "subject_type": "organization",
+      "source_title": "Country Club of Fairfield",
+      "source_revision": 1383972417,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the course was 'laid out by Seth Raynor and later altered by A. W. Tillinghast, Robert Trent Jones Sr., Geoffrey Cornish and, most recently, restoration architect Bruce Hepner.' This directly supports the claim that 'Country Club of Fairfield' was altered by 'Geoffrey Cornish'.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:452",
+      "subject": "Jan Byś (Q141921117)",
+      "relation": "joined",
+      "object": "Szombierki Bytom (Q586516)",
+      "subject_type": "person",
+      "source_title": "Jan Byś",
+      "source_revision": 1383949778,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Jan Byś moved to Szombierki Bytom, where he was signed by manager Hubert Kostka. This confirms that he joined Szombierki Bytom.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:483",
+      "subject": "2026 Los Angeles mayoral election (Q130044856)",
+      "relation": "involves",
+      "object": "Karen Bass (Q461739)",
+      "subject_type": "event",
+      "source_title": "Nithya Raman",
+      "source_revision": 1383956026,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that in the 2026 Los Angeles mayoral election, Raman 'defeated Bass in the November general election,' confirming that Karen Bass was a candidate in that election. The relation 'involves' is appropriate here as the source directly links Karen Bass to the event.",
+      "wikidata": [
+        "candidate"
+      ]
+    },
+    {
+      "event": "03b-default-fix:535",
+      "subject": "Vessel (Q7923335)",
+      "relation": "released via",
+      "object": "Fueled by Ramen (Q1046066)",
+      "subject_type": "event",
+      "source_title": "Vessel (Twenty One Pilots album)",
+      "source_revision": 1383971156,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that 'Vessel is the band's first album released via Fueled by Ramen', which directly supports the claim that 'Vessel' was released via 'Fueled by Ramen'. The subject, object, and relation are all accurately represented in the source.",
+      "wikidata": [
+        "record label"
+      ]
+    },
+    {
+      "event": "03b-default-fix:408",
+      "subject": "Homerton University Hospital (Q19654384)",
+      "relation": "was part of",
+      "object": "London County Council (Q739384)",
+      "subject_type": "place",
+      "source_title": "Homerton University Hospital",
+      "source_revision": 1383950168,
+      "label": "wrong",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the Eastern Fever Hospital became part of the London County Council as part of the reforms of the Local Government Act of 1929. However, the claim refers to 'Homerton University Hospital,' not the 'Eastern Fever Hospital.' The source does not explicitly state that Homerton University Hospital was part of the London County Council.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:380",
+      "subject": "Cyclone Murasu (Q141985400)",
+      "relation": "affected",
+      "object": "Eluru (Q1003496)",
+      "subject_type": "event",
+      "source_title": "Cyclone Murasu",
+      "source_revision": 1383938879,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Eluru district received abundant and continuous rainfall, indicating that Cyclone Murasu affected Eluru.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:529",
+      "subject": "El Salvador (Q792)",
+      "relation": "conducts military intervention in",
+      "object": "Salvadoran military intervention in Haiti (Q141921562)",
+      "subject_type": "place",
+      "source_title": "Salvadoran military intervention in Haiti",
+      "source_revision": 1383969477,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The subject 'El Salvador' is correctly identified as the actor conducting the military intervention. The object 'Salvadoran military intervention in Haiti' is an event, which matches the source's description of the ongoing military intervention. The relation 'conducts military intervention in' is specific and matches the source's claim about El Salvador's actions in Haiti.",
+      "wikidata": [
+        "country",
+        "participant"
+      ]
+    },
+    {
+      "event": "03b-default-fix:434",
+      "subject": "Florida (Q812)",
+      "relation": "is a state",
+      "object": "United States (Q30)",
+      "subject_type": "place",
+      "source_title": "2028 Republican Party presidential primaries",
+      "source_revision": 1383949385,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source mentions Florida as one of the 50 U.S. states, confirming it is part of the United States. The relation is specific and directly supported.",
+      "wikidata": [
+        "contains the administrative territorial entity",
+        "country",
+        "located in the administrative territorial entity"
+      ]
+    },
+    {
+      "event": "03b-default-fix:386",
+      "subject": "Likud (Q187009)",
+      "relation": "alleged",
+      "object": "Arab-majority parties",
+      "subject_type": "organization",
+      "source_title": "2026 Israeli legislative election",
+      "source_revision": 1383940013,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Likud's statement alleged that Arab-majority parties 'support terrorism and the destruction of the Jewish state'. This directly supports the claim that 'Likud' alleged 'Arab-majority parties'.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:429",
+      "subject": "Yannick Cahuzac (Q27789)",
+      "relation": "manager of",
+      "object": "Lens (Q165271)",
+      "subject_type": "person",
+      "source_title": "Yannick Cahuzac",
+      "source_revision": 1383946300,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Yannick Cahuzac is currently the manager of Ligue 1 club Lens, directly confirming the relation.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:541",
+      "subject": "Australian Professional Leagues (Q115867067)",
+      "relation": "governs",
+      "object": "A-League Youth (Q277830)",
+      "subject_type": "organization",
+      "source_title": "Australian Professional Leagues",
+      "source_revision": 1383977066,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the Australian Professional Leagues (APL) is the governing body for the A-League Men, A-League Women, and A-League Youth, known collectively as the A-Leagues. This directly supports the claim that APL governs the A-League Youth.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:514",
+      "subject": "Ro Khanna (Q7339221)",
+      "relation": "has formed",
+      "object": "Run Ro",
+      "subject_type": "person",
+      "source_title": "2028 Democratic Party presidential primaries",
+      "source_revision": 1383969583,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that in November 2026, allies of Khanna formed the 'Run Ro' group, which would prepare for a 2028 Khanna presidential campaign. This directly supports the claim that 'Ro Khanna' has formed 'Run Ro'.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:383",
+      "subject": "French Revolution (Q6534)",
+      "relation": "impacted",
+      "object": "Canada (Q16)",
+      "subject_type": "event",
+      "source_title": "Influence of the French Revolution",
+      "source_revision": 1383935904,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that many French emigrants settled in Canada, leading to the spread of French culture. This directly supports the claim that the French Revolution impacted Canada.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:426",
+      "subject": "Georgian national handball team",
+      "relation": "part of",
+      "object": "2028 European Men's Handball Championship qualification (Q110923064)",
+      "subject_type": "organization",
+      "source_title": "2028 European Men's Handball Championship qualification",
+      "source_revision": 1383945342,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the 2028 European Men's Handball Championship qualification tournament includes teams such as GEO (Georgia), confirming the Georgian national handball team is part of the qualification event.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:500",
+      "subject": "Fred Forest (Q3086831)",
+      "relation": "worked for",
+      "object": "battle (Q178561)",
+      "subject_type": "person",
+      "source_title": "Fred Forest",
+      "source_revision": 1383962766,
+      "label": "wrong",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source does not mention Fred Forest working for an organization named 'battle'. The claim is not supported by the text.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:522",
+      "subject": "2026–27 S.L. Benfica season (Q140026719)",
+      "relation": "part of",
+      "object": "2026–27 UEFA Europa League league phase (Q140478672)",
+      "subject_type": "event",
+      "source_title": "2026–27 UEFA Europa League league phase",
+      "source_revision": 1383976793,
+      "label": "wrong",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source mentions the 2026–27 UEFA Europa League league phase and states that 36 teams are competing in the league phase. However, it does not mention S.L. Benfica or any specific team's season. Therefore, the claim that the 2026–27 S.L. Benfica season is part of the league phase cannot be confirmed.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:397",
+      "subject": "Didier Chambaron (Q18685354)",
+      "relation": "hired as coach",
+      "object": "New Caledonia national football team (Q328295)",
+      "subject_type": "person",
+      "source_title": "New Caledonia national football team",
+      "source_revision": 1383938593,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that Didier Chambaron was hired as the team's new coach after failing to qualify for the 2004 OFC Nations Cup. This directly supports the claim that Didier Chambaron was hired as the coach of the New Caledonia national football team.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:476",
+      "subject": "East Atlantic Biosphere Reserve Network",
+      "relation": "connects",
+      "object": "Guinea-Bissau (Q1007)",
+      "subject_type": "organization",
+      "source_title": "East Atlantic Biosphere Reserve Network",
+      "source_revision": 1383955889,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that the East Atlantic Biosphere Reserve Network connects biosphere reserves in the Macaronesian region and parts of West Africa, including Guinea-Bissau. This confirms the subject, object, and relation as stated in the claim.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:426",
+      "subject": "Kosovo national handball team (Q30646160)",
+      "relation": "part of",
+      "object": "2028 European Men's Handball Championship qualification (Q110923064)",
+      "subject_type": "organization",
+      "source_title": "2028 European Men's Handball Championship qualification",
+      "source_revision": 1383945342,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source mentions that the 2028 European Men's Handball Championship qualification includes teams like Kosovo (KOS) in the team order. This confirms that the Kosovo national handball team is part of the qualification event.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:466",
+      "subject": "Senate of the Dominican Republic (Q2119267)",
+      "relation": "has leader",
+      "object": "Eduard Alexis Espiritusanto Castillo",
+      "subject_type": "organization",
+      "source_title": "Senate of the Dominican Republic",
+      "source_revision": 1383951645,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that 'leader4: Eduard Alexis Espiritusanto Castillo' in the context of the Senate of the Dominican Republic, confirming that the leader is indeed this person. The relation is specific and directly supported by the text.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:443",
+      "subject": "Keenon M. James",
+      "relation": "member of",
+      "object": "Democratic Party (Q29552)",
+      "subject_type": "person",
+      "source_title": "Keenon James",
+      "source_revision": 1383948621,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that Keenon M. James is a member of the Democratic Party. The subject is clearly identified, the object is exactly what is named, and the relation is specific.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:544",
+      "subject": "Brighton & Hove Albion F.C. (Q19453)",
+      "relation": "participates in",
+      "object": "FA Cup (Q11151)",
+      "subject_type": "organization",
+      "source_title": "2026–27 Brighton & Hove Albion F.C. season",
+      "source_revision": 1383972623,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that Brighton & Hove Albion F.C. participates in the FA Cup, along with the EFL Cup and UEFA Conference League. The subject is the club itself, the object is the exact event named, and the relation is specific.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:465",
+      "subject": "2028 European Men's Handball Championship qualification (Q110923064)",
+      "relation": "determines",
+      "object": "20 EHF member men's national teams",
+      "subject_type": "event",
+      "source_title": "2028 European Men's Handball Championship qualification",
+      "source_revision": 1383962656,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the 2028 European Men's Handball Championship qualification tournament is played to determine the 20 EHF member men's national teams that will join the automatically qualified teams. This directly supports the claim that the qualification determines the 20 EHF member men's national teams.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:406",
+      "subject": "Scene (Q141438727)",
+      "relation": "produced by",
+      "object": "Zhagaram Studios",
+      "subject_type": "other",
+      "source_title": "Scene (2026 film)",
+      "source_revision": 1383940542,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that 'Scene' is produced by 'Suriya and Jyothika's 2D Entertainment and the newly established Zhagaram Studios', confirming that Zhagaram Studios is one of the producers. The relation is specific and directly stated.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:364",
+      "subject": "Lew Sapieha (Q727122)",
+      "relation": "held office as",
+      "object": "Offices in the Polish–Lithuanian Commonwealth (Q2662430)",
+      "subject_type": "person",
+      "source_title": "Lew Sapieha",
+      "source_revision": 1383928457,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that Lew Sapieha held various offices in the Polish–Lithuanian Commonwealth, including Grand Lithuanian Secretary, Grand Lithuanian Scribe, Lithuanian Vice-Chancellor, Grand Chancellor, Voivode of Vilnius, Great Lithuanian Hetman, and starosta of Slonim, Brest, and Mogilev. The claim is specific and matches the source.",
+      "wikidata": []
+    },
+    {
+      "event": "03b-default-fix:390",
+      "subject": "Royal Bermuda Regiment (Q4892652)",
+      "relation": "part of",
+      "object": "British Army (Q222595)",
+      "subject_type": "organization",
+      "source_title": "Royal Bermuda Regiment",
+      "source_revision": 1383936756,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source states that the Royal Bermuda Regiment is a 'reserve regiment of the British Army', directly confirming the relation.",
+      "wikidata": [
+        "military branch"
+      ]
+    },
+    {
+      "event": "03b-default-fix:377",
+      "subject": "Kimmarie Johnson (Q6410167)",
+      "relation": "founder of",
+      "object": "SkinGlow by Kimmarie",
+      "subject_type": "person",
+      "source_title": "Kimmarie Johnson",
+      "source_revision": 1383937479,
+      "label": "correct",
+      "labeler": "llm (ollama:qwen3:8b, judge prompt v2)",
+      "reason": "The source explicitly states that Kimmarie Johnson was the founder of SkinGlow by Kimmarie, a skin care and beauty retailing and consulting company she founded in 2011. The subject, object, and relation are all accurately represented.",
+      "wikidata": []
+    }
+  ],
+  "link_errors": [
+    {
+      "name": "Cognosphere",
+      "type": "organization",
+      "link_method": "search",
+      "linked_id": "Q116189096",
+      "linked": "COGNOSPHERE: video game publisher, subsidiary company of miHoYo",
+      "label_item": "Q28686397",
+      "label_item_text": "Cognosphere: Chinese video game developer"
+    },
+    {
+      "name": "World Wildlife Fund",
+      "type": "organization",
+      "link_method": "link",
+      "linked_id": "Q117892",
+      "linked": "WWF International: international non-governmental environmental organization",
+      "label_item": "Q50357022",
+      "label_item_text": "World Wildlife Fund: United States member organization of the WWF conservation network"
+    },
+    {
+      "name": "Adarsh M. Saji",
+      "type": "person",
+      "link_method": "link",
+      "linked_id": "Q140615137",
+      "linked": "2026 Delhi Jantar Mantar protests: protests led by the Cockroach Janta Party in Delhi",
+      "label_item": "Q140643876",
+      "label_item_text": "Adarsh M. Saji: Indian student activist"
+    },
+    {
+      "name": "2028 Democratic Party presidential primaries",
+      "type": "event",
+      "link_method": "page",
+      "linked_id": "Q140723959",
+      "linked": "Q140723959: selection of the Democratic Party nominee",
+      "label_item": "Q135963502",
+      "label_item_text": "2028 Democratic Party presidential primaries: selection of the Democratic Party nominee"
+    },
+    {
+      "name": "Fatimids",
+      "type": "other",
+      "link_method": "link",
+      "linked_id": "Q160307",
+      "linked": "Fatimid Caliphate: Egyptian Shia Islamic caliphate (909–1171)",
+      "label_item": "Q14932665",
+      "label_item_text": "Fatimids: Ismaili caliphal dynasty"
+    },
+    {
+      "name": "Premier League Cup",
+      "type": "event",
+      "link_method": "link",
+      "linked_id": "Q16258475",
+      "linked": "U21 Premier League Cup: football tournament",
+      "label_item": "Q7240316",
+      "label_item_text": "Premier League Cup"
+    },
+    {
+      "name": "Paktia",
+      "type": "place",
+      "link_method": "link",
+      "linked_id": "Q182493",
+      "linked": "Paktia Province: province of Afghanistan",
+      "label_item": "Q13989339",
+      "label_item_text": "Paktia: genus of insects"
+    },
+    {
+      "name": "Almohads",
+      "type": "other",
+      "link_method": "link",
+      "linked_id": "Q199688",
+      "linked": "Almohad Caliphate: 1121–1269 Berber empire in North Africa and Iberia",
+      "label_item": "Q10406562",
+      "label_item_text": "Almohads: Muslim dynasty which ruled the Almohad Empire from 1130"
+    },
+    {
+      "name": "Tragelaphus oryx",
+      "type": "other",
+      "link_method": "link",
+      "linked_id": "Q216815",
+      "linked": "common eland: species of mammal",
+      "label_item": "Q25647543",
+      "label_item_text": "Tragelaphus oryx: species of mammal"
+    },
+    {
+      "name": "Atlanta, Georgia",
+      "type": "place",
+      "link_method": "search",
+      "linked_id": "Q23556",
+      "linked": "Atlanta: capital city of the U.S. state of Georgia and seat of Fulton County, also located in DeKalb County",
+      "label_item": "Q20862272",
+      "label_item_text": "Atlanta, Georgia: painting by Noel Mahaffey"
+    },
+    {
+      "name": "Play It Again Sports",
+      "type": "organization",
+      "link_method": "search",
+      "linked_id": "Q28048853",
+      "linked": "Winmark: American used goods retailer",
+      "label_item": "Q7203029",
+      "label_item_text": "Play It Again Sports: sporting goods store"
+    },
+    {
+      "name": "Galápagos Islands",
+      "type": "place",
+      "link_method": "link",
+      "linked_id": "Q38095",
+      "linked": "Galapagos Islands: Archipelago in the Pacific Ocean, part of Ecuador since 1832",
+      "label_item": "Q117188122",
+      "label_item_text": "Galápagos Islands: UNESCO world heritage site in Ecuador"
+    },
+    {
+      "name": "Foreign Direct Investment",
+      "type": "other",
+      "link_method": "link",
+      "linked_id": "Q490513",
+      "linked": "foreign direct investment: foreign ownership of a controlling stake of a business",
+      "label_item": "Q60905832",
+      "label_item_text": "Foreign Direct Investment: Investment in the form of a controlling ownership in a business in one country by an entity based in another country"
+    },
+    {
+      "name": "GER",
+      "type": "other",
+      "link_method": "search",
+      "linked_id": "Q549530",
+      "linked": "Ger: commune in Pyrénées-Atlantiques, France",
+      "label_item": "Q20749907",
+      "label_item_text": "GER: genetic element in the species Homo sapiens"
+    },
+    {
+      "name": "TeamViewer",
+      "type": "organization",
+      "link_method": "link",
+      "linked_id": "Q61740994",
+      "linked": "TeamViewer SE: German software company",
+      "label_item": "Q1066769",
+      "label_item_text": "TeamViewer: remote connectivity software"
+    },
+    {
+      "name": "A. A. Rahim",
+      "type": "person",
+      "link_method": "link",
+      "linked_id": "Q65321652",
+      "linked": "A. A. Rahim (CPI(M)): Politician from India",
+      "label_item": "Q4647494",
+      "label_item_text": "A. A. Rahim: Indian politician (1920–1995)"
+    },
+    {
+      "name": "Tragelaphus derbianus",
+      "type": "other",
+      "link_method": "link",
+      "linked_id": "Q695736",
+      "linked": "Giant eland: species of mammal",
+      "label_item": "Q20085812",
+      "label_item_text": "Tragelaphus derbianus: species of mammal"
+    },
+    {
+      "name": "Atkins Diet",
+      "type": "other",
+      "link_method": "search",
+      "linked_id": "Q756030",
+      "linked": "Atkins diet: fad diet based on carbohydrate restriction",
+      "label_item": "Q114475513",
+      "label_item_text": "Atkins Diet: episode of Naked Science (S3 E4)"
+    },
+    {
+      "name": "Francisco Marto",
+      "type": "person",
+      "link_method": "search",
+      "linked_id": "Q8251706",
+      "linked": "Jacinta and Francisco Marto: Portuguese visionaries and Roman Catholic saints",
+      "label_item": "Q1442116",
+      "label_item_text": "Francisco Marto: Portuguese visionary and Roman Catholic saint (1908–1919)"
+    }
+  ],
+  "missed_links": [
+    {
+      "name": "St Trinian's",
+      "type": "event",
+      "link_method": "none",
+      "linked_id": null,
+      "linked": "",
+      "label_item": "Q93443",
+      "label_item_text": "St Trinian's: 2007 film directed by Oliver Parker"
+    },
+    {
+      "name": "Verian",
+      "type": "organization",
+      "link_method": "none",
+      "linked_id": null,
+      "linked": "",
+      "label_item": "Q131151930",
+      "label_item_text": "Verian: independent research, evidence, evaluation, and communications agency"
+    }
+  ],
+  "supported_examples": [
+    {
+      "subject": "2026–27 Indian Super League (Q140782587)",
+      "relation": "part of",
+      "object": "Indian Super League (Q16056350)",
+      "wikidata": [
+        "sports season of league or competition"
+      ]
+    },
+    {
+      "subject": "Bangladesh national football team (Q241670)",
+      "relation": "controlled by",
+      "object": "Bangladesh Football Federation (Q806536)",
+      "wikidata": [
+        "owned by",
+        "owner of"
+      ]
+    },
+    {
+      "subject": "Taurotragus (Q840041)",
+      "relation": "contains species",
+      "object": "Common eland (Q216815)",
+      "wikidata": [
+        "parent taxon"
+      ]
+    },
+    {
+      "subject": "Taurotragus (Q840041)",
+      "relation": "contains species",
+      "object": "Giant eland (Q695736)",
+      "wikidata": [
+        "parent taxon"
+      ]
+    },
+    {
+      "subject": "Kimmarie Johnson (Q6410167)",
+      "relation": "died in",
+      "object": "Los Angeles (Q65)",
+      "wikidata": [
+        "place of death"
+      ]
+    },
+    {
+      "subject": "Kimmarie Johnson (Q6410167)",
+      "relation": "was born in",
+      "object": "Pittsburgh (Q1342)",
+      "wikidata": [
+        "place of birth"
+      ]
+    },
+    {
+      "subject": "Daegu iM Bank Park (Q59556849)",
+      "relation": "home stadium of",
+      "object": "Daegu FC (Q483044)",
+      "wikidata": [
+        "home venue",
+        "occupant"
+      ]
+    },
+    {
+      "subject": "Daegu iM Bank Park (Q59556849)",
+      "relation": "located in",
+      "object": "Daegu (Q20927)",
+      "wikidata": [
+        "located in the administrative territorial entity"
+      ]
+    },
+    {
+      "subject": "India (Q668)",
+      "relation": "won",
+      "object": "2026 Men's Asian Champions Trophy (Q141458251)",
+      "wikidata": [
+        "country"
+      ]
+    },
+    {
+      "subject": "Ohio's 15th congressional district (Q7080686)",
+      "relation": "is part of",
+      "object": "Ohio (Q1397)",
+      "wikidata": [
+        "located in the administrative territorial entity"
+      ]
+    },
+    {
+      "subject": "Saint Peter (Q33923)",
+      "relation": "crucified",
+      "object": "Rome (Q220)",
+      "wikidata": [
+        "patron saint",
+        "residence",
+        "work location"
+      ]
+    },
+    {
+      "subject": "National Liberation Movement (Q2185969)",
+      "relation": "leader of",
+      "object": "Mario Sandoval Alarcón (Q1808196)",
+      "wikidata": [
+        "chairperson",
+        "member of political party"
+      ]
+    },
+    {
+      "subject": "1974 Guatemalan general election (Q5614277)",
+      "relation": "part of",
+      "object": "Guatemala (Q774)",
+      "wikidata": [
+        "applies to jurisdiction",
+        "country"
+      ]
+    },
+    {
+      "subject": "Ida Tarbell (Q271712)",
+      "relation": "authored",
+      "object": "The History of the Standard Oil Company (Q7739826)",
+      "wikidata": [
+        "author",
+        "notable work"
+      ]
+    },
+    {
+      "subject": "James Talarico (Q100742942)",
+      "relation": "first democrat",
+      "object": "2026 United States Senate election in Texas (Q122790705)",
+      "wikidata": [
+        "candidacy in election",
+        "candidate"
+      ]
+    }
+  ]
+}
