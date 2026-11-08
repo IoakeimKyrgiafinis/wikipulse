@@ -1,0 +1,1114 @@
+{
+  "name": "05b-v1",
+  "config": {
+    "snapshot": "bolt://localhost:7688",
+    "snapshot_now": "2026-11-05T23:22:51.420000+00:00",
+    "snapshot_nodes": {
+      "Entity": 1285,
+      "Event": 233,
+      "Page": 243
+    },
+    "questions": "evals\\labels\\qa_questions.jsonl",
+    "qa_model": [
+      "ollama:qwen3:8b"
+    ],
+    "prompts": [
+      "cypher_v1",
+      "answer_v1",
+      "correctness_v1",
+      "faithfulness_v1"
+    ],
+    "channels": [
+      "cypher",
+      "graph",
+      "vector"
+    ],
+    "retrieval": {
+      "max_rows": 25,
+      "top_k": 5,
+      "min_cosine": 0.63,
+      "max_facts": 60
+    },
+    "commit": "1cf426b5929f06c770e0978c00aec74fcf3aa101",
+    "dirty": true,
+    "note": "",
+    "primary_judge": "ollama:qwen3:8b",
+    "judges": [
+      "ollama:qwen3:8b",
+      "ollama:qwen3:4b"
+    ]
+  },
+  "metrics": {
+    "questions": 25,
+    "entity_recall": 0.9230769230769231,
+    "entity_recall_n": 13,
+    "event_recall": 0.8222222222222223,
+    "event_recall_n": 18,
+    "correctness": 1.2,
+    "fully_correct": 0.48,
+    "judged": 25,
+    "faithfulness": 0.9591836734693877,
+    "claims": 49,
+    "correct_refusals": 0.8,
+    "unanswerable": 5,
+    "false_refusals": 0.2,
+    "answerable": 20,
+    "latency_median_s": 4.813,
+    "latency_p90_s": 11.313,
+    "latency_max_s": 22.938,
+    "errors": 0
+  },
+  "by_type": {
+    "time": {
+      "questions": 5,
+      "entity_recall": null,
+      "entity_recall_n": 0,
+      "event_recall": 0.5599999999999999,
+      "event_recall_n": 5,
+      "correctness": 0.4,
+      "fully_correct": 0.0,
+      "judged": 5,
+      "faithfulness": 1.0,
+      "claims": 25,
+      "correct_refusals": null,
+      "unanswerable": 0,
+      "false_refusals": 0.4,
+      "answerable": 5,
+      "latency_median_s": 5.453,
+      "latency_p90_s": 22.938,
+      "latency_max_s": 22.938,
+      "errors": 0
+    },
+    "event": {
+      "questions": 5,
+      "entity_recall": 1.0,
+      "entity_recall_n": 5,
+      "event_recall": 1.0,
+      "event_recall_n": 5,
+      "correctness": 1.6,
+      "fully_correct": 0.6,
+      "judged": 5,
+      "faithfulness": 1.0,
+      "claims": 6,
+      "correct_refusals": null,
+      "unanswerable": 0,
+      "false_refusals": 0.0,
+      "answerable": 5,
+      "latency_median_s": 5.437,
+      "latency_p90_s": 7.75,
+      "latency_max_s": 7.75,
+      "errors": 0
+    },
+    "connection": {
+      "questions": 5,
+      "entity_recall": 1.0,
+      "entity_recall_n": 5,
+      "event_recall": 1.0,
+      "event_recall_n": 5,
+      "correctness": 1.6,
+      "fully_correct": 0.6,
+      "judged": 5,
+      "faithfulness": 0.9285714285714286,
+      "claims": 14,
+      "correct_refusals": null,
+      "unanswerable": 0,
+      "false_refusals": 0.0,
+      "answerable": 5,
+      "latency_median_s": 6.484,
+      "latency_p90_s": 8.796,
+      "latency_max_s": 8.796,
+      "errors": 0
+    },
+    "aggregation": {
+      "questions": 5,
+      "entity_recall": 0.6666666666666666,
+      "entity_recall_n": 3,
+      "event_recall": 0.6666666666666666,
+      "event_recall_n": 3,
+      "correctness": 0.8,
+      "fully_correct": 0.4,
+      "judged": 5,
+      "faithfulness": 0.6666666666666666,
+      "claims": 3,
+      "correct_refusals": null,
+      "unanswerable": 0,
+      "false_refusals": 0.4,
+      "answerable": 5,
+      "latency_median_s": 3.954,
+      "latency_p90_s": 11.313,
+      "latency_max_s": 11.313,
+      "errors": 0
+    },
+    "unanswerable": {
+      "questions": 5,
+      "entity_recall": null,
+      "entity_recall_n": 0,
+      "event_recall": null,
+      "event_recall_n": 0,
+      "correctness": 1.6,
+      "fully_correct": 0.8,
+      "judged": 5,
+      "faithfulness": 1.0,
+      "claims": 1,
+      "correct_refusals": 0.8,
+      "unanswerable": 5,
+      "false_refusals": null,
+      "answerable": 0,
+      "latency_median_s": 2.063,
+      "latency_p90_s": 4.515,
+      "latency_max_s": 4.515,
+      "errors": 0
+    }
+  },
+  "failure_split": {
+    "wrong, retrieval complete (generation failure)": [
+      "q01",
+      "q02",
+      "q05",
+      "q08",
+      "q10",
+      "q13",
+      "q15",
+      "q20"
+    ],
+    "wrong, retrieval incomplete (retrieval failure)": [
+      "q03",
+      "q04",
+      "q19"
+    ],
+    "correct": [
+      "q06",
+      "q07",
+      "q09",
+      "q11",
+      "q12",
+      "q14",
+      "q16",
+      "q18"
+    ],
+    "wrong, retrieval not measurable": [
+      "q17"
+    ]
+  },
+  "per_judge": {
+    "ollama:qwen3:8b": {
+      "correctness": 1.2,
+      "fully_correct": 0.48,
+      "judged": 25,
+      "faithfulness": 0.9591836734693877
+    },
+    "ollama:qwen3:4b": {
+      "correctness": 1.28,
+      "fully_correct": 0.52,
+      "judged": 25,
+      "faithfulness": 0.9795918367346939
+    }
+  },
+  "agreement": [
+    {
+      "a": "ollama:qwen3:8b",
+      "b": "ollama:qwen3:4b",
+      "correctness": {
+        "items": 25,
+        "exact": 0.88,
+        "within_one": 0.96,
+        "kappa_linear": 0.8194945848375451,
+        "mean_a": 1.2,
+        "mean_b": 1.28,
+        "matrix": [
+          [
+            5,
+            1,
+            1
+          ],
+          [
+            1,
+            5,
+            0
+          ],
+          [
+            0,
+            0,
+            12
+          ]
+        ],
+        "disagreements": [
+          "q02",
+          "q13",
+          "q17"
+        ]
+      },
+      "faithfulness": {
+        "claims": 49,
+        "agreement": 0.9387755102040817,
+        "kappa": -0.027972027972027913,
+        "supported_a": 0.9591836734693877,
+        "supported_b": 0.9795918367346939,
+        "mean_answer_gap": 0.10784313725490197
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "q01",
+      "type": "time",
+      "question": "What happened today?",
+      "answerable": true,
+      "answered": true,
+      "answer": "Today, several events occurred [1][2][3][4][5][6][7][8][9][10][11][12][13][14][15][16][17][18][19][20][21][22]. The 2026 U.S. gubernatorial and House elections were held on November 3, 2026, with significant results in Ohio and Michigan [1]. Paraguayan President Santiago Peña resigned on November 5, 2026, following the collapse of Ueno Bank [2][4]. Bangladesh national team played in the 2026 SAFF Championship [3]. California Governor Gavin Newsom commuted death sentences for 548 inmates on November 5, 2026 [5]. Democratic candidates won key Senate races in Mississippi and Texas [6]. Salon, an American news website, ceased publication on November 5, 2026, amid protests against Donald Trump [8]. The 2026 Summer Youth Olympics badminton tournaments took place in Senegal from November 1 to 5, 2026 [9]. Two darts tournaments were scheduled in England for November 2026 [10]. Anti-CEC protests in India demanded the resignation of Chief Election Commissioner Gyanesh Kumar [11]. Benfica entered the 2026–27 UEFA Europa League [7]. The article on legal research was edited on November 5, 2026 [12]. Princess Jalila of Hejaz died in 1955, and her family was murdered in 1958 [13]. Brighton & Hove Albion FC completed their tenth consecutive Premier League season [14]. Reverend Archie Emerson Mitchell disappeared in 1962 after being captured by the Vietcong [15]. Steve Davidson and Harold Greene died in 2026 [16]. The Australian Professional Leagues rebranded the A-Leagues after financial issues [17]. Barbara Bagshaw lost her Maine House seat in the 2026 election [18]. Herbert Blomstedt, a Swedish conductor, died on November 4, 2026 [19]. The Wikipedia article on violence and autism was edited [20]. Jake Humphrey hosts BBC Sport's Formula One coverage [21]. Xi Jinping remains the leader of China [22].\n\nNote: Only the 15 biggest events of today were looked up; there may be more.\n\nNote: The query results stop at the limit of 25 rows; there may be more.",
+      "entity_recall": null,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks what happened today. The REFERENCE lists several events that occurred on 2026-11-05, including the 2026 U.S. gubernatorial and House elections, Paraguayan president resigning after the Ueno Bank collapse, and others. The ANSWER includes some correct events from the REFERENCE but also adds many other events not mentioned in the REFERENCE, including events from different dates and unrelated facts. It also incorrectly states that the U.S. elections were on November 3, 2026, while the REFERENCE says they were on November 5, 2026. The ANSWER includes more information than the REFERENCE and introduces contradictions.",
+      "facts": 25,
+      "channels": [
+        "cypher"
+      ],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start\nRETURN ev.key AS event_key, ev.title AS title, ev.description AS description,\n       ev.page_count AS pages, ev.started_at AS started_at\nORDER BY ev.page_count DESC, ev.started_at DESC LIMIT 25",
+      "cypher_rows": 25,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.032,
+        "cypher": 1.547,
+        "vector": 0.046,
+        "events": 0.016,
+        "answer": 21.297,
+        "retrieve": 1.641,
+        "total": 22.938
+      },
+      "error": null
+    },
+    {
+      "id": "q02",
+      "type": "time",
+      "question": "What happened in the last two hours?",
+      "answerable": true,
+      "answered": true,
+      "answer": "In the last two hours, Ben Adams represented Norway in Eurovision 2022 [1], Nefertari's role as Ramesses II's consort was highlighted in new statues [2], legal research was edited [3], Princess Jalila of Hejaz died in 1955 after burns, and her family was murdered in 1958 [4], Brighton & Hove Albion FC completed their tenth consecutive Premier League season [5], Reverend Archie Emerson Mitchell disappeared after being captured by Vietcong in South Vietnam [6], Steve Davidson and Harold Greene died in 2026 [7], the Australian Professional Leagues rebranded the A-Leagues after financial issues [8], Barbara Bagshaw lost her Maine House seat in the 2026 election [9], Herbert Blomstedt died at 98 after a conducting career [10], the Wikipedia article on violence and autism was edited [11], Jake Humphrey hosts BBC Sport's Formula One coverage [12], Xi Jinping became leader of China [13], Twenty One Pilots released their third studio album Vessel [14], Jose Chameleone won multiple music awards in 2014 [15], Big Brother 2026 series 23 crowned Rochelle Rackham as winner [16], Awka North LGA in Anambra State, Nigeria, was described [17], the Battle of Midway in World War II was described [18], Seal covered Frank Sinatra's 'It Was a Very Good Year' in 2017 [19], El Salvador intervened in Haiti to rescue kidnapped aviation technicians [20], J. J. Walsh's role in Irish rebellion and fascist connections was described [21], the Country Club of Fairfield was founded by Oliver Gould Jennings in Connecticut [22], edits were made to the article on Francesco di Maria [23], Max Cullen was born in Wellington, New South Wales [24], and Puerto Rico was added to the list of flags by color combination [25].\n\nNote: The query results stop at the limit of 25 rows; there may be more.",
+      "entity_recall": null,
+      "event_recall": 0.8,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks about events in the last two hours. The REFERENCE lists 43 events between 21:22 UTC and 23:22 UTC on 2026-11-05, including specific Wikipedia edits. The ANSWER provides a long list of events, but many of them are not within the specified time frame (e.g., events from 1955, 1958, 2017, 2014, etc.), and some are not mentioned in the REFERENCE. The ANSWER also includes events outside the scope of the REFERENCE, which contradicts the REFERENCE's focus on the last two hours.",
+      "facts": 25,
+      "channels": [
+        "cypher"
+      ],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $week_start AND ev.started_at <= $now RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages, ev.started_at AS started_at ORDER BY ev.started_at DESC LIMIT 25",
+      "cypher_rows": 25,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.031,
+        "cypher": 1.437,
+        "vector": 0.047,
+        "answer": 10.11,
+        "retrieve": 1.515,
+        "total": 11.625
+      },
+      "error": null
+    },
+    {
+      "id": "q03",
+      "type": "time",
+      "question": "What happened between 20:00 and 21:00 UTC today?",
+      "answerable": true,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": 0.0,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks about events between 20:00 and 21:00 UTC today. The REFERENCE states there were 35 events in that time frame on 2026-11-05, listing several with specific times. The ANSWER incorrectly claims the knowledge graph has no facts, despite the REFERENCE providing detailed information.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start AND ev.started_at < $today_start + interval '1 hour' RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages, ev.started_at AS started_at ORDER BY ev.started_at DESC LIMIT 25",
+      "cypher_rows": null,
+      "seconds": {
+        "clock": 0.015,
+        "graph": 0.0,
+        "cypher": 1.547,
+        "vector": 0.031,
+        "events": 0.11,
+        "retrieve": 1.703,
+        "total": 1.703
+      },
+      "error": null
+    },
+    {
+      "id": "q04",
+      "type": "time",
+      "question": "What happened this afternoon (12:00 to 18:00 UTC)?",
+      "answerable": true,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": 0.0,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks about events that happened between 12:00 and 18:00 UTC. The REFERENCE states there were 62 events in that time frame on 2026-11-05, listing several with specific times. The ANSWER incorrectly claims the knowledge graph has no facts, which contradicts the REFERENCE.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start AND ev.started_at < $today_start + interval '12:00:00' RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages, ev.started_at AS started_at ORDER BY ev.page_count DESC, ev.started_at DESC LIMIT 25",
+      "cypher_rows": null,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.015,
+        "cypher": 1.5,
+        "vector": 0.032,
+        "events": 0.015,
+        "retrieve": 1.562,
+        "total": 1.562
+      },
+      "error": null
+    },
+    {
+      "id": "q05",
+      "type": "time",
+      "question": "What is the latest news?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The latest news includes Ben Adams representing Norway in Eurovision 2022 [1], Nefertari's role as Ramesses II's consort highlighted in new statues [2], and the Australian Professional Leagues rebranding the A-Leagues after financial issues [3]. Additionally, El Salvador intervened in Haiti to rescue kidnapped aviation technicians [4], and California's governor commuted death sentences for 548 inmates [5][6].\n\nNote: Only the 15 biggest events of the past week were looked up; there may be more.\n\nNote: The query results stop at the limit of 25 rows; there may be more.",
+      "entity_recall": null,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the latest news, and the REFERENCE lists several recent events. The ANSWER includes some of the events from the REFERENCE (Ben Adams, Nefertari's role) but also adds information not present in the REFERENCE (Australian Professional Leagues, El Salvador, California's governor). This introduces contradictions and incorrect information. The ANSWER also mentions a limit of 15 events, which is not mentioned in the REFERENCE.",
+      "facts": 37,
+      "channels": [
+        "cypher",
+        "graph"
+      ],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start ORDER BY ev.started_at DESC LIMIT 25 RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages, ev.started_at AS started_at\nLIMIT 25",
+      "cypher_rows": 25,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.016,
+        "cypher": 1.14,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 4.25,
+        "retrieve": 1.203,
+        "total": 5.453
+      },
+      "error": null
+    },
+    {
+      "id": "q06",
+      "type": "event",
+      "question": "Who is involved in the event \"2026 U.S. gubernatorial and House elections held\"?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The event '2026 U.S. gubernatorial and House elections held' involves the following entities: Mike DeWine [1], Amy Acton [1], Vivek Ramaswamy [1], Lisa McClain [1], House Republican Conference chair [1], Ohio [1], Democratic Party [1], Republican Party [1], United States [1], and several other events and places related to the elections [1][2][3][4][5][6].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the entities involved in the '2026 U.S. gubernatorial and House elections held' event. The REFERENCE lists multiple entities, including specific elections, candidates, parties, and places. The ANSWER correctly identifies several key entities from the REFERENCE, such as Mike DeWine, Amy Acton, Vivek Ramaswamy, Lisa McClain, Ohio, Democratic Party, Republican Party, and United States. It also mentions 'House Republican Conference chair' and 'several other events and places related to the elections,' which aligns with the REFERENCE's mention of additional events and entities. The answer is accurate and does not contradict the REFERENCE.",
+      "facts": 60,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event)\nWHERE toLower(ev.title) CONTAINS '2026 u.s. gubernatorial and house elections held'\nRETURN n.name AS name, n.type AS type, ev.key AS event_key, ev.title AS event_title\nLIMIT 25",
+      "cypher_rows": 16,
+      "seconds": {
+        "clock": 0.016,
+        "graph": 0.016,
+        "cypher": 1.859,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 5.406,
+        "retrieve": 2.344,
+        "total": 7.75
+      },
+      "error": null
+    },
+    {
+      "id": "q07",
+      "type": "event",
+      "question": "Who is involved in event 316?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The event 316 involves the Bangladesh national football team [1], Bangladesh Football Federation [1], South Asian Football Federation [2], Fortis [3], Bangladesh Football League [3], and Cox's Bazar [3]. Additionally, Mohammad Ibrahim [3] is involved in the event.",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks who is involved in event 316. The REFERENCE lists the entities involved as Bangladesh national football team, Bangladesh Football Federation, South Asian Football Federation, Fortis, Bangladesh Football League, Cox's Bazar, and Mohammad Ibrahim. The ANSWER correctly lists all these entities and matches the REFERENCE exactly.",
+      "facts": 12,
+      "channels": [
+        "graph"
+      ],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event) WHERE ev.key = '316' RETURN n.name AS name, n.type AS type, ev.key AS event_key, ev.title AS event_title LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.141,
+        "cypher": 1.843,
+        "vector": 0.063,
+        "events": 0.015,
+        "answer": 2.125,
+        "retrieve": 2.078,
+        "total": 4.203
+      },
+      "error": null
+    },
+    {
+      "id": "q08",
+      "type": "event",
+      "question": "Who is involved in the news story about the Wikipedia page \"2026 United States Senate election in Texas\"?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The news story about the Wikipedia page '2026 United States Senate election in Texas' involves the following individuals and entities: Ken Paxton [1], James Talarico [1], Scott Colom [2], Cindy Hyde-Smith [2], and Ted Cruz [3].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks about the entities involved in the news story related to the Wikipedia page '2026 United States Senate election in Texas'. The REFERENCE lists entities such as Ken Paxton, James Talarico, Scott Colom, Cindy Hyde-Smith, and mentions the 2026 United States Senate election in Texas. The ANSWER includes Ken Paxton, James Talarico, Scott Colom, and Cindy Hyde-Smith, which are correct, but it incorrectly adds Ted Cruz, who is not mentioned in the REFERENCE.",
+      "facts": 60,
+      "channels": [
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (ev:Event)-[:PART_OF]->(:Page {title: '2026 United States Senate election in Texas'})\nMATCH (n:Entity)-[:INVOLVED_IN]->(ev)\nRETURN n.name AS name, n.type AS type, ev.key AS event_key, ev.title AS event_title\nLIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.531,
+        "cypher": 1.844,
+        "vector": 0.047,
+        "events": 0.016,
+        "answer": 3.204,
+        "retrieve": 2.484,
+        "total": 5.688
+      },
+      "error": null
+    },
+    {
+      "id": "q09",
+      "type": "event",
+      "question": "Which people are involved in event 481?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The people involved in event 481 are Donald Trump [1], David Meyer [1], and Michael Heaney [1].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the people involved in event 481. The REFERENCE states that the people involved are Donald Trump, David Meyer, and Michael Heaney. The ANSWER correctly lists these three individuals.",
+      "facts": 10,
+      "channels": [
+        "graph"
+      ],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event) WHERE ev.key = '481' RETURN n.name AS name, n.type AS type, ev.key AS event_key, ev.title AS event_title LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.015,
+        "graph": 0.016,
+        "cypher": 1.25,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 4.094,
+        "retrieve": 1.343,
+        "total": 5.437
+      },
+      "error": null
+    },
+    {
+      "id": "q10",
+      "type": "event",
+      "question": "Which organizations are involved in the event \"Anti-CEC protests in India demand resignation of Chief Election Commissioner\"?",
+      "answerable": true,
+      "answered": true,
+      "answer": "Organizations involved in the event 'Anti-CEC protests in India demand resignation of Chief Election Commissioner' include: National Students' Union of India [1], Maharashtra Navnirman Sena [1], Indian Youth Congress [1], Election Commission of India [1], Indian National Congress [1], All India Students' Association [1], Shiv Sena [1], and Virat Garjana Morcha [1].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the organizations involved in the 'Anti-CEC protests in India demand resignation of Chief Election Commissioner' event. The REFERENCE lists seven organizations. The ANSWER includes all seven organizations from the REFERENCE and adds an extra one, 'Virat Garjana Morcha', which is not in the REFERENCE. This addition is incorrect as it contradicts the REFERENCE.",
+      "facts": 48,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event)\nWHERE toLower(ev.title) CONTAINS 'anti-cec protests in india demand resignation of chief election commissioner'\nRETURN n.name AS name, n.type AS type, ev.key AS event_key, ev.title AS event_title\nLIMIT 25",
+      "cypher_rows": 15,
+      "seconds": {
+        "clock": 0.031,
+        "graph": 0.61,
+        "cypher": 1.531,
+        "vector": 0.078,
+        "events": 0.0,
+        "answer": 3.14,
+        "retrieve": 2.266,
+        "total": 5.406
+      },
+      "error": null
+    },
+    {
+      "id": "q11",
+      "type": "connection",
+      "question": "How are Democratic Party and Amy Acton connected?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The Democratic Party and Amy Acton are connected through their involvement in the event \"2026 U.S. gubernatorial and House elections held\" [1][2]. Amy Acton was involved in this event [2]. The Democratic Party was involved in this event [2].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 0.6666666666666666
+      },
+      "judge_reason": "The question asks about the connection between the Democratic Party and Amy Acton. The reference states they are both involved in the event '2026 U.S. gubernatorial and House elections held'. The answer correctly identifies this shared involvement as their connection, and it aligns with the reference.",
+      "facts": 18,
+      "channels": [
+        "graph"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]-(m:Entity) WHERE (toLower(n.name) CONTAINS 'democratic party' OR toLower(m.name) CONTAINS 'democratic party') AND (toLower(n.name) CONTAINS 'amy acton' OR toLower(m.name) CONTAINS 'amy acton') RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.078,
+        "cypher": 2.516,
+        "vector": 0.031,
+        "answer": 3.532,
+        "retrieve": 2.625,
+        "total": 6.157
+      },
+      "error": null
+    },
+    {
+      "id": "q12",
+      "type": "connection",
+      "question": "What is the connection between Bangladesh Football Federation and Fortis?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The connection between Bangladesh Football Federation and Fortis is through their involvement with the Bangladesh national football team [1][2]. Bangladesh Football Federation controls the Bangladesh national football team [1]. The Bangladesh national football team plays for Fortis in the 2026 SAFF Championship [2].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the connection between Bangladesh Football Federation and Fortis. The REFERENCE states they are both involved in the event 'Bangladesh national team plays in 2026 SAFF Championship' and provides specific connections through the Bangladesh national football team. The ANSWER correctly identifies the connection through the Bangladesh national football team and explains the roles of each entity, aligning with the REFERENCE.",
+      "facts": 31,
+      "channels": [
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]-(m:Entity) WHERE (toLower(n.name) CONTAINS 'bangladesh football federation' OR toLower(m.name) CONTAINS 'bangladesh football federation') AND (toLower(n.name) CONTAINS 'fortis' OR toLower(m.name) CONTAINS 'fortis') RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.015,
+        "graph": 0.063,
+        "cypher": 2.562,
+        "vector": 0.094,
+        "events": 0.0,
+        "answer": 3.641,
+        "retrieve": 2.843,
+        "total": 6.484
+      },
+      "error": null
+    },
+    {
+      "id": "q13",
+      "type": "connection",
+      "question": "How is James Talarico related to 2026 United States Senate election in Texas?",
+      "answerable": true,
+      "answered": true,
+      "answer": "James Talarico is related to the 2026 United States Senate election in Texas [1]. He was part of the 2026 United States Senate election in Texas [1]. James Talarico defeated Ken Paxton in the election [1].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks about James Talarico's relation to the 2026 United States Senate election in Texas. The REFERENCE states that he is 'part of' the election in the context of a specific event. The ANSWER correctly states that he is related and was part of the election, but it adds information (defeated Ken Paxton) not present in the REFERENCE, which is not mentioned in the graph. This addition contradicts the REFERENCE's limited information.",
+      "facts": 60,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]-(m:Entity) WHERE (toLower(n.name) CONTAINS 'james talarico') AND (toLower(m.name) CONTAINS '2026 united states senate election in texas') RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 1,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.078,
+        "cypher": 2.281,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 4.484,
+        "retrieve": 2.469,
+        "total": 6.953
+      },
+      "error": null
+    },
+    {
+      "id": "q14",
+      "type": "connection",
+      "question": "What links Richard Allen Davis and California?",
+      "answerable": true,
+      "answered": true,
+      "answer": "Richard Allen Davis is imprisoned in California [1]. Additionally, California governor Gavin Newsom commuted death sentences for 548 inmates, including Richard Allen Davis, on November 5, 2026 [1][2][3].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 0.5,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for what links Richard Allen Davis and California. The REFERENCE states that Richard Allen Davis is imprisoned in California. The ANSWER correctly states this link but also adds information about Gavin Newsom commuting death sentences, which is not mentioned in the REFERENCE. The ANSWER does not contradict the REFERENCE but includes extra details not present in it.",
+      "facts": 18,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]-(m:Entity) WHERE (toLower(n.name) CONTAINS 'richard allen davis' OR toLower(m.name) CONTAINS 'richard allen davis') AND (toLower(n.name) CONTAINS 'california' OR toLower(m.name) CONTAINS 'california') RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 2,
+      "seconds": {
+        "clock": 0.016,
+        "graph": 0.125,
+        "cypher": 2.672,
+        "vector": 0.046,
+        "events": 0.0,
+        "answer": 1.922,
+        "retrieve": 2.891,
+        "total": 4.813
+      },
+      "error": null
+    },
+    {
+      "id": "q15",
+      "type": "connection",
+      "question": "How are Brighton & Hove Albion F.C. and AFC Bournemouth connected?",
+      "answerable": true,
+      "answered": true,
+      "answer": "Brighton & Hove Albion F.C. and AFC Bournemouth are connected through their participation in the Premier League [1][2]. Both clubs also participate in the FA Cup [1][2]. Brighton & Hove Albion F.C. participates in the UEFA Conference League, while AFC Bournemouth participates in the UEFA Europa League [1][2].",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks about the connection between Brighton & Hove Albion F.C. and AFC Bournemouth. The REFERENCE states they are connected through EFL Cup, FA Cup, and Premier League participation. The ANSWER correctly mentions their Premier League and FA Cup participation but adds incorrect information about UEFA competitions not mentioned in the REFERENCE.",
+      "facts": 36,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]-(m:Entity) WHERE (toLower(n.name) CONTAINS 'brighton & hove albion f.c.' OR toLower(n.name) CONTAINS 'afc bournemouth') AND (toLower(m.name) CONTAINS 'brighton & hove albion f.c.' OR toLower(m.name) CONTAINS 'afc bournemouth') RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 2,
+      "seconds": {
+        "clock": 0.015,
+        "graph": 0.063,
+        "cypher": 2.89,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 5.718,
+        "retrieve": 3.078,
+        "total": 8.796
+      },
+      "error": null
+    },
+    {
+      "id": "q16",
+      "type": "aggregation",
+      "question": "Which places appear in at least three events today?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The places that appear in at least three events today are: United States [1][2][3], United States Senate [4][5][6], United States House of Representatives [7][8][9], England [10][11][12], and Texas [5][13][14].",
+      "entity_recall": 1.0,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for places that appear in at least three events today. The REFERENCE lists five places with the required number of events. The ANSWER correctly lists all the places from the REFERENCE, matching the exact names and quantities.",
+      "facts": 5,
+      "channels": [
+        "cypher"
+      ],
+      "cypher": "MATCH (n:Entity {type: 'place'})-[:INVOLVED_IN]->(ev:Event)\nWHERE ev.started_at >= $today_start\nWITH n, collect(DISTINCT ev) AS events\nWHERE size(events) >= 3\nRETURN n.name AS place, size(events) AS event_count,\n       [e IN events | e.key] AS event_keys, [e IN events | e.title] AS event_titles\nORDER BY event_count DESC LIMIT 25",
+      "cypher_rows": 5,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.016,
+        "cypher": 2.313,
+        "vector": 0.046,
+        "answer": 1.579,
+        "retrieve": 2.375,
+        "total": 3.954
+      },
+      "error": null
+    },
+    {
+      "id": "q17",
+      "type": "aggregation",
+      "question": "How many events started today?",
+      "answerable": true,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks how many events started today. The REFERENCE states that 233 events started on 2026-11-05. The ANSWER incorrectly claims the knowledge graph has no facts about this question, contradicting the REFERENCE.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start AND ev.started_at < date($today_start) + duration({days:1}) RETURN count(DISTINCT ev) AS event_count LIMIT 1",
+      "cypher_rows": null,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.016,
+        "cypher": 0.969,
+        "vector": 0.046,
+        "retrieve": 1.031,
+        "total": 1.031
+      },
+      "error": null
+    },
+    {
+      "id": "q18",
+      "type": "aggregation",
+      "question": "Which event touched the most Wikipedia pages?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The event that touched the most Wikipedia pages is the 2026 U.S. gubernatorial and House elections, which touched 16 pages [1].\n\nNote: The query results stop at the limit of 25 rows; there may be more.",
+      "entity_recall": null,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks which event touched the most Wikipedia pages. The REFERENCE states that the '2026 U.S. gubernatorial and House elections held' touched the most pages (16), with the next biggest touching 5. The ANSWER correctly identifies this event and the number of pages it touched, matching the REFERENCE.",
+      "facts": 55,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (ev:Event) RETURN ev.key AS event_key, ev.title AS title, ev.page_count AS pages ORDER BY ev.page_count DESC LIMIT 25",
+      "cypher_rows": 25,
+      "seconds": {
+        "clock": 0.016,
+        "graph": 0.016,
+        "cypher": 0.812,
+        "vector": 0.047,
+        "events": 0.0,
+        "answer": 10.359,
+        "retrieve": 0.954,
+        "total": 11.313
+      },
+      "error": null
+    },
+    {
+      "id": "q19",
+      "type": "aggregation",
+      "question": "Which person is involved in the most events?",
+      "answerable": true,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": 0.0,
+      "event_recall": 0.0,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks which person is involved in the most events. The REFERENCE states that Neha Bora is involved in 3 events, and others have 2. The ANSWER incorrectly claims the knowledge graph has no facts about this question, contradicting the REFERENCE.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event)\nWITH n, count(DISTINCT ev) AS event_count\nWHERE n.type = 'person'\nORDER BY event_count DESC\nLIMIT 25\nRETURN n.name AS person, event_count AS event_count, collect(DISTINCT ev.key) AS event_keys\nLIMIT 25",
+      "cypher_rows": null,
+      "seconds": {
+        "clock": 0.016,
+        "graph": 0.015,
+        "cypher": 1.578,
+        "vector": 0.047,
+        "retrieve": 1.656,
+        "total": 1.656
+      },
+      "error": null
+    },
+    {
+      "id": "q20",
+      "type": "aggregation",
+      "question": "How many events is Democratic Party involved in?",
+      "answerable": true,
+      "answered": true,
+      "answer": "The Democratic Party is involved in 11 events: [1][2][3][4][5][6][7][8][9][10]",
+      "entity_recall": 1.0,
+      "event_recall": 1.0,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks how many events the Democratic Party is involved in. The REFERENCE states there are 9 events. The ANSWER claims there are 11 events, which contradicts the REFERENCE.",
+      "facts": 60,
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event)\nWHERE toLower(n.name) CONTAINS 'democratic party'\nRETURN ev.key AS event_key, ev.title AS event_title\nLIMIT 25",
+      "cypher_rows": 14,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.031,
+        "cypher": 1.094,
+        "vector": 0.031,
+        "events": 0.016,
+        "answer": 2.766,
+        "retrieve": 1.203,
+        "total": 3.969
+      },
+      "error": null
+    },
+    {
+      "id": "q21",
+      "type": "unanswerable",
+      "question": "What did the Federal Reserve decide about interest rates today?",
+      "answerable": false,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks about the Federal Reserve's decision on interest rates. The REFERENCE states the graph has no facts about this topic. The ANSWER correctly refuses to answer, acknowledging the lack of information in the graph.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start AND toLower(ev.title) CONTAINS 'federal reserve' OR toLower(ev.description) CONTAINS 'federal reserve' RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages, ev.started_at AS started_at ORDER BY ev.page_count DESC, ev.started_at DESC LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.015,
+        "cypher": 2.11,
+        "vector": 0.046,
+        "retrieve": 2.171,
+        "total": 2.171
+      },
+      "error": null
+    },
+    {
+      "id": "q22",
+      "type": "unanswerable",
+      "question": "Who won the Eurovision Song Contest 2026?",
+      "answerable": false,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The question asks for the winner of the Eurovision Song Contest 2026. The reference states that the graph has no facts about this event. The answer correctly states that the knowledge graph has no facts about this question.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]->(m:Entity)\nWHERE toLower(r.relation) CONTAINS 'won' AND toLower(m.name) CONTAINS 'eurovision song contest 2026'\nRETURN startNode(r).name AS winner, r.relation AS relation, endNode(r).name AS event, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision\nLIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.016,
+        "cypher": 2.0,
+        "vector": 0.047,
+        "retrieve": 2.063,
+        "total": 2.063
+      },
+      "error": null
+    },
+    {
+      "id": "q23",
+      "type": "unanswerable",
+      "question": "What happened yesterday?",
+      "answerable": false,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks about events from yesterday. The REFERENCE states the graph has no events from 2026-11-04. The ANSWER correctly refuses to answer as the graph has no facts for this question.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $week_start AND ev.started_at < $today_start\nRETURN ev.key AS event_key, ev.title AS title, ev.description AS description,\n       ev.page_count AS pages, ev.started_at AS started_at\nORDER BY ev.page_count DESC, ev.started_at DESC LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.015,
+        "cypher": 1.453,
+        "vector": 0.032,
+        "retrieve": 1.5,
+        "total": 1.5
+      },
+      "error": null
+    },
+    {
+      "id": "q24",
+      "type": "unanswerable",
+      "question": "Who was the chief executive of Ueno Bank?",
+      "answerable": false,
+      "answered": true,
+      "answer": "Santiago Peña was the president of Paraguay [1].",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 0.0,
+        "ollama:qwen3:4b": 0.0
+      },
+      "faithfulness": {
+        "ollama:qwen3:8b": 1.0,
+        "ollama:qwen3:4b": 1.0
+      },
+      "judge_reason": "The QUESTION asks for the chief executive of Ueno Bank. The REFERENCE states that the graph has no fact about its chief executive. The ANSWER provides information about Santiago Peña being the president of Paraguay, which is unrelated to the question and does not address the lack of information in the graph.",
+      "facts": 46,
+      "channels": [
+        "graph",
+        "vector"
+      ],
+      "cypher": "MATCH (n:Entity)-[r:RELATED_TO]->(m:Entity) WHERE toLower(n.name) CONTAINS 'ueno bank' AND r.relation = 'chief executive of' RETURN startNode(r).name AS subject, r.relation AS relation, endNode(r).name AS object, r.event_key AS event_key, r.source_title AS source_title, r.source_revision AS source_revision LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.031,
+        "cypher": 1.75,
+        "vector": 0.031,
+        "events": 0.016,
+        "answer": 2.656,
+        "retrieve": 1.859,
+        "total": 4.515
+      },
+      "error": null
+    },
+    {
+      "id": "q25",
+      "type": "unanswerable",
+      "question": "What did Apple announce at its product event today?",
+      "answerable": false,
+      "answered": false,
+      "answer": "The knowledge graph has no facts about this question.",
+      "entity_recall": null,
+      "event_recall": null,
+      "correctness": {
+        "ollama:qwen3:8b": 2.0,
+        "ollama:qwen3:4b": 2.0
+      },
+      "faithfulness": {},
+      "judge_reason": "The QUESTION asks what Apple announced at its product event today. The REFERENCE states the graph has no facts about Apple or a product event. The ANSWER correctly states that the knowledge graph has no facts about this question.",
+      "facts": 0,
+      "channels": [],
+      "cypher": "MATCH (ev:Event) WHERE ev.started_at >= $today_start AND toLower(ev.title) CONTAINS 'apple' RETURN ev.key AS event_key, ev.title AS title, ev.description AS description, ev.page_count AS pages ORDER BY ev.page_count DESC LIMIT 25",
+      "cypher_rows": 0,
+      "seconds": {
+        "clock": 0.0,
+        "graph": 0.031,
+        "cypher": 1.438,
+        "vector": 0.047,
+        "retrieve": 1.516,
+        "total": 1.516
+      },
+      "error": null
+    }
+  ]
+}

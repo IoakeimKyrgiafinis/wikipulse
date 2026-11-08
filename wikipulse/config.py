@@ -245,6 +245,15 @@ class Settings(BaseSettings):
     # Most facts handed to the answering model (keeps the prompt inside OLLAMA_NUM_CTX).
     qa_max_facts: int = Field(default=60, ge=1)
 
+    # --- Stage 5: question-answering evaluation (wikipulse.eval.qa) ---
+    # The frozen graph snapshot the evaluation asks (the `neo4j-eval` service of
+    # docker-compose.yml, filled by `scripts/snapshot_graph.py restore`). Same user and
+    # password as NEO4J_USER / NEO4J_PASSWORD.
+    eval_qa_neo4j_uri: str = "bolt://localhost:7688"
+    # Judge models, as comma-separated `backend:model` settings. The first one gives the
+    # report's scores; every further one judges the same answers, for judge agreement.
+    eval_qa_judges: str = "ollama:qwen3:8b,ollama:qwen3:4b"
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:
