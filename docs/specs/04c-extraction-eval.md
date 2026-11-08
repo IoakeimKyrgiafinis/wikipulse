@@ -1,6 +1,6 @@
 # Spec 04c: Extraction evaluation
 
-Status: ready
+Status: done
 Stage: 4. Knowledge graph
 Owner: agent
 Depends on: 04b

@@ -43,7 +43,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 03b | Event grouping | done |
 | 04a | LLM client | done |
 | 04b | Knowledge graph extraction | done |
-| 04c | Extraction evaluation | ready |
+| 04c | Extraction evaluation | done |
 | 05a | GraphRAG retrieval and answering | ready |
 | 05b | Question-answering evals | ready |
 | 05c | MCP server | ready |
