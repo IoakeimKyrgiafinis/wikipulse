@@ -1,6 +1,6 @@
 # Spec 05e: API and live web page
 
-Status: ready
+Status: done
 Stage: 5. GraphRAG, MCP, agent
 Owner: agent
 Depends on: 05a, 05d
