@@ -304,6 +304,29 @@ class Settings(BaseSettings):
     # Questions to /ask run one at a time; more than this many waiting get HTTP 429.
     api_max_waiting_questions: int = Field(default=3, ge=1)
 
+    # --- Stage 6: data lake (wikipulse.lake) ---
+    # S3-compatible object storage (the `rustfs` service of docker-compose.yml). On AWS,
+    # point S3_ENDPOINT at https://s3.<region>.amazonaws.com; nothing else changes.
+    s3_endpoint: str = "http://localhost:9000"
+    s3_bucket: str = "wikipulse-lake"
+    s3_region: str = "us-east-1"
+    s3_access_key: SecretStr = SecretStr("wikipulse")
+    s3_secret_key: SecretStr = SecretStr("wikipulse-lake")
+    # Key prefix (the "table") of the edit archive inside the bucket.
+    lake_prefix: str = "edits"
+    # Consumer group the archiver reads the edit stream with (its own position, apart
+    # from the detector's).
+    lake_group: str = "lake:archive"
+    # How often (wall-clock seconds) buffered edits are written to the lake and
+    # acknowledged, and how many buffered edits force a write earlier.
+    lake_flush_interval_s: float = Field(default=300, gt=0)
+    lake_max_buffer_rows: int = Field(default=50_000, ge=1)
+    # Only one archiver may write to a lake at a time (a Redis lock, renewed while it
+    # runs). After a hard kill the lock expires by itself after this many seconds, so a
+    # restarted archiver waits at most this long. Must be well above the S3 timeouts'
+    # worst case for one hour write to stay meaningful; 10 s is the minimum.
+    lake_lock_ttl_s: float = Field(default=60, ge=10)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

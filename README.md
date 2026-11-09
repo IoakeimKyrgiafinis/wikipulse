@@ -15,7 +15,7 @@ This is an early skeleton; see `docs/ROADMAP.md` for the plan.
    - PowerShell: `Copy-Item .env.example .env`
    - bash: `cp .env.example .env`
 3. Install Python and the dependencies: `uv sync`
-4. Start Redis, Postgres and Neo4j: `docker compose up -d` (check with `docker compose ps`)
+4. Start Redis, Postgres, Neo4j and the object store: `docker compose up -d` (check with `docker compose ps`)
 5. Check that the services are reachable: `uv run python -m wikipulse.check`
 6. Run the tests: `uv run pytest`
 
@@ -211,3 +211,17 @@ Routes: `GET /events`, `GET /events/{event_id}`, `POST /ask`, `GET /health`, and
 WebSocket `/ws/events` (a snapshot on connect, then every new or changed event). The API
 documentation is at http://127.0.0.1:8000/docs (Swagger UI, which loads its scripts from
 a CDN; `/openapi.json` works offline).
+
+## Stage 6: data lake
+
+Every kept edit is archived as hourly Parquet files in S3-compatible object storage (the
+`rustfs` service of `docker-compose.yml`; web console at http://localhost:9001, login
+`S3_ACCESS_KEY` / `S3_SECRET_KEY`): `<S3_BUCKET>/edits/year=YYYY/month=MM/day=DD/hour=HH/part-0.parquet`.
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.lake.archive` | Archiver: reads `wiki:edits` with its own consumer group (`lake:archive`), buffers edits by hour of event time, writes them to the lake every `LAKE_FLUSH_INTERVAL_S` seconds and only then acknowledges them. Ctrl+C writes what is buffered. `--stream-key`, `--group`, `--prefix`, `--exit-when-idle`, `--reset`. |
+| `uv run python -m wikipulse.lake.query "<SQL>"` | Ad-hoc SQL (DuckDB) over the archive, which is the table `edits` (with the partition columns `year`, `month`, `day`, `hour`). `--prefix`, `--csv`, `--max-rows`. |
+| `uv run python scripts/fill_stream.py --recording <file> --stream-key <key>` | Bulk-loads a recording's kept edits into a stream of your own (much faster than replay), e.g. to archive recorded history. |
+| `uv run python scripts/lake_crash_test.py --recording <file>` | Kills the archiver hard three times mid-hour and checks the archive has no gaps or duplicates. |
+| `uv run python scripts/lake_size_report.py` | One hour as Parquet vs. the same edits as JSON (sizes and query time); writes `evals/results/<today>_lake-size.md`. |
