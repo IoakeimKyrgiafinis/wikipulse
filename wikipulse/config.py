@@ -355,6 +355,19 @@ class Settings(BaseSettings):
     jobs_day_drop_ratio: float = Field(default=0.5, gt=0, lt=1)
     jobs_baseline_days: int = Field(default=7, ge=1)
 
+    # --- Stage 7: training data (wikipulse.ml) ---
+    # Features of a spike use only what is known this many minutes after it started.
+    feature_window_min: float = Field(default=10, gt=0)
+    # Lake prefix the dataset reads edits from, and where datasets go in S3_BUCKET.
+    ml_lake_prefix: str = "history/edits"
+    ml_dataset_prefix: str = "datasets"
+    # Candidate spikes: the detector with these changes to the DETECT_* thresholds.
+    ml_candidate_detector: str = "min_edits=4,min_editors=3,long_min_edits=8,long_min_editors=3"
+    # Warm-up hours at the start of the lake (no spikes taken), and the held-out days.
+    ml_warmup_hours: float = Field(default=24, ge=0)
+    ml_valid_days: int = Field(default=1, ge=0)
+    ml_test_days: int = Field(default=2, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

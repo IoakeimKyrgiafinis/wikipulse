@@ -82,9 +82,15 @@ class WikiClient:
         params: dict[str, Any] | None = None,
         label: str = "response",
         is_fresh: Callable[[datetime], bool] = always_fresh,
+        cache: bool = True,
     ) -> dict[str, Any]:
-        """The JSON body of `GET url?params`, from the cache when it is fresh enough."""
+        """The JSON body of `GET url?params`, from the cache when it is fresh enough.
+
+        `cache=False` skips the file cache, for callers that keep their own (smaller) one.
+        """
         params = params or {}
+        if not cache:
+            return self._fetch(url, params)
         path = self.cache_dir / cache_file_name(label, url, params)
         cached = self._read_cache(path)
         if cached is not None and is_fresh(cached["fetched_at"]):
