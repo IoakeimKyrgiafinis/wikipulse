@@ -10,17 +10,23 @@ What `build` does, step by step:
 2. **Spikes.** Runs two spike detectors over those edits: the *candidates* (thresholds
    `ML_CANDIDATE_DETECTOR`, looser than the live defaults) and the live *default* rule.
    Both runs are stored in Postgres (run ids `07a-candidates` and `07a-default` by
-   default, replaced on every build) so `wikipulse.eval.label` can label them.
-   Spikes in the first `ML_WARMUP_HOURS` (cold baselines) or whose feature window runs
-   past the data are left out.
-3. **Features** (`features.py`): from the page's edits up to the cutoff (`started_at +
+   default, replaced on every build, never on a dry run) so `wikipulse.eval.label` can
+   label them. Spikes in the first `ML_WARMUP_HOURS` (cold baselines) or whose feature
+   window runs past the data are left out.
+3. **Split by time**: the last `ML_TEST_DAYS` days are the test set, the `ML_VALID_DAYS`
+   before them validation, everything earlier training. Never random. At each boundary
+   the build *purges* spikes still running when the next split begins and spikes whose
+   page spikes again in a later split within `ML_SPLIT_GAP_HOURS` (`purge_boundaries`).
+4. **Features** (`features.py`): from the page's edits up to the cutoff (`started_at +
    FEATURE_WINDOW_MIN`) and the page's revision at the cutoff (`pages.py`, MediaWiki API,
    cached). `check_no_leakage` runs on every row.
-4. **Labels.** The *weak label*: the article is linked from the "Current events" portal
-   within 48 hours of the spike (spec 02b's matching). The *02b label*: an LLM or human
-   label from `evals/labels/spike_labels.jsonl` covering the spike, where one exists.
-5. **Split by time**: the last `ML_TEST_DAYS` days are the test set, the `ML_VALID_DAYS`
-   before them validation, everything earlier training. Never random.
+5. **Labels, as of a moment.** Each split's labels use only evidence from before the next
+   split begins (the test split: before the build's *as-of*, by default the end of the
+   data). The *weak label*: the article is linked from the "Current events" portal within
+   48 hours of the spike (spec 02b's matching); unknown (null) when it isn't linked and
+   the portal days aren't final yet. The *02b label*: an LLM or human label from
+   `evals/labels/spike_labels.jsonl` covering the spike, where one exists. `label`: 1 if
+   on the portal, else the 02b news / not news label, else unknown (null).
 6. **Version.** Writes `train/valid/test.parquet` and `manifest.json` (date range, rows,
    label balance, feature list, git commit, file hashes) to
    `<S3_BUCKET>/<ML_DATASET_PREFIX>/v<n>/`, the next free version number.
@@ -35,7 +41,7 @@ import math
 import sys
 import time
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -49,7 +55,7 @@ import pyarrow.parquet as pq
 from wikipulse.config import DetectorConfig, Settings, get_settings
 from wikipulse.detect.detector import SpikeDetector, SpikeRecord
 from wikipulse.eval.ground_truth import FINAL_AFTER, PortalDay
-from wikipulse.eval.metrics import Label, match_spikes, pick_label, spike_end
+from wikipulse.eval.metrics import Label, day_start, match_spikes, pick_label, spike_end
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
 from wikipulse.ml.features import (
@@ -194,20 +200,27 @@ def revision_at(edits: Sequence[PageEdit], cutoff: datetime) -> int | None:
     return max(known, key=lambda e: e.time).rev_new if known else None
 
 
-# --- 3 and 4. rows: features and labels ---------------------------------------------
+# --- 4 and 5. rows: features and labels ---------------------------------------------
 
 
-def portal_days_of(spike: SpikeRecord, portal: Sequence[PortalDay]) -> list[date]:
-    """The portal days within 48 h of the spike that link its article (the weak label)."""
-    return match_spikes([spike], portal)[0].portal_days
+def portal_days_of(spike: SpikeRecord, portal: Sequence[PortalDay], as_of: datetime) -> list[date]:
+    """The portal days within 48 h of the spike that link its article, begun before `as_of`.
+
+    A portal day's page is taken to belong to its day: a page whose day starts at or after
+    `as_of` is evidence from later than the label may use.
+    """
+    days = match_spikes([spike], portal)[0].portal_days
+    return [day for day in days if day_start(day) < as_of]
 
 
-def portal_final(spike: SpikeRecord, portal: Sequence[PortalDay], built_at: datetime) -> bool:
-    """Were all portal pages the weak label depends on complete when the data was built?
+def portal_final(spike: SpikeRecord, portal: Sequence[PortalDay], as_of: datetime) -> bool:
+    """Were all portal pages the weak label depends on complete at `as_of`?
 
     The weak label looks at portal days up to 48 h after the spike. A day whose page is
-    missing or younger than `FINAL_AFTER` (3 days) may still gain links, so a negative
-    weak label on such a spike is provisional.
+    missing or younger than `FINAL_AFTER` (3 days) at `as_of` may still gain links, so
+    "not on the portal" isn't known yet for such a spike. `as_of` is a moment of the data
+    (the end of the data, a split boundary, or an explicit `--as-of`), never the wall
+    clock, so a rebuild gives the same answer.
     """
     first = (spike.first_edit_at - timedelta(hours=48)).astimezone(UTC).date()
     last = (spike_end(spike) + timedelta(hours=48)).astimezone(UTC).date()
@@ -215,16 +228,36 @@ def portal_final(spike: SpikeRecord, portal: Sequence[PortalDay], built_at: date
     day = first
     while day <= last:
         page = by_day.get(day)
-        settled = datetime(day.year, day.month, day.day, tzinfo=UTC) + FINAL_AFTER <= built_at
-        if page is None or page.missing or not settled:
+        if page is None or page.missing or day_start(day) + FINAL_AFTER > as_of:
             return False
         day += timedelta(days=1)
     return True
 
 
-def label_of(spike: SpikeRecord, labels: Sequence[Label]) -> Label | None:
-    """The 02b label covering the spike (a human label beats an LLM label)."""
-    return pick_label([label for label in labels if label.covers(spike)])
+def weak_label_of(
+    spike: SpikeRecord, portal: Sequence[PortalDay], as_of: datetime
+) -> tuple[bool | None, list[date], bool]:
+    """(weak label, the portal days linking the article, whether the portal days are final).
+
+    True: linked from a portal day before `as_of` (a link is near-certain news even on a
+    page still being written). False: not linked, and every portal day it depends on was
+    final at `as_of`. None: not linked *yet*; the answer isn't known at `as_of`.
+    """
+    days = portal_days_of(spike, portal, as_of)
+    final = portal_final(spike, portal, as_of)
+    if days:
+        return True, days, final
+    return (False if final else None), days, final
+
+
+def label_of(spike: SpikeRecord, labels: Sequence[Label], as_of: datetime) -> Label | None:
+    """The 02b label covering the spike (a human label beats an LLM label).
+
+    Only labels of bursts that ended before `as_of` count: the labeler read the burst's
+    edits up to its end, so a later end would put data of a later split into the label.
+    """
+    covering = [label for label in labels if label.covers(spike) and label.end_at < as_of]
+    return pick_label(covering)
 
 
 def rule_fired(spike: SpikeRecord, rule_spikes: Sequence[SpikeRecord], cutoff: datetime) -> bool:
@@ -242,17 +275,21 @@ def rule_fired(spike: SpikeRecord, rule_spikes: Sequence[SpikeRecord], cutoff: d
     return False
 
 
-def combined_label(weak: bool, label: Label | None) -> tuple[int, str]:
-    """The best available label (1 = news) and where it came from.
+UNKNOWN = "unknown"  # label_source of a row without a label
+
+
+def combined_label(weak: bool | None, label: Label | None) -> tuple[int | None, str]:
+    """The best available label (1 = news, 0 = not news, None = unknown) and its source.
 
     A portal link is near-certain news, so it wins. Otherwise a news / not news label
-    (human, else LLM) decides. Otherwise the weak negative: not on the portal.
+    (human, else LLM) decides. Otherwise the label is unknown: "not on the portal" is not
+    "not news" (the LLM calls about half of those spikes news), so it never makes a 0.
     """
     if weak:
         return 1, "portal"
     if label is not None and label.label in ("news", "not news"):
         return int(label.label == "news"), label.labeler
-    return 0, "not-on-portal"
+    return None, UNKNOWN
 
 
 @dataclass
@@ -265,19 +302,22 @@ class RowSources:
     portal: list[PortalDay]
     labels: list[Label]
     window_min: float
-    built_at: datetime
 
 
-def build_row(spike: SpikeRecord, src: RowSources) -> dict[str, Any]:
-    """One dataset row: identifiers, the features (leakage-checked), labels."""
+def build_row(spike: SpikeRecord, src: RowSources, label_as_of: datetime) -> dict[str, Any]:
+    """One dataset row: identifiers, the features (leakage-checked), labels as of a moment.
+
+    `label_as_of` bounds the labels' evidence: the start of the next split (or the
+    build's as-of for the last split), so no label uses data from a later split.
+    """
     window = window_of(spike, src.window_min)
     edits = src.edits.get(spike.title, [])
     revision = revision_at(edits, window.cutoff)
     page = src.snapshots.get(revision) if revision is not None else None
     features = check_no_leakage(window, edits, page)
-    portal_days = portal_days_of(spike, src.portal)
-    label = label_of(spike, src.labels)
-    value, source = combined_label(bool(portal_days), label)
+    weak, portal_days, final = weak_label_of(spike, src.portal, label_as_of)
+    label = label_of(spike, src.labels, label_as_of)
+    value, source = combined_label(weak, label)
     started = spike.started_at.astimezone(UTC)
     return {
         "spike_id": f"{spike.title}|{started.isoformat()}",
@@ -292,27 +332,30 @@ def build_row(spike: SpikeRecord, src: RowSources) -> dict[str, Any]:
         "default_rule_fired": rule_fired(
             spike, src.rule_spikes.get(spike.title, []), window.cutoff
         ),
-        "weak_label": bool(portal_days),
-        "weak_label_final": portal_final(spike, src.portal, src.built_at),
+        "weak_label": weak,
+        "weak_label_final": final,
         "portal_days": ",".join(d.isoformat() for d in portal_days),
         "label_02b": label.label if label else None,
         "label_02b_labeler": label.labeler if label else None,
         "label_02b_model": label.model if label else None,
         "label": value,
         "label_source": source,
+        "label_as_of": label_as_of.astimezone(UTC),
     }
 
 
-def build_rows(spikes: Sequence[SpikeRecord], src: RowSources) -> list[dict[str, Any]]:
+def build_rows(
+    spikes: Sequence[SpikeRecord], src: RowSources, label_as_of: Callable[[SpikeRecord], datetime]
+) -> list[dict[str, Any]]:
     rows = []
     for number, spike in enumerate(spikes, start=1):
-        rows.append(build_row(spike, src))
+        rows.append(build_row(spike, src, label_as_of(spike)))
         if number % 500 == 0:
             logger.info("Features: %d of %d spikes", number, len(spikes))
     return rows
 
 
-# --- 5. split by time -----------------------------------------------------------------
+# --- 3. split by time -----------------------------------------------------------------
 
 
 def assign_splits(days: Iterable[str], valid_days: int, test_days: int) -> dict[str, str]:
@@ -335,10 +378,72 @@ def assign_splits(days: Iterable[str], valid_days: int, test_days: int) -> dict[
     }
 
 
+def day_of(spike: SpikeRecord) -> str:
+    """The UTC day a spike belongs to (its start), as the rows store it."""
+    return spike.started_at.astimezone(UTC).date().isoformat()
+
+
+def split_label_as_of(split_of: dict[str, str], as_of: datetime) -> dict[str, datetime]:
+    """Per split, the moment its labels' evidence must come from before.
+
+    The start (midnight UTC) of the next split that has days, and for the last split the
+    build's `as_of`. So a training label never uses portal pages or edits of the
+    validation or test days, and a validation label none of the test days.
+    """
+    starts = {}
+    for day, split in split_of.items():
+        moment = day_start(date.fromisoformat(day))
+        starts[split] = min(starts.get(split, moment), moment)
+    result = {}
+    for i, split in enumerate(SPLITS):
+        later = [starts[name] for name in SPLITS[i + 1 :] if name in starts]
+        result[split] = min([as_of, *later])
+    return result
+
+
+def purge_boundaries(
+    spikes: Sequence[SpikeRecord],
+    split_of: dict[str, str],
+    label_as_of: dict[str, datetime],
+    gap: timedelta,
+) -> tuple[list[SpikeRecord], dict[str, dict[str, int]]]:
+    """Leave out the spikes that tie a split to a later one: (kept, counts per reason).
+
+    - *running*: still running when the next split began (its edits, and the burst a
+      labeler reads, lie on both sides of the boundary);
+    - *same page*: its page spikes again in a later split less than `gap` after it
+      ended (one story on both sides: the model would meet it in training and be
+      tested on its continuation).
+
+    The earlier spike goes, the later one stays: evaluation sets keep their size, and the
+    later spike's features may legitimately see the earlier one as page history.
+    """
+    order = {name: i for i, name in enumerate(SPLITS)}
+    by_title: dict[str, list[SpikeRecord]] = defaultdict(list)
+    for spike in spikes:
+        by_title[spike.title].append(spike)
+    kept = []
+    purged: dict[str, Counter[str]] = {"running": Counter(), "same_page": Counter()}
+    for spike in spikes:
+        split = split_of[day_of(spike)]
+        end = spike_end(spike)
+        if end >= label_as_of[split]:
+            purged["running"][split] += 1
+            continue
+        if any(
+            order[split_of[day_of(other)]] > order[split] and other.first_edit_at - end < gap
+            for other in by_title[spike.title]
+        ):
+            purged["same_page"][split] += 1
+            continue
+        kept.append(spike)
+    return kept, {reason: dict(counts) for reason, counts in purged.items()}
+
+
 def split_rows(
-    rows: Sequence[dict[str, Any]], valid_days: int, test_days: int
+    rows: Sequence[dict[str, Any]], split_of: dict[str, str]
 ) -> dict[str, list[dict[str, Any]]]:
-    split_of = assign_splits((row["day"] for row in rows), valid_days, test_days)
+    """Rows by split (`split_of`: day -> split, from `assign_splits`), oldest first."""
     splits: dict[str, list[dict[str, Any]]] = {name: [] for name in SPLITS}
     for row in sorted(rows, key=lambda r: (r["started_at"], r["title"])):
         splits[split_of[row["day"]]].append(row)
@@ -361,14 +466,15 @@ META_FIELDS = [
     pa.field("default_rule_fired", pa.bool_(), nullable=False),
 ]
 LABEL_FIELDS = [
-    pa.field("weak_label", pa.bool_(), nullable=False),
+    pa.field("weak_label", pa.bool_()),  # null: not on the portal yet, days not final
     pa.field("weak_label_final", pa.bool_(), nullable=False),
     pa.field("portal_days", pa.string(), nullable=False),
     pa.field("label_02b", pa.string()),
     pa.field("label_02b_labeler", pa.string()),
     pa.field("label_02b_model", pa.string()),
-    pa.field("label", pa.int8(), nullable=False),
+    pa.field("label", pa.int8()),  # null: unknown
     pa.field("label_source", pa.string(), nullable=False),
+    pa.field("label_as_of", pa.timestamp("us", tz="UTC"), nullable=False),
 ]
 DATASET_SCHEMA = pa.schema(
     [
@@ -477,8 +583,10 @@ class DatasetStore:
 def balance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
     """Row count and label balance of one split."""
     n = len(rows)
-    weak = sum(r["weak_label"] for r in rows)
-    positives = sum(r["label"] for r in rows)
+    weak = sum(r["weak_label"] is True for r in rows)
+    weak_negative = sum(r["weak_label"] is False for r in rows)
+    positives = sum(r["label"] == 1 for r in rows)
+    negatives = sum(r["label"] == 0 for r in rows)
     labeled = [r for r in rows if r["label_02b"] is not None]
     news = sum(r["label_02b"] == "news" for r in labeled)
     not_news = sum(r["label_02b"] == "not news" for r in labeled)
@@ -488,7 +596,12 @@ def balance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "days": days,
         "first_started_at": min((r["started_at"] for r in rows), default=None),
         "last_started_at": max((r["started_at"] for r in rows), default=None),
-        "weak_label": {"positive": weak, "negative": n - weak, "positive_share": share(weak, n)},
+        "weak_label": {
+            "positive": weak,
+            "negative": weak_negative,
+            "unknown": n - weak - weak_negative,
+            "positive_share": share(weak, weak + weak_negative),
+        },
         "weak_label_final_rows": sum(r["weak_label_final"] for r in rows),
         "label_02b": {
             "labeled": len(labeled),
@@ -500,8 +613,9 @@ def balance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         },
         "label": {
             "positive": positives,
-            "negative": n - positives,
-            "positive_share": share(positives, n),
+            "negative": negatives,
+            "unknown": n - positives - negatives,
+            "positive_share": share(positives, positives + negatives),
             "sources": dict(Counter(r["label_source"] for r in rows)),
         },
         "default_rule_fired": sum(r["default_rule_fired"] for r in rows),
@@ -591,25 +705,58 @@ def fetch_snapshots(
     return snapshots, stats
 
 
-def fetch_portal(settings: Settings, first: date, last: date) -> list[PortalDay]:
-    """Portal days (cached in data/ground_truth, as in spec 02b)."""
+def fetch_portal(settings: Settings, first: date, last: date, as_of: datetime) -> list[PortalDay]:
+    """Portal days up to the as-of moment (cached in data/ground_truth, as in spec 02b).
+
+    Days that begin at or after `as_of` are not fetched: no label may use them.
+    """
     from wikipulse.eval.detection import load_portal
     from wikipulse.eval.wiki_client import WikiClient
 
     cache = settings.data_dir / "ground_truth"
+    last_day = (as_of - timedelta(microseconds=1)).astimezone(UTC).date()
     with WikiClient(settings.user_agent, cache, settings.wiki_api_min_interval_s) as client:
-        today = datetime.now(UTC).date()  # pages of future days can't exist yet
-        return load_portal(client, settings.wiki_api_url, first, last, today)
+        return load_portal(client, settings.wiki_api_url, first, last, last_day)
 
 
-def portal_status(portal: Sequence[PortalDay], built_at: datetime) -> dict[str, str]:
-    """Per portal day: 'final', 'provisional' (younger than 3 days) or 'missing'."""
+def portal_status(portal: Sequence[PortalDay], as_of: datetime) -> dict[str, str]:
+    """Per portal day: 'final', 'provisional' (younger than 3 days at `as_of`) or 'missing'."""
     status = {}
     for page in portal:
-        settled = datetime(page.day.year, page.day.month, page.day.day, tzinfo=UTC) + FINAL_AFTER
-        state = "missing" if page.missing else "final" if settled <= built_at else "provisional"
+        settled = day_start(page.day) + FINAL_AFTER
+        state = "missing" if page.missing else "final" if settled <= as_of else "provisional"
         status[page.day.isoformat()] = state
     return status
+
+
+def portal_sha256(portal: Sequence[PortalDay]) -> str:
+    """A hash of the portal links the labels were made from (they change until final)."""
+    content = [
+        [p.day.isoformat(), p.missing, sorted(p.links), sorted(p.leads), sorted(p.resolve.items())]
+        for p in sorted(portal, key=lambda p: p.day)
+    ]
+    return hashlib.sha256(json.dumps(content, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def parse_moment(text: str) -> datetime:
+    """'2026-11-13' or '2026-11-13T06:00' (UTC unless an offset is given)."""
+    moment = datetime.fromisoformat(text)
+    return moment.replace(tzinfo=UTC) if moment.tzinfo is None else moment.astimezone(UTC)
+
+
+def resolve_as_of(as_of: datetime | None, data_end: datetime, now: datetime) -> datetime:
+    """The moment labels are taken as of: `as_of`, by default the end of the data.
+
+    Not the wall clock, so rebuilding later gives the same labels. It may not lie before
+    the data's end (a label would be older than its spike) or in the future (portal pages
+    from then can't have been read). `now` is only used for that check.
+    """
+    moment = as_of or data_end
+    if moment < data_end:
+        raise ValueError(f"--as-of {moment} is before the end of the data ({data_end})")
+    if moment > now:
+        raise ValueError(f"--as-of {moment} is in the future")
+    return moment
 
 
 @dataclass
@@ -626,7 +773,8 @@ class BuildOptions:
     lake: LakeStore | None = None  # tests pass a local lake ...
     datasets: "DatasetStore | None" = None  # ... a local dataset store ...
     portal: list[PortalDay] | None = None  # ... and portal days, so nothing goes online
-    dry_run: bool = False  # build and report, but store no version
+    dry_run: bool = False  # build and report, but store nothing (no version, no Postgres)
+    as_of: datetime | None = None  # labels as of this moment (default: the data's end)
 
 
 def build(options: BuildOptions, settings: Settings) -> str:
@@ -635,7 +783,7 @@ def build(options: BuildOptions, settings: Settings) -> str:
     from wikipulse.eval.label_store import load_labels
 
     clock = time.monotonic()
-    built_at = datetime.now(UTC)  # wall clock: metadata, and how settled the portal was
+    built_at = datetime.now(UTC)  # wall clock: metadata only, never in the rows
     window_min = settings.feature_window_min
     lake = options.lake or LakeStore.from_settings(
         settings, options.lake_prefix or settings.ml_lake_prefix
@@ -648,6 +796,7 @@ def build(options: BuildOptions, settings: Settings) -> str:
             "Gaps in the lake; using the hours from %s on (gaps at %s)", hours[0], missing
         )
     data_start, data_end = hours[0], hours[-1] + timedelta(hours=1)
+    as_of = resolve_as_of(options.as_of, data_end, built_at)
     logger.info("Edits: %d hours from %s to %s in %s", len(hours), data_start, data_end, lake.root)
 
     candidates = candidate_config(settings, options.candidate or settings.ml_candidate_detector)
@@ -661,11 +810,23 @@ def build(options: BuildOptions, settings: Settings) -> str:
             yield event
 
     runs = detect_spikes(counted(lake_events(lake, hours)), configs)
-    if options.use_db:
+    if options.use_db and not options.dry_run:
         store_runs(settings, runs)
     warmup = timedelta(hours=settings.ml_warmup_hours)
-    spikes = select_spikes(runs[options.run_id], data_start, data_end, warmup, window_min)
-    logger.info("Using %d of %d candidate spikes", len(spikes), len(runs[options.run_id]))
+    selected = select_spikes(runs[options.run_id], data_start, data_end, warmup, window_min)
+    split_of = assign_splits(
+        (day_of(s) for s in selected), settings.ml_valid_days, settings.ml_test_days
+    )
+    split_as_of = split_label_as_of(split_of, as_of)
+    gap = timedelta(hours=settings.ml_split_gap_hours)
+    spikes, purged = purge_boundaries(selected, split_of, split_as_of, gap)
+    logger.info(
+        "Using %d of %d candidate spikes (%d selected; purged at split boundaries: %s)",
+        len(spikes),
+        len(runs[options.run_id]),
+        len(selected),
+        purged,
+    )
 
     edits = page_edits(lake, {s.title for s in spikes})
     snapshots: dict[int, PageSnapshot | None] = {}
@@ -675,14 +836,16 @@ def build(options: BuildOptions, settings: Settings) -> str:
     margin = timedelta(days=PORTAL_MARGIN_DAYS)
     portal = options.portal
     if portal is None:
-        portal = fetch_portal(settings, (data_start - margin).date(), (data_end + margin).date())
+        first, last = (data_start - margin).date(), (data_end + margin).date()
+        portal = fetch_portal(settings, first, last, as_of)
     rule_by_title: dict[str, list[SpikeRecord]] = defaultdict(list)
     for spike in runs[options.rule_run_id]:
         rule_by_title[spike.title].append(spike)
     labels = load_labels(options.labels)
-    sources = RowSources(edits, snapshots, rule_by_title, portal, labels, window_min, built_at)
-    rows = build_rows(spikes, sources)  # check_no_leakage runs on every row
-    splits = split_rows(rows, settings.ml_valid_days, settings.ml_test_days)
+    sources = RowSources(edits, snapshots, rule_by_title, portal, labels, window_min)
+    # check_no_leakage runs on every row; labels use only evidence from before the next split
+    rows = build_rows(spikes, sources, lambda s: split_as_of[split_of[day_of(s)]])
+    splits = split_rows(rows, split_of)
 
     manifest = {
         "created_at": built_at.isoformat(),
@@ -709,21 +872,40 @@ def build(options: BuildOptions, settings: Settings) -> str:
                 "config": settings.detector_config().model_dump(),
             },
             "spikes_detected": {name: len(found) for name, found in runs.items()},
+            "candidate_spikes_selected": len(selected),
             "candidate_spikes_used": len(spikes),
         },
         "labels": {
-            "weak_label": "article linked from Portal:Current events within 48 h of the spike",
-            "weak_label_final": "all portal days the weak label depends on were settled",
-            "label_02b": "LLM or human label covering the spike (a human label wins)",
-            "label": "1 if weak_label; else label_02b news / not news; else 0 (not on portal)",
+            "as_of": as_of.isoformat(),
+            "as_of_from": "--as-of" if options.as_of else "end of the data",
+            "weak_label": (
+                "true: article linked from Portal:Current events within 48 h of the spike, "
+                "on a portal day before label_as_of; false: not linked and all those portal "
+                "days final at label_as_of; null: not linked, days not final yet"
+            ),
+            "weak_label_final": "all portal days the weak label depends on final at label_as_of",
+            "label_02b": (
+                "LLM or human label covering the spike (a human label wins), of a burst "
+                "that ended before label_as_of"
+            ),
+            "label": "1 if weak_label; else label_02b news / not news; else null (unknown)",
+            "label_as_of": "the start of the next split; for the last split labels.as_of",
             "labels_file": options.labels.as_posix(),
             "labels_file_sha256": file_sha256(options.labels),
-            "portal_days": portal_status(portal, built_at),
+            "portal_days": portal_status(portal, as_of),
+            "portal_sha256": portal_sha256(portal),
         },
         "split": {
             "method": "by UTC day of started_at: last days test, the days before them valid",
             "valid_days": settings.ml_valid_days,
             "test_days": settings.ml_test_days,
+            "label_as_of": {name: moment.isoformat() for name, moment in split_as_of.items()},
+            "gap_hours": settings.ml_split_gap_hours,
+            "purged": {
+                "running": "spike still running when the next split began",
+                "same_page": "same page spiked again in a later split within gap_hours",
+                "rows": purged,
+            },
         },
         "rows": len(rows),
         "splits": {name: balance(split) for name, split in splits.items()},
@@ -736,7 +918,7 @@ def build(options: BuildOptions, settings: Settings) -> str:
     manifest["build_seconds"] = round(time.monotonic() - clock, 1)
     if options.dry_run:
         report = summary(jsonable({"version": "(dry run)", **manifest}))
-        logger.info("Dry run, no version stored:\n%s", report)
+        logger.info("Dry run, nothing stored:\n%s", report)
         return "(dry run)"
     datasets = options.datasets or DatasetStore.from_settings(settings)
     version = datasets.write(tables, jsonable(manifest))
@@ -757,9 +939,10 @@ def summary(manifest: dict[str, Any]) -> str:
         weak, label, b02 = split["weak_label"], split["label"], split["label_02b"]
         lines.append(
             f"  {name:5}  {split['rows']:5} rows  {len(split['days'])} days  "
-            f"weak+ {weak['positive']} ({pct(weak['positive_share'])})  "
+            f"weak +{weak['positive']} -{weak['negative']} ?{weak.get('unknown', 0)}  "
             f"02b labeled {b02['labeled']} (news {b02['news']}, not news {b02['not news']})  "
-            f"label+ {label['positive']} ({pct(label['positive_share'])})"
+            f"label +{label['positive']} -{label['negative']} ?{label.get('unknown', 0)} "
+            f"({pct(label['positive_share'])} of known positive)"
         )
     return "\n".join(lines)
 
@@ -779,7 +962,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     make.add_argument("--labels", type=Path, default=BuildOptions.labels)
     make.add_argument("--no-db", action="store_true", help="don't store the runs in Postgres")
     make.add_argument("--no-pages", action="store_true", help="skip the page snapshots (API)")
-    make.add_argument("--dry-run", action="store_true", help="report, but store no version")
+    make.add_argument(
+        "--dry-run", action="store_true", help="report only: no version, nothing in Postgres"
+    )
+    make.add_argument(
+        "--as-of",
+        type=parse_moment,
+        help="labels as of this UTC moment, e.g. 2026-11-13 (default: the end of the data)",
+    )
     show = commands.add_parser("list", help="list the dataset versions")
     show.add_argument("--json", action="store_true", help="print the full manifests")
     return parser.parse_args(argv)
@@ -801,6 +991,7 @@ def main(argv: list[str] | None = None) -> int:
             use_db=not args.no_db,
             use_pages=not args.no_pages,
             dry_run=args.dry_run,
+            as_of=args.as_of,
         )
         version = build(options, settings)
         if not options.dry_run:

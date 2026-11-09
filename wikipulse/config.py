@@ -367,6 +367,9 @@ class Settings(BaseSettings):
     ml_warmup_hours: float = Field(default=24, ge=0)
     ml_valid_days: int = Field(default=1, ge=0)
     ml_test_days: int = Field(default=2, ge=1)
+    # Purge at split boundaries: a spike is left out when the same page spikes again in a
+    # later split less than this many hours after it ended.
+    ml_split_gap_hours: float = Field(default=24, ge=0)
 
     @field_validator("log_level", mode="before")
     @classmethod

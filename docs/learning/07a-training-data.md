@@ -7,7 +7,7 @@ classifier of spec 07b, built from the lake's edit history with one command:
 
 ```
 uv run python -m wikipulse.ml.dataset build            # writes datasets/v<n>/ to the object store
-uv run python -m wikipulse.ml.dataset build --dry-run  # the same, but only reports
+uv run python -m wikipulse.ml.dataset build --dry-run  # the same, but only reports (stores nothing)
 uv run python -m wikipulse.ml.dataset list             # the versions, rows and label balance
 ```
 
@@ -18,7 +18,7 @@ uv run python -m wikipulse.ml.dataset list             # the versions, rows and 
 | `wikipulse/ml/pages.py` | The page *as it was at the cutoff*: `fetch_revisions()` (old revisions' wikitext, 20 per request), `RevisionCache` (one small JSON file per revision), `fetch_creation_times()` (first revision per page), `parse_wikitext()` (categories, templates, `<ref>` tags), `snapshot_of()`. |
 | `wikipulse/ml/dataset.py` | The build: lake -> spikes (two detectors) -> features -> labels -> time split -> Parquet + manifest in `DatasetStore` (`<bucket>/datasets/v<n>/`). Also `list`, `--dry-run`, and `DatasetStore.read(version, split)` for 07b. |
 | `wikipulse/eval/wiki_client.py` | `get_json(..., cache=False)`: a small addition so `pages.py` can keep its own compact cache instead of the multi-MB raw answers. |
-| `wikipulse/config.py`, `.env.example` | `FEATURE_WINDOW_MIN`, `ML_LAKE_PREFIX`, `ML_DATASET_PREFIX`, `ML_CANDIDATE_DETECTOR`, `ML_WARMUP_HOURS`, `ML_VALID_DAYS`, `ML_TEST_DAYS`. |
+| `wikipulse/config.py`, `.env.example` | `FEATURE_WINDOW_MIN`, `ML_LAKE_PREFIX`, `ML_DATASET_PREFIX`, `ML_CANDIDATE_DETECTOR`, `ML_WARMUP_HOURS`, `ML_VALID_DAYS`, `ML_TEST_DAYS`, `ML_SPLIT_GAP_HOURS` (review fixes). |
 | `tests/ml/` | 37 unit tests (features on a synthetic spike, the leakage guard, wikitext parsing, the API calls over a mock transport, splits, labels, versioned storage, a whole offline build) and 1 integration test (the build on the real RustFS and Postgres, own prefix and run ids). |
 | `tests/lake/test_backfill.py` | 5 unit tests: the stage-1 filter, hours released only when settled, resume after a dropped connection, no duplicates on a re-run, the writer lock. |
 | `evals/labels/spike_labels.jsonl` | 299 new LLM labels (appended; nothing rewritten), for spikes of the run `07a-candidates`. |
@@ -34,12 +34,15 @@ uv run python -m wikipulse.ml.dataset build                   ▼
         candidates (ML_CANDIDATE_DETECTOR) ──> Postgres run 07a-candidates   (what we classify)
         live defaults                      ──> Postgres run 07a-default      (07b's rule baseline)
     select_spikes(): drop the warm-up day and spikes whose feature window runs past the data
- 3. page_edits(): every archived edit of those pages (one filtered scan)
+ 3. assign_splits(): by UTC day:  train (all earlier days) | valid (1 day) | test (last 2 days)
+    purge_boundaries(): drop spikes running into the next split, and spikes whose page
+                        spikes again in a later split within ML_SPLIT_GAP_HOURS
+ 4. page_edits(): every archived edit of those pages (one filtered scan)
     fetch_snapshots(): revision at each cutoff + page creation (MediaWiki API, data/cache/ml)
     check_no_leakage(compute_features(...))  for every row
- 4. weak label: Portal:Current events within 48 h      (data/ground_truth, cached)
+ 5. labels as of the next split's start (test: the build's as-of, default the data's end)
+    weak label: Portal:Current events within 48 h      (data/ground_truth, cached)
     02b label: evals/labels/spike_labels.jsonl (LLM or human, human wins)
- 5. split_rows(): by UTC day:  train (all earlier days) | valid (1 day) | test (last 2 days)
  6. DatasetStore.write(): v<n>/train.parquet, valid.parquet, test.parquet, manifest.json
 ```
 
@@ -100,8 +103,9 @@ Nobody labels thousands of spikes by hand. Two kinds of label are combined:
   politics, and hardly ever a football result, a TV final or a minor death. So a weak
   negative means "not on the portal", not "not news". It is also *provisional* for recent
   days: the portal pages of the last days are still being written, and those of the next
-  two days don't exist yet (`weak_label_final` says whether every portal day it depends
-  on was at least 3 days old when the dataset was built).
+  two days don't exist yet. Since the review fixes, such a row has `weak_label` null
+  (unknown), not false; `weak_label_final` says whether every portal day it depends on
+  was at least 3 days old at the row's `label_as_of`.
 - **The 02b label** (`label_02b`): "news / not news / unsure" from spec 02b's labeler (an
   LLM, `ollama:qwen3:4b`, or a human; a human label always wins, `pick_label()`). Much
   closer to the real question, but only on a sample, and an LLM label has its own errors.
@@ -110,9 +114,10 @@ The trade-off: the weak label gives *volume* with *systematic* errors (its negat
 biased toward everything the portal ignores); the labeled sample gives *quality* with
 *small numbers* and random noise. `label` combines them in the simplest defensible way
 (`combined_label()`): a portal link wins (1, source `portal`); otherwise a news / not
-news label decides (source `llm` or `human`); otherwise 0 (source `not-on-portal`, the
-weak negative). Every row keeps all three columns and `label_source`, so 07b can train
-on the combination, evaluate on labeled rows only, or ignore the weak negatives.
+news label decides (source `llm` or `human`); otherwise it is null (source `unknown`).
+"Not on the portal" alone never makes a 0 (it did in v1; see "Review fixes"). Every row
+keeps all three columns and `label_source`, so 07b can train on the known labels,
+evaluate on labeled rows only, or use the weak label separately.
 
 ### Feature engineering on a time series of edits
 
@@ -171,9 +176,9 @@ random, for two reasons. The model will be used on *future* spikes, so it must b
 on days after everything it learned from. And a random split leaks across time: one
 story (an election, a death) makes several pages spike over a day or two, and with a
 random split the model would meet the story in training and its sibling spikes in the
-test set, which flatters it. Splitting by whole UTC days keeps each day on one side. (A
-story running over midnight into the next split still crosses; 07b could leave a
-one-day gap between splits if that turns out to matter.)
+test set, which flatters it. Splitting by whole UTC days keeps each day on one side. A
+story running over midnight into the next split would still cross; since the review
+fixes, `purge_boundaries()` removes those spikes (see "Review fixes").
 
 ## Design decisions and deviations from the spec
 
@@ -254,10 +259,11 @@ one-day gap between splits if that turns out to matter.)
   two when it says yes). "Unsure" labels are kept in `label_02b` but don't count.
 - **Validation split, and its size.** The spec names train and test. 07b has to choose a
   threshold and compare models without peeking at the test set, so the build also holds
-  out validation days between them. With 7 days of history, 3 test and 2 validation
-  days would have left about one day to train on, so the defaults are `ML_TEST_DAYS=2`
-  and `ML_VALID_DAYS=1`: train 3 to 6 November, validate on 7 November, test on 8 and 9
-  November. Raise them once the live archiver has collected more days.
+  out validation days between them. The spikes fall on 7 UTC days (3 to 9 November;
+  3 November only from 22:00, after the warm-up), so 3 test and 2 validation days would
+  have left two days to train on, one of them only two hours long. The defaults are
+  `ML_TEST_DAYS=2` and `ML_VALID_DAYS=1`: train 3 November 22:00 to 6 November, validate
+  on 7 November, test on 8 and 9 November. Raise them once the live archiver has collected more days.
 - **More LLM labels.** The spec says "the 02b label where available". Only 155 labels
   existed, all for 4 to 7 November, so the test days had none. I ran 02b's own labeler
   (`wikipulse.eval.label`, unchanged) on two random samples of the candidate run: 150
@@ -268,7 +274,8 @@ one-day gap between splits if that turns out to matter.)
   (labeler `llm`, model recorded, run `07a-candidates`), nothing rewritten. Each took
   about 2 s plus two cached MediaWiki requests; 10 minutes in all.
 - **Postgres side effects.** The runs `07a-candidates` (907 spikes) and `07a-default` (453)
-  are in the `spikes` table and are replaced by every build. The 02b runs are untouched.
+  are in the `spikes` table and are replaced by every build, but never by a `--dry-run`
+  (review fix). The 02b runs are untouched.
 - **Traceability caveat.** The manifest of `v1` says commit `ac27528`, *dirty*: the code
   of this spec was not committed yet when it was built (the agent doesn't commit). After
   committing, a rebuild records a clean commit.
@@ -388,6 +395,109 @@ too (`uv run python -m wikipulse.eval.label --run-id 07a-candidates --from 2026-
 - `uv run pytest`: 901 passed, 1 skipped. `uv run pytest -m integration`: 66 passed,
   1 skipped. `uv run ruff check .` and `uv run ruff format --check .`: clean.
 
+## Review fixes
+
+The review (`docs/reviews/07a-training-data.md`) found that v1 flattered evaluation and
+couldn't be rebuilt safely. Fixed here: medium problems 1 to 3, the dry run writing to
+Postgres (low 8) and the fingerprint depending on the wall clock (low 12). The dataset
+has **not** been rebuilt yet: v2 will be built from a clean commit. The numbers below come
+from `uv run python -m wikipulse.ml.dataset build --dry-run --no-db` on the same lake,
+labels and caches as v1.
+
+### 1. A purge at split boundaries, and labels that stop at the next split
+
+Splitting by day still let one story sit on both sides of a boundary: "Pedro Alliana"
+spiked at 23:54 on 6 November (train) and again at 02:32 on 7 November (validation), and
+17 such same-page pairs less than 24 h apart crossed a boundary. And a row's *label*
+could use data from the next split: the portal pages of the next days, or the edits the
+LLM read up to the end of a burst that ran past midnight.
+
+Two mechanisms now, both in `wikipulse/ml/dataset.py`:
+
+- **Purge** (`purge_boundaries()`, after `assign_splits()`, before any feature is
+  computed): a spike is left out if it is still running when the next split begins
+  (`running`), or if its page spikes again in a *later* split less than
+  `ML_SPLIT_GAP_HOURS` (default 24) after it ended (`same_page`). The *earlier* spike
+  goes: the evaluation sets keep their rows, and the later spike's features may still
+  see the earlier burst as page history, which is what a live model would see. This is
+  the "purging" idea from finance ML (López de Prado), aimed at the overlaps that
+  actually happen here instead of a blanket gap of whole hours, which with a single
+  validation day would have eaten most of it.
+- **Labels as of the next split** (`split_label_as_of()`, `build_row(..., label_as_of)`):
+  every row carries `label_as_of`, the start of the next split (train: 7 Nov 00:00;
+  valid: 8 Nov 00:00) or, for the test split, the build's as-of. Labels only use
+  evidence from before it: portal days that *began* before it (`portal_days_of()`),
+  finality judged at it (`portal_final()`), and only 02b labels of bursts that *ended*
+  before it (`label_of()`). A training spike linked from the portal only on a
+  validation day is therefore not a training positive (its `weak_label` is unknown).
+
+Decision recorded: a portal day's page counts as evidence *of its day*. The page is
+edited a little after midnight too, and we read it as it is now, not as it was at the
+boundary (that would need the page's revision history); treating it as the day's data
+is the practical approximation. The LLM labeler also read the article's current summary
+when it labeled; that lies after every split and can't be purged, so the LLM label stays
+"ground truth from later", as labels are allowed to be.
+
+Effect: 794 selected spikes, 26 purged (running: 1 valid; same page: 9 train, 16 valid),
+768 rows. Valid weak positives drop from 9 to 3 and train from 51 to 48: those links
+were on later days.
+
+### 2 and 3. No confident 0 from "not on the portal"
+
+v1 gave `label=0` to every row not on the portal and without a news / not news label
+(323 rows), including 143 valid and test rows whose portal days weren't final. But the
+LLM calls about half of the weak negatives news (201 of 391), so that 0 was close to a
+coin flip. Now:
+
+- `weak_label` is nullable (`weak_label_of()`): true when linked, false only when not
+  linked *and* every portal day it depends on was final at `label_as_of`, otherwise null.
+- `label` is nullable (`combined_label()`): 1 from the portal, else the 02b news / not
+  news label, else **null**, source `unknown`. This holds whether or not the weak
+  negative is final: "not on the portal" is not "not news".
+- The manifest reports positive / negative / unknown per split for both, and positive
+  shares only over the known rows.
+
+A consequence worth knowing: with the 3-day finality rule and labels stopping at the
+next split, *no* row has `weak_label = false` in this dataset (a training spike would
+have to lie 5 days before the validation day). With more history, older training rows
+will get final weak negatives.
+
+### Low 8 and 12: a side-effect-free dry run, and no wall clock in the data
+
+- `--dry-run` now skips `store_runs()` (Postgres) as well as the version.
+- The finality of portal days was judged against `datetime.now()`, so a rebuild on a
+  later day changed `weak_label_final` and the fingerprint. Now everything is judged
+  against an **as-of moment of the data**: the end of the lake's data by default, or
+  `--as-of 2026-11-13` explicitly (`resolve_as_of()`; it may not lie before the data's
+  end or in the future). The portal is only fetched up to that day. The wall clock is
+  left only in the manifest's `created_at`. The manifest also records `labels.as_of`,
+  each split's `label_as_of`, the purge counts and `portal_sha256`, a hash of the
+  portal links used: portal pages younger than 3 days still change when refetched, and
+  that hash shows when they did.
+  `test_the_fingerprint_does_not_depend_on_the_wall_clock` builds with clocks 3 days and
+  7 months later and gets the same fingerprint.
+
+### Before and after
+
+| split | v1 rows | v1 label 1 / 0 | v2 (dry run) rows | v2 label 1 / 0 / unknown | v2 weak + / - / unknown |
+|---|---:|---:|---:|---:|---:|
+| train | 467 | 167 / 300 | 458 | 160 / 119 / 179 | 48 / 0 / 410 |
+| valid | 111 | 35 / 76 | 94 | 27 / 15 / 52 | 3 / 0 / 91 |
+| test | 216 | 79 / 137 | 216 | 79 / 53 / 84 | 20 / 0 / 196 |
+
+02b-labeled rows: 252 train, 41 valid, 120 test (v1: 259, 46, 120). The test split is
+unchanged in rows and positives; its 84 former weak-negative zeros are now unknown.
+
+Also fixed: the split sizes in "Validation split" above (two training days would have
+remained with 3 + 2 held out, not one), and `features.py` had CRLF line endings in the
+working copy (now LF).
+
+Tests added in `tests/ml/test_dataset.py`: each split's label as-of, the purge of
+running and same-page spikes (and of nothing within one split), no label evidence from
+a later split, weak negatives only once final, unknown instead of 0, the as-of checks,
+a dry run that never calls Postgres, and the wall-clock-independent fingerprint.
+`uv run pytest`: 910 passed, 1 skipped; `uv run pytest -m integration tests/ml`: 1 passed.
+
 ## Check your understanding
 
 1. A teammate adds a feature `total_editors` taken from the `spikes` table's
@@ -412,17 +522,18 @@ too (`uv run python -m wikipulse.eval.label --run-id 07a-candidates --from 2026-
    finals, most deaths and local news never appear there, so "not on the portal" is a
    *biased* negative: it is wrong exactly for the kinds of news the portal ignores. That
    is why the build keeps the 02b labels next to it and lets a news / not news label
-   decide when the portal says no. `weak_label_final` adds time: the portal pages of the
-   last few days were still being written (and those after the data's end didn't exist)
-   when the dataset was built, so for recent spikes even a portal "no" may still turn
-   into a "yes".
+   decide when the portal says no, and why a row with neither has `label` null, not 0.
+   `weak_label_final` adds time: the portal pages of the last few days were still being
+   written (and those after the data's end didn't exist) at the row's `label_as_of`, so
+   for recent spikes even a portal "no" may still turn into a "yes"; their `weak_label`
+   is null.
 3. A new name for sure: every build gets the next version number (`v<n+1>`), and
    versions are never overwritten. The fingerprint (a hash over the Parquet files) is the
-   same exactly when the rows are the same. With this data, probably not: the last
-   days' portal pages keep changing and ripen into "final" over three days, so tomorrow
-   some `weak_label` and `weak_label_final` values of recent spikes differ. Built twice
-   from settled inputs, the fingerprint is identical (the offline test checks that). It
-   also changes with any other input: new hours in the lake, labels appended to
-   `spike_labels.jsonl`, a setting such as `FEATURE_WINDOW_MIN`, or a feature's code.
+   same exactly when the rows are the same, and since the review fixes the rows don't
+   depend on the day you build: finality is judged at the as-of moment (the data's end,
+   or `--as-of`), not the wall clock. It changes with any input: new hours in the lake,
+   labels appended to `spike_labels.jsonl`, a different `--as-of`, a setting such as
+   `FEATURE_WINDOW_MIN`, a feature's code, or portal pages younger than three days that
+   gained links when refetched (`portal_sha256` in the manifest shows that).
 
 </details>

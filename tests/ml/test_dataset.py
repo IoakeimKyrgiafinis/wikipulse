@@ -14,6 +14,7 @@ from wikipulse.eval.ground_truth import PortalDay
 from wikipulse.eval.label_store import append_record, record_for
 from wikipulse.eval.metrics import Label
 from wikipulse.lake.table import events_to_table
+from wikipulse.ml import dataset as dataset_module
 from wikipulse.ml.dataset import (
     DATASET_SCHEMA,
     BuildOptions,
@@ -23,13 +24,19 @@ from wikipulse.ml.dataset import (
     candidate_config,
     combined_label,
     contiguous_hours,
+    day_of,
+    label_of,
     portal_final,
     portal_status,
+    purge_boundaries,
+    resolve_as_of,
     revision_at,
     rule_fired,
     select_spikes,
+    split_label_as_of,
     split_rows,
     summary,
+    weak_label_of,
 )
 from wikipulse.ml.features import FEATURE_NAMES, PageEdit
 from wikipulse.stream.models import EditEvent
@@ -64,8 +71,9 @@ def test_split_rows_is_the_same_for_any_row_order():
         for d in range(1, 6)
         for h in (1, 5)
     ]
-    a = split_rows(rows, 1, 1)
-    b = split_rows(random.Random(3).sample(rows, len(rows)), 1, 1)
+    split_of = assign_splits((r["day"] for r in rows), 1, 1)
+    a = split_rows(rows, split_of)
+    b = split_rows(random.Random(3).sample(rows, len(rows)), split_of)
     assert a == b
     assert {r["day"] for r in a["test"]} == {"2026-11-05"}
     assert {r["day"] for r in a["valid"]} == {"2026-11-04"}
@@ -100,11 +108,15 @@ def test_combined_label():
     assert combined_label(True, llm_no) == (1, "portal")  # the portal wins
     assert combined_label(False, llm_no) == (0, "llm")
     assert combined_label(False, Label("P", at(3), at(3, 1), "news", "human")) == (1, "human")
-    assert combined_label(False, Label("P", at(3), at(3, 1), "unsure", "llm")) == (
-        0,
-        "not-on-portal",
-    )
-    assert combined_label(False, None) == (0, "not-on-portal")
+    unsure = Label("P", at(3), at(3, 1), "unsure", "llm")
+    assert combined_label(False, unsure) == (None, "unknown")
+
+
+def test_not_on_the_portal_and_unlabeled_is_unknown_never_a_confident_zero():
+    assert combined_label(False, None) == (None, "unknown")  # final weak negative
+    assert combined_label(None, None) == (None, "unknown")  # provisional weak negative
+    llm_no = Label("P", at(3), at(3, 1), "not news", "llm")
+    assert combined_label(None, llm_no) == (0, "llm")  # a real label still decides
 
 
 def test_rule_fired_only_counts_what_was_known_at_the_cutoff():
@@ -160,6 +172,79 @@ def test_portal_status():
         "2026-11-08": "provisional",
         "2026-11-09": "missing",
     }
+
+
+# --- split boundaries and labels as of a moment ----------------------------------------
+
+# 1-4 Nov train, 5 Nov valid, 6-7 Nov test
+SPLIT_OF = {
+    f"2026-11-0{d}": "train" if d <= 4 else "valid" if d == 5 else "test" for d in range(1, 8)
+}
+
+
+def test_each_split_takes_its_labels_as_of_the_next_splits_start():
+    as_of = split_label_as_of(SPLIT_OF, at(8, 6))
+    assert as_of == {"train": at(5), "valid": at(6), "test": at(8, 6)}
+    no_valid = {day: "test" if split == "valid" else split for day, split in SPLIT_OF.items()}
+    assert split_label_as_of(no_valid, at(8))["train"] == at(5)  # straight to test
+
+
+def test_purge_drops_spikes_running_into_the_next_split():
+    as_of = split_label_as_of(SPLIT_OF, at(8))
+    running = spike("Overnight", at(4, 23.5), duration_h=2)  # train, ends 5 Nov 01:30
+    inside = spike("Evening", at(4, 20), duration_h=1)
+    last = spike("Late test", at(7, 22), duration_h=1)  # the last split has no next one
+    kept, purged = purge_boundaries([running, inside, last], SPLIT_OF, as_of, timedelta(hours=24))
+    assert kept == [inside, last]
+    assert purged == {"running": {"train": 1}, "same_page": {}}
+
+
+def test_purge_drops_the_earlier_spike_of_a_page_that_spikes_again_across_a_boundary():
+    as_of = split_label_as_of(SPLIT_OF, at(8))
+    late_train = spike("Pedro", at(4, 21), duration_h=1)  # ends 22:00
+    early_valid = spike("Pedro", at(5, 2.5))  # 4.5 h later, in validation
+    old_train = spike("Yogurt", at(3, 10))  # ends 3 Nov 11:00 ...
+    next_valid = spike("Yogurt", at(5, 12))  # ... 49 h before this one: beyond the gap
+    same_split = spike("Twice", at(3, 10))  # spikes again the next day, but still in train
+    again = spike("Twice", at(4, 9))
+    spikes = [old_train, same_split, again, late_train, early_valid, next_valid]
+    kept, purged = purge_boundaries(spikes, SPLIT_OF, as_of, timedelta(hours=24))
+    assert late_train not in kept
+    assert all(s in kept for s in (early_valid, old_train, next_valid, same_split, again))
+    assert purged == {"running": {}, "same_page": {"train": 1}}
+    kept, _ = purge_boundaries(spikes, SPLIT_OF, as_of, timedelta(0))  # gap 0: no page rule
+    assert late_train in kept
+
+
+def test_no_label_uses_evidence_from_a_later_split():
+    portal = [PortalDay(date(2026, 11, d), [], []) for d in range(1, 10)]
+    portal[4] = PortalDay(date(2026, 11, 5), ["Story"], ["Story"])  # linked on 5 Nov only
+    train_spike = spike("Story", at(4, 12))  # train: labels as of 5 Nov 00:00
+    assert day_of(train_spike) == "2026-11-04"
+    # linked on a validation day: not a positive for training ...
+    assert weak_label_of(train_spike, portal, at(5)) == (None, [], False)
+    # ... and not a negative either (that would assert "not on the portal" too early)
+    assert weak_label_of(train_spike, portal, at(10)) == (True, [date(2026, 11, 5)], True)
+    llm = Label("Story", at(4, 11.9), at(5), "news", "llm")  # its burst ended at 5 Nov
+    assert label_of(train_spike, [llm], at(5)) is None
+    assert label_of(train_spike, [llm], at(5, 1)) is llm
+
+
+def test_weak_negative_only_once_the_portal_days_are_final():
+    portal = [PortalDay(date(2026, 11, d), [], []) for d in range(1, 12)]
+    s = spike("Quiet", at(4, 12))  # depends on the portal days 2 to 6 Nov
+    assert weak_label_of(s, portal, at(9)) == (False, [], True)  # 6 Nov + 3 days = 9 Nov
+    assert weak_label_of(s, portal, at(8, 23)) == (None, [], False)  # not final yet
+
+
+def test_as_of_defaults_to_the_end_of_the_data_not_the_wall_clock():
+    end, now = at(7), at(10)
+    assert resolve_as_of(None, end, now) == end
+    assert resolve_as_of(at(9), end, now) == at(9)
+    with pytest.raises(ValueError):
+        resolve_as_of(at(6), end, now)  # before the data's end
+    with pytest.raises(ValueError):
+        resolve_as_of(at(11), end, now)  # in the future
 
 
 # --- the whole build, offline ---------------------------------------------------------
@@ -266,11 +351,16 @@ def test_build_writes_a_versioned_time_split_dataset(offline_build):
     quiet3 = next(r for r in rows if r["title"] == "Quiet 3")
     assert (quiet3["label_02b"], quiet3["label_02b_labeler"], quiet3["label"]) == ("news", "llm", 1)
     quiet4 = next(r for r in rows if r["title"] == "Quiet 4")
+    # validation day, not on the portal: the portal days aren't final at the test split's
+    # start, and nobody labeled it, so both labels are unknown, not 0
     assert (quiet4["weak_label"], quiet4["label"], quiet4["label_source"]) == (
-        False,
-        0,
-        "not-on-portal",
+        None,
+        None,
+        "unknown",
     )
+    assert quiet4["label_as_of"] == at(5)  # the test split's start
+    assert all(r["label_as_of"] == at(4) for r in tables["train"])
+    assert all(r["label_as_of"] == at(7) for r in tables["test"])  # the end of the data
     assert all(r["default_rule_fired"] == r["title"].startswith("News") for r in rows)
     assert all(r["edits"] in (5.0, 6.0, 4.0, 3.0) for r in rows)  # only up to the cutoff
 
@@ -278,6 +368,10 @@ def test_build_writes_a_versioned_time_split_dataset(offline_build):
     assert manifest["features"].keys() == set(FEATURE_NAMES)
     assert manifest["splits"]["train"]["weak_label"]["positive"] == 2
     assert manifest["splits"]["test"]["label"]["positive"] == 2
+    assert manifest["splits"]["test"]["label"]["unknown"] == 2  # Quiet 5 and Quiet 6
+    assert manifest["splits"]["test"]["label"]["negative"] == 0
+    assert manifest["labels"]["as_of"] == at(7).isoformat()
+    assert manifest["split"]["purged"]["rows"] == {"running": {}, "same_page": {}}
     assert manifest["leakage_check"] == {"rows_checked": 10, "passed": True}
     assert manifest["source"]["hours"] == 6 * 24
     assert manifest["date_range"] == {"first_day": "2026-11-02", "last_day": "2026-11-06"}
@@ -286,3 +380,36 @@ def test_build_writes_a_versioned_time_split_dataset(offline_build):
     assert "10 rows" in summary(manifest)
     assert build(options, settings) == "v2"  # a rebuild is a new version
     assert store.manifest("v2")["fingerprint"] == manifest["fingerprint"]  # same data, same hash
+
+
+def fixed_clock(moment: datetime) -> type[datetime]:
+    """`datetime` whose `now()` is always `moment`."""
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return moment
+
+    return Clock
+
+
+def test_a_dry_run_writes_nothing_not_even_to_postgres(offline_build, monkeypatch):
+    options, settings = offline_build
+
+    def no_postgres(*args, **kwargs):
+        raise AssertionError("a dry run must not write the runs to Postgres")
+
+    monkeypatch.setattr(dataset_module, "store_runs", no_postgres)
+    options.use_db, options.dry_run = True, True
+    assert build(options, settings) == "(dry run)"
+    assert options.datasets.versions() == []
+
+
+def test_the_fingerprint_does_not_depend_on_the_wall_clock(offline_build, monkeypatch):
+    options, settings = offline_build
+    fingerprints = []
+    for moment in (at(10), datetime(2027, 6, 1, tzinfo=UTC)):  # 3 days and 7 months later
+        monkeypatch.setattr(dataset_module, "datetime", fixed_clock(moment))
+        version = build(options, settings)
+        fingerprints.append(options.datasets.manifest(version)["fingerprint"])
+    assert fingerprints[0] == fingerprints[1]
