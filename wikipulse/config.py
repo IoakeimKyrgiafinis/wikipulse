@@ -344,6 +344,17 @@ class Settings(BaseSettings):
     # How many of an hour's most edited pages `hourly_stats.top_pages` keeps.
     worker_top_pages: int = Field(default=10, ge=1)
 
+    # --- Stage 6: scheduled batch jobs (wikipulse.jobs, run daily by Airflow) ---
+    # Detector run the daily detection evaluation scores (`live`: the live detector).
+    jobs_eval_run_id: str = "live"
+    # Data quality of a day in daily_stats. A "sudden volume drop" is an hour with fewer
+    # edits than this share of the day's median hour...
+    jobs_hour_drop_ratio: float = Field(default=0.3, gt=0, lt=1)
+    # ...or a day with fewer edits than this share of the mean of the earlier complete
+    # days (at most jobs_baseline_days of them, within that many days before).
+    jobs_day_drop_ratio: float = Field(default=0.5, gt=0, lt=1)
+    jobs_baseline_days: int = Field(default=7, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

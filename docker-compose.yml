@@ -107,9 +107,58 @@ services:
       retries: 12
     restart: unless-stopped
 
+  airflow:
+    # Scheduled batch jobs (stage 6, spec 06c): Airflow in one container
+    # (`airflow standalone`: scheduler, DAG processor, triggerer and the web UI/API,
+    # with the LocalExecutor). Its metadata lives in its own database (AIRFLOW_DB) of
+    # the postgres service. Only started with the "airflow" profile:
+    #   docker compose --profile airflow up -d      then http://localhost:8080
+    # The repository is mounted at /opt/wikipulse: the DAGs are read from dags/, the
+    # tasks run `wikipulse.jobs` from there (with .env), and write into data/.
+    build: docker/airflow
+    image: wikipulse-airflow:3.3.2
+    profiles: ["airflow"]
+    command: ["python", "/opt/wikipulse/docker/airflow/start.py"]
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-wikipulse}:${POSTGRES_PASSWORD:-wikipulse}@postgres:5432/${AIRFLOW_DB:-airflow}
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/wikipulse/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: UTC
+      # Lean: at most 2 tasks at once, one API worker, new DAG files seen within 30 s.
+      AIRFLOW__CORE__PARALLELISM: "2"
+      AIRFLOW__API__WORKERS: "1"
+      AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"
+      # Local development: everyone is admin, no login form (the port is loopback only).
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-wikipulse-local-dev-only-change-me}
+      # The tasks' WikiPulse settings: like .env, but with the services' names in Docker.
+      WIKIPULSE_HOME: /opt/wikipulse
+      WIKIPULSE_PYTHON: /opt/wikipulse-venv/bin/python
+      POSTGRES_DSN: postgresql://${POSTGRES_USER:-wikipulse}:${POSTGRES_PASSWORD:-wikipulse}@postgres:5432/${POSTGRES_DB:-wikipulse}
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://rustfs:9000
+      DATA_DIR: /opt/wikipulse/data
+    ports:
+      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
+    volumes:
+      - .:/opt/wikipulse
+      - airflow-logs:/opt/airflow/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
 volumes:
   redis-data:
   postgres-data:
   neo4j-data:
   neo4j-eval-data:
   rustfs-data:
+  airflow-logs:
