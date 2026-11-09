@@ -290,6 +290,20 @@ class Settings(BaseSettings):
     # How often the trigger looks for new significant events, in seconds.
     agent_poll_interval_s: float = Field(default=60, gt=0)
 
+    # --- Stage 5: web API and live page (wikipulse.api) ---
+    # Address of the API and the page. Only loopback addresses are accepted: there is no
+    # authentication.
+    api_host: str = "127.0.0.1"
+    api_port: int = Field(default=8000, ge=1, le=65535)
+    # The grouping run whose events the page shows ("live" for the live pipeline).
+    api_run_id: str = "live"
+    # How often the API looks for new and changed events to push over the WebSocket.
+    api_poll_interval_s: float = Field(default=5, gt=0)
+    # How many of the most recent events the WebSocket watches (and sends on connect).
+    api_watch_limit: int = Field(default=200, ge=1, le=1000)
+    # Questions to /ask run one at a time; more than this many waiting get HTTP 429.
+    api_max_waiting_questions: int = Field(default=3, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

@@ -194,3 +194,20 @@ with a step limit, a token budget, per-tool timeouts and loop detection
 |---------|--------------|
 | `uv run python -m wikipulse.agent.run` | The trigger: every `AGENT_POLL_INTERVAL_S` seconds, briefs the events whose best spike score reaches `AGENT_MIN_SPIKE_SCORE` or that have at least `AGENT_MIN_PAGES` pages, and that have no up-to-date briefing. Starts the MCP server as a subprocess. `--once`, `--limit N`, `--event KEY` (repeatable), `--dry-run`, `--force`, `--model`, `--neo4j-uri`, `--mcp-url`. |
 | `uv run python -m wikipulse.agent.injection` | Prompt-injection tests: replays invented events whose page text carries planted instructions through the agent and checks the briefings don't follow them. Writes a report to `evals/results/`. |
+
+### Web API and live page
+
+A FastAPI backend and one web page (plain HTML, CSS and JavaScript, nothing loaded from
+outside) where events appear as soon as they are grouped, grow as pages join, and gain a
+headline, entities and a briefing once stages 4 and 5 have processed them. The page also
+has a question box (`/ask`, the same GraphRAG answers as `wikipulse.qa.ask`).
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.api` | Starts the API and the page at http://127.0.0.1:8000 for the grouping run `API_RUN_ID` (`live`). `--run-id 03b-default-fix` shows the recorded day; `--port`, `--neo4j-uri`. Loopback only: there is no authentication. |
+| `uv run python scripts/demo_live_events.py --reset` | Without a live pipeline: re-groups a recorded day (spike run `02b-loose`, 16:00 to 20:00 UTC) into the run `05e-live-demo` 15 minutes of event time every 10 seconds. Start the API with `--run-id 05e-live-demo` and watch events appear. `--delete` removes the demo run. |
+
+Routes: `GET /events`, `GET /events/{event_id}`, `POST /ask`, `GET /health`, and the
+WebSocket `/ws/events` (a snapshot on connect, then every new or changed event). The API
+documentation is at http://127.0.0.1:8000/docs (Swagger UI, which loads its scripts from
+a CDN; `/openapi.json` works offline).

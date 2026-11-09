@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WikiPulse: live</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>WikiPulse</h1>
+    <p class="tagline">Breaking news, detected from Wikipedia's live edits.</p>
+    <div class="status">
+      <span id="connection" class="connection" data-state="connecting">connecting</span>
+      <span id="as-of" title="The newest event time in the data (event time, not your clock)"></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="events" aria-labelledby="events-heading">
+      <div class="section-head">
+        <h2 id="events-heading">Events <span id="event-count" class="muted"></span></h2>
+        <div class="filters">
+          <label>Pages
+            <select id="min-pages">
+              <option value="1">1+</option>
+              <option value="2" selected>2+</option>
+              <option value="3">3+</option>
+              <option value="5">5+</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="active-only"> active only</label>
+        </div>
+      </div>
+      <p id="events-empty" class="muted" hidden>No events match. They appear here as soon as they are detected.</p>
+      <ol id="event-list" class="event-list"></ol>
+    </section>
+
+    <section class="side">
+      <section class="ask" aria-labelledby="ask-heading">
+        <h2 id="ask-heading">Ask the knowledge graph</h2>
+        <form id="ask-form">
+          <textarea id="question" name="question" rows="2" maxlength="500" required
+            placeholder="e.g. How are Ueno Bank and Santiago Peña connected?"></textarea>
+          <div class="ask-row">
+            <span id="question-count" class="muted">0 / 500</span>
+            <button type="submit" id="ask-button">Ask</button>
+          </div>
+        </form>
+        <div id="answer" class="answer" aria-live="polite"></div>
+      </section>
+
+      <section class="detail" aria-labelledby="detail-heading">
+        <h2 id="detail-heading">Event</h2>
+        <div id="detail"><p class="muted">Pick an event on the left.</p></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="muted">
+    Times are event times in UTC. Facts link to the Wikipedia revision they come from.
+    <a href="/docs">API docs</a>
+  </footer>
+</body>
+</html>
