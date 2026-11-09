@@ -8,7 +8,9 @@
 2. Reference: archives the stream in-process without any crash (prefix `ref/edits`).
 3. Crash run: starts `python -m wikipulse.lake.archive` as a child process (prefix
    `crash/edits`, frequent flushes) and kills it hard (TerminateProcess / SIGKILL, no
-   cleanup) once it has read 25%, 50% and 75% of the stream; restarts it after each kill.
+   cleanup) once it has read 25%, 50% and 75% of the stream; restarts it after each kill,
+   each time under a new consumer name (so it must claim the old name's pending entries
+   and wait for the killed process's writer lock to expire).
    At every kill it reports the unacknowledged edits and whether their hour already had
    a file, i.e. that the kill really happened in the middle of a partly written hour.
 4. Checks: every edit of the stream is in the crash-run archive exactly once, in the
@@ -34,6 +36,7 @@ from fill_stream import fill, kept_edits  # scripts/fill_stream.py, next to this
 
 from wikipulse.config import Settings, get_settings
 from wikipulse.lake.archiver import Archiver, parse_entry, reset_group
+from wikipulse.lake.lock import writer_lock_key
 from wikipulse.lake.partitions import hour_of
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
@@ -48,6 +51,9 @@ REF_PREFIX, CRASH_PREFIX = "ref/edits", "crash/edits"
 KILL_POINTS = (0.25, 0.50, 0.75)
 LATE_EDITS = 5
 LOG_DIR = Path("data") / "lake-crashtest"
+# A hard kill leaves the child's writer lock behind until it expires; the restart waits
+# for that, so a short TTL keeps the test quick (the minimum the config allows).
+CHILD_LOCK_TTL_S = 10
 
 
 def build_stream(client: redis.Redis, recording: Path, max_messages: int) -> list[EditEvent]:
@@ -89,10 +95,14 @@ def entries_read(client: redis.Redis, group: str) -> int:
     return 0
 
 
-def archive_command(buffer_rows: int, idle_exit: float | None = None) -> list[str]:
-    """The archiver CLI with this interpreter directly (not via `uv run`), so kill() hits it."""
+def archive_command(buffer_rows: int, consumer: str, idle_exit: float | None = None) -> list[str]:
+    """The archiver CLI with this interpreter directly (not via `uv run`), so kill() hits it.
+
+    Every start uses a new consumer name, so each restart must claim the entries the
+    killed one left pending under its old name.
+    """
     command = [sys.executable, "-m", "wikipulse.lake.archive", "--stream-key", STREAM]
-    command += ["--group", CRASH_GROUP, "--prefix", CRASH_PREFIX]
+    command += ["--group", CRASH_GROUP, "--prefix", CRASH_PREFIX, "--consumer", consumer]
     command += ["--flush-interval", "1", "--max-buffer-rows", str(buffer_rows)]
     if idle_exit is not None:
         command += ["--exit-when-idle", str(idle_exit)]
@@ -102,7 +112,7 @@ def archive_command(buffer_rows: int, idle_exit: float | None = None) -> list[st
 def start(command: list[str], log_name: str) -> subprocess.Popen:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log = (LOG_DIR / log_name).open("w", encoding="utf-8")
-    env = os.environ | {"S3_BUCKET": BUCKET}
+    env = os.environ | {"S3_BUCKET": BUCKET, "LAKE_LOCK_TTL_S": str(CHILD_LOCK_TTL_S)}
     return subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=env)
 
 
@@ -126,7 +136,8 @@ def crash_at(client: redis.Redis, store: LakeStore, fraction: float, total: int,
     (a crash in the middle of a partly archived hour).
     """
     target = int(total * fraction)
-    process = start(archive_command(rows), f"crash-{int(fraction * 100)}.log")
+    name = f"crash-{int(fraction * 100)}"
+    process = start(archive_command(rows, consumer=f"archiver-{name}"), f"{name}.log")
     while entries_read(client, CRASH_GROUP) < target and process.poll() is None:
         time.sleep(0.005)
     process.kill()  # hard kill: TerminateProcess on Windows, SIGKILL on Linux
@@ -204,6 +215,7 @@ def run(settings: Settings, recording: Path, max_messages: int, buffer_rows: int
         ref = LakeStore.from_settings(settings, REF_PREFIX)
         crash = LakeStore.from_settings(settings, CRASH_PREFIX)
         ref.fs.delete_dir_contents(BUCKET, missing_dir_ok=True)
+        client.delete(writer_lock_key(ref.root), writer_lock_key(crash.root))  # stale locks
 
         reference = Archiver(client, STREAM, REF_GROUP, ref, flush_interval_s=1e9, block_ms=100)
         reference.ensure_group("0")
@@ -212,7 +224,9 @@ def run(settings: Settings, recording: Path, max_messages: int, buffer_rows: int
 
         Archiver(client, STREAM, CRASH_GROUP, crash).ensure_group("0")
         mid_hour = [crash_at(client, crash, f, total, buffer_rows) for f in KILL_POINTS]
-        final = start(archive_command(buffer_rows, idle_exit=2), "final.log")
+        final = start(
+            archive_command(buffer_rows, consumer="archiver-final", idle_exit=2), "final.log"
+        )
         final.wait(timeout=600)
         logger.info("Restarted archiver finished with exit code %s", final.returncode)
         passed = verify(client, events, crash, ref) and final.returncode == 0

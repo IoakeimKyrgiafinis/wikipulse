@@ -3,9 +3,11 @@
 from datetime import UTC, datetime
 
 import pyarrow as pa
+import pyarrow.fs as pafs
 import pyarrow.parquet as pq
 
 from tests.lake.helpers import T0, edit, local_store
+from wikipulse.lake.store import LakeStore
 from wikipulse.lake.table import EDIT_SCHEMA, events_to_table, merge_edits
 from wikipulse.stream.models import EditEvent
 
@@ -108,3 +110,27 @@ def test_files_read_back_with_extra_columns_are_conformed(tmp_path) -> None:
     table = events_to_table([edit("a", 1)]).append_column("extra", pa.array([1]))
     store.write_hour(T0, table)
     assert store.read_hour(T0).schema == EDIT_SCHEMA
+
+
+def test_local_root_keeps_its_leading_slash() -> None:
+    # On Linux an absolute path starts with '/'; stripping it made the lake relative to
+    # the working directory (the CI failure on Linux, invisible with Windows' 'C:/').
+    store = LakeStore(pafs.LocalFileSystem(), "/srv/lake/")
+    assert store.root == "/srv/lake"
+    assert store.path(T0) == "/srv/lake/year=2026/month=11/day=07/hour=12/part-0.parquet"
+
+
+def test_object_store_root_has_no_leading_slash(tmp_path) -> None:
+    not_local = pafs.SubTreeFileSystem(tmp_path.as_posix(), pafs.LocalFileSystem())
+    assert LakeStore(not_local, "/bucket/edits/").root == "bucket/edits"
+
+
+def test_store_with_a_posix_absolute_root_writes_there(tmp_path, monkeypatch) -> None:
+    # Run from another directory: a root that lost its leading '/' would land there.
+    elsewhere = tmp_path / "cwd"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    store = local_store(tmp_path / "lake")
+    store.write_hour(T0, events_to_table([edit("a", 1)]))
+    assert (tmp_path / "lake/year=2026/month=11/day=07/hour=12/part-0.parquet").is_file()
+    assert list(elsewhere.iterdir()) == []

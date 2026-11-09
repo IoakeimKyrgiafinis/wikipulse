@@ -15,11 +15,16 @@ buffered hour is merged into its file in the lake (`LakeStore.merge_hour`), and 
 
 **Why nothing is lost or doubled.**
 - A crash before a file is written: its entries were never acknowledged, so they are
-  still in the group's PEL. On start the archiver re-reads its PEL first and writes them.
+  still in the group's PEL. On start the archiver first claims the pending entries of
+  any *other* consumer name in its group (`XCLAIM`; a restart under another `--consumer`
+  name), then re-reads its own PEL and writes them.
 - A crash after the file is written but before `XACK`: the entries are read again and
   merged again, but the merge keeps one row per `event_id`, so the file comes out the
   same.
 - The file itself is replaced in one step, so a crash mid-upload leaves the old file.
+- Only one archiver writes to a lake at a time (`WriterLock`, a Redis key with a TTL).
+  A second one waits until the first stops or its lock expires, instead of overwriting
+  the first one's files. That is also what makes claiming other consumers' entries safe.
 """
 
 import logging
@@ -32,6 +37,7 @@ from datetime import datetime
 import redis
 from pydantic import ValidationError
 
+from wikipulse.lake.lock import LockLostError, WriterLock, writer_lock_key
 from wikipulse.lake.partitions import hour_of
 from wikipulse.lake.store import LakeStore
 from wikipulse.lake.table import events_to_table
@@ -43,6 +49,7 @@ DEFAULT_CONSUMER = "archiver-1"
 ACK_CHUNK = 1000  # ids per XACK command
 RETRY_MIN_S = 5.0  # first wait after a failed write to the lake; doubles up to RETRY_MAX_S
 RETRY_MAX_S = 300.0
+LOCK_POLL_S = 1.0  # how often a waiting archiver checks whether the lock is free
 
 Entry = tuple[str, dict[str, str] | None]
 
@@ -77,7 +84,9 @@ class Archiver:
         max_buffer_rows: int = 50_000,
         batch_size: int = 1000,
         block_ms: int = 2000,
+        lock_ttl_s: float = 60.0,
         monotonic: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.client = client
         self.stream = stream
@@ -89,6 +98,10 @@ class Archiver:
         self.batch_size = batch_size
         self.block_ms = block_ms
         self._monotonic = monotonic
+        self._sleep = sleep
+        self.lock = WriterLock(client, writer_lock_key(store.root), lock_ttl_s)
+        self._lock_renew_s = lock_ttl_s / 3  # renew well before the lock expires
+        self._lock_renewed_at = 0.0
         self.buffers: dict[datetime, HourBuffer] = defaultdict(HourBuffer)
         self._skipped_ids: list[str] = []  # acknowledged with the next flush
         self._last_flush = monotonic()
@@ -122,26 +135,77 @@ class Archiver:
         `idle_exit_s`: stop after that many seconds without new entries (after a replay).
         `max_entries`: stop after reading that many entries (for tests).
         `final_flush=False` leaves the buffers unwritten, as a crash would (for tests).
+
+        Nothing is read before the lake's writer lock is held: if another archiver holds
+        it, this one waits (until it is stopped). The lock is released on return.
         """
 
         def done() -> bool:
             return should_stop() or (max_entries is not None and self.stats.entries >= max_entries)
 
-        if not self._recovered:  # once per process: later entries are already buffered
-            self._recovered = self._read_pending(done)
-        last_activity = self._monotonic()
-        while not done():
-            entries = self._read(">", block=True, limit=self._limit(max_entries))
-            if entries:
-                self._add(entries)
-                last_activity = self._monotonic()
-            elif idle_exit_s is not None and self._monotonic() - last_activity >= idle_exit_s:
-                logger.info("No new entries for %.0f s, stopping", idle_exit_s)
-                break
-            self._maybe_flush()
-        if final_flush:
-            self.flush()
-        return self.stats
+        if not self._wait_for_lock(done):
+            return self.stats
+        try:
+            if not self._recovered:  # once per process: later entries are already buffered
+                self._recovered = self._read_pending(done)
+            last_activity = self._monotonic()
+            while not done():
+                self._renew_lock_if_due()
+                entries = self._read(">", block=True, limit=self._limit(max_entries))
+                if entries:
+                    self._add(entries)
+                    last_activity = self._monotonic()
+                elif idle_exit_s is not None and self._monotonic() - last_activity >= idle_exit_s:
+                    logger.info("No new entries for %.0f s, stopping", idle_exit_s)
+                    break
+                self._maybe_flush()
+            if final_flush:
+                self.flush()
+            return self.stats
+        finally:
+            self.lock.release()
+
+    # --- the single-writer lock ---
+
+    def _wait_for_lock(self, done: Callable[[], bool]) -> bool:
+        """Take the writer lock, waiting while another archiver holds it.
+
+        Returns False if stopped before the lock was free.
+        """
+        waiting = False
+        while not self.lock.acquire():
+            if not waiting:
+                logger.warning(
+                    "Another archiver is writing to %s (lock %s); waiting until it stops "
+                    "or its lock expires",
+                    self.store.root,
+                    self.lock.key,
+                )
+                waiting = True
+            if done():
+                return False
+            self._sleep(LOCK_POLL_S)
+        if waiting:
+            logger.info("Got the writer lock %s", self.lock.key)
+        self._lock_renewed_at = self._monotonic()
+        return True
+
+    def _renew_lock_if_due(self) -> None:
+        if self._monotonic() - self._lock_renewed_at >= self._lock_renew_s:
+            self._hold_lock()
+
+    def _hold_lock(self) -> None:
+        """Make sure this archiver still owns the lock, with a fresh TTL; else raise."""
+        if self.lock.owned:
+            held = self.lock.renew()
+        else:  # flush() called outside run()
+            held = self.lock.acquire()
+        if not held:
+            raise LockLostError(
+                f"Lake writer lock {self.lock.key} is held by another archiver; "
+                "stopping without writing (buffered edits stay unacknowledged)"
+            )
+        self._lock_renewed_at = self._monotonic()
 
     def _limit(self, max_entries: int | None) -> int:
         """Entries to ask for, so `max_entries` is never overshot (unread = not pending)."""
@@ -150,10 +214,11 @@ class Archiver:
         return max(1, min(self.batch_size, max_entries - self.stats.entries))
 
     def _read_pending(self, done: Callable[[], bool]) -> bool:
-        """Re-read this consumer's unacknowledged entries (left over from a crash).
+        """Re-read the group's unacknowledged entries (left over from a crash).
 
         Returns True when all of them were read (False if stopped half-way).
         """
+        self._claim_other_consumers()
         cursor = "0"
         while not done():
             entries = self._read(cursor, block=False, limit=self.batch_size)
@@ -162,8 +227,46 @@ class Archiver:
             logger.info("Re-reading %d pending entries after %s", len(entries), cursor)
             self._add(entries)
             cursor = entries[-1][0]
+            self._renew_lock_if_due()
             self._maybe_flush()
         return False
+
+    def _claim_other_consumers(self) -> int:
+        """Move entries pending under other consumer names of the group to this one.
+
+        A restart under a different `--consumer` name would otherwise never see them (a
+        permanent gap). Safe to do immediately (min idle time 0) because this archiver
+        holds the lake's writer lock, so no other archiver is working on them.
+        """
+        claimed = 0
+        for consumer in self.client.xpending(self.stream, self.group).get("consumers") or []:
+            name = consumer["name"]
+            if name == self.consumer:
+                continue
+            claimed += self._claim_from(name)
+            self.client.xgroup_delconsumer(self.stream, self.group, name)
+        return claimed
+
+    def _claim_from(self, name: str) -> int:
+        claimed, previous = 0, None
+        while True:
+            pending = self.client.xpending_range(
+                self.stream, self.group, "-", "+", self.batch_size, consumername=name
+            )
+            ids = [item["message_id"] for item in pending]
+            if not ids or ids == previous:  # done, or nothing could be moved
+                break
+            self.client.xclaim(self.stream, self.group, self.consumer, 0, ids, justid=True)
+            claimed += len(ids)
+            previous = ids
+        if claimed:
+            logger.warning(
+                "Claimed %d pending entries of consumer %s (an earlier archiver under "
+                "another name); they are archived now",
+                claimed,
+                name,
+            )
+        return claimed
 
     def _read(self, from_id: str, block: bool, limit: int) -> list[Entry]:
         response = self.client.xreadgroup(
@@ -219,6 +322,7 @@ class Archiver:
         """Write every buffered hour to the lake, acknowledging each hour after its write."""
         for hour in sorted(self.buffers):
             buffer = self.buffers[hour]
+            self._hold_lock()  # never write an hour without owning the lake
             rows = self.store.merge_hour(hour, events_to_table(buffer.events))
             self._ack(buffer.entry_ids)  # only now: the hour's file is safely written
             del self.buffers[hour]

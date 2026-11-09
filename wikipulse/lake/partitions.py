@@ -32,10 +32,14 @@ def hour_of(moment: datetime) -> datetime:
 
 
 def partition_path(prefix: str, hour: datetime) -> str:
-    """'edits/year=2026/month=11/day=07/hour=13' for the hour starting at 13:00 UTC."""
+    """'edits/year=2026/month=11/day=07/hour=13' for the hour starting at 13:00 UTC.
+
+    Only trailing slashes of `prefix` are removed: a leading one belongs to an absolute
+    local path such as '/tmp/lake' (Linux), which must stay absolute.
+    """
     hour = hour_of(hour)
     folder = f"year={hour:%Y}/month={hour:%m}/day={hour:%d}/hour={hour:%H}"
-    return f"{prefix.strip('/')}/{folder}" if prefix.strip("/") else folder
+    return f"{prefix.rstrip('/')}/{folder}" if prefix else folder
 
 
 def part_path(prefix: str, hour: datetime, n: int = 0) -> str:

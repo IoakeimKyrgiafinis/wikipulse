@@ -9,6 +9,9 @@ day=DD/hour=HH/part-0.parquet`. Start the object store first (`docker compose up
 - A replay: `uv run python -m wikipulse.lake.archive --stream-key wiki:replay:edits
   --group lake:replay --prefix replay/edits --exit-when-idle 10`.
 
+Only one archiver writes to a lake (bucket and prefix) at a time: a second one waits for
+the first one's Redis lock (LAKE_LOCK_TTL_S) instead of overwriting its files.
+
 `--reset` deletes the consumer group first, so the stream is read again from `--start-id`;
 the lake is not touched (re-archived hours come out the same, without duplicates).
 """
@@ -22,6 +25,7 @@ import redis
 from wikipulse.config import Settings, get_settings
 from wikipulse.detect.run import StopFlag
 from wikipulse.lake.archiver import DEFAULT_CONSUMER, Archiver, ArchiveStats, reset_group
+from wikipulse.lake.lock import LockLostError
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
 
@@ -32,7 +36,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--stream-key", help="Redis Stream to read (default: STREAM_KEY)")
     parser.add_argument("--group", help="consumer group (default: LAKE_GROUP)")
-    parser.add_argument("--consumer", default=DEFAULT_CONSUMER, help="consumer name in the group")
+    parser.add_argument(
+        "--consumer",
+        default=DEFAULT_CONSUMER,
+        help="consumer name in the group (on start, entries left pending under other names "
+        "are claimed, so renaming loses nothing)",
+    )
     parser.add_argument("--prefix", help="key prefix in the bucket (default: LAKE_PREFIX)")
     parser.add_argument(
         "--start-id",
@@ -78,6 +87,7 @@ def build_archiver(args: argparse.Namespace, settings: Settings, client: redis.R
         consumer=args.consumer,
         flush_interval_s=args.flush_interval or settings.lake_flush_interval_s,
         max_buffer_rows=args.max_buffer_rows or settings.lake_max_buffer_rows,
+        lock_ttl_s=settings.lake_lock_ttl_s,
     )
     archiver.ensure_group(args.start_id)
     return archiver
@@ -113,7 +123,11 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging()
     stop = StopFlag()
     stop.install()
-    run(args, settings, stop)
+    try:
+        run(args, settings, stop)
+    except LockLostError as exc:
+        logger.error("%s", exc)
+        return 1
     return 0
 
 

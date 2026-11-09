@@ -67,9 +67,12 @@ class LakeStore:
 
     def __init__(self, filesystem: pafs.FileSystem, root: str, compression: str = "zstd") -> None:
         self.fs = filesystem
-        self.root = root.strip("/")
-        self.compression = compression
         self._local = filesystem.type_name == "local"
+        # An S3 path is '<bucket>/<key prefix>', never with a leading '/'. A local root
+        # keeps its leading '/': on Linux and macOS that is what makes it absolute
+        # ('/tmp/lake'), while Windows paths start with a drive ('C:/...').
+        self.root = (root.rstrip("/") or "/") if self._local else root.strip("/")
+        self.compression = compression
 
     @classmethod
     def from_settings(cls, settings: Settings, prefix: str | None = None) -> "LakeStore":
@@ -79,7 +82,8 @@ class LakeStore:
         if filesystem.get_file_info(bucket).type == pafs.FileType.NotFound:
             filesystem.create_dir(bucket)
             logger.info("Created bucket %s at %s", bucket, settings.s3_endpoint)
-        return cls(filesystem, f"{bucket}/{prefix if prefix is not None else settings.lake_prefix}")
+        prefix = (prefix if prefix is not None else settings.lake_prefix).strip("/")
+        return cls(filesystem, f"{bucket}/{prefix}")
 
     def path(self, hour: datetime) -> str:
         """Full path (bucket and key) of an hour's file."""

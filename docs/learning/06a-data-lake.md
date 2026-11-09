@@ -242,6 +242,39 @@ English Wikipedia's ~5,000 kept edits per hour that would take about a week.
   lists). If the object store is down, `archive` and `query` fail at start with pyarrow's
   connection error after about 15 s of retries.
 
+### Review fixes (docs/reviews/06a-data-lake.md and the Linux CI run)
+
+- **Linux CI failure.** `LakeStore.__init__` did `root.strip("/")`, and `partition_path`
+  did `prefix.strip("/")`. On Linux, an absolute path such as `/tmp/pytest-.../lake` lost
+  its leading `/` and became *relative to the working directory*, so files went to the
+  wrong place. Windows paths start with `C:/`, which is why it passed there. Now a local
+  root only loses *trailing* slashes, and S3 roots (`<bucket>/<prefix>`) are stripped on
+  both sides. New tests fail on the old code on any OS. Checked under Linux with
+  `docker run ... ghcr.io/astral-sh/uv:python3.12-bookworm` (the lake tests: 52 passed).
+- **Single writer (review problem 1).** `wikipulse/lake/lock.py` has `WriterLock`:
+  `SET lake:writer:<lake root> <token> NX PX <ttl>`. It is renewed every TTL/3 and right
+  before each hour write, and released when `run()` returns. Renewing and releasing first
+  check the token inside WATCH/MULTI, so a process can never touch a lock that is not its
+  own. A second archiver *waits* for the lock (it logs once and checks every second)
+  rather than refusing, so it acts as a standby and a restart after `kill -9` just waits
+  for the TTL. If the lock is lost mid-run, `LockLostError` stops the archiver before it
+  writes anything, its edits stay unacknowledged, and the CLI exits with 1. New setting
+  `LAKE_LOCK_TTL_S` (default 60, minimum 10). Limit: there is no fencing token, so a
+  writer that freezes for longer than the TTL could still overlap with a new owner.
+- **Pending entries of other consumer names (review problem 2).** I kept `--consumer`. On
+  start, while holding the lock, `Archiver._claim_other_consumers` moves every entry
+  pending under another consumer name of the group to itself (`XPENDING` per consumer,
+  then `XCLAIM` with min-idle 0, in batches) and deletes the old name. I used
+  `XPENDING`+`XCLAIM` rather than `XAUTOCLAIM` because fakeredis drops XAUTOCLAIM's cursor
+  with `JUSTID`. Claiming at once is only safe because of the lock. `lake_crash_test.py`
+  now restarts under a new consumer name after every kill, so it exercises both fixes.
+  Re-run: 26,441 edits, kills at 7,000 / 14,000 / 20,000, every restart waited about
+  8-10 s for the dead process's lock and then claimed 1,000 / 1,000 / 2,000 entries.
+  Missing 0, extra 0, duplicates 0, still pending 0, identical to the reference: PASS.
+- Tests: `tests/lake/test_lock.py` (9), plus 2 claim tests in `test_archiver.py`, 1 in
+  `test_partitions.py`, and 3 in `test_table_and_store.py`. After the fixes: `uv run
+  pytest` 779 passed, `-m integration tests/lake` 3 passed, ruff clean.
+
 ## Results
 
 All measured on 2026-11-09 on the human's Windows machine, with RustFS and Redis in Docker.

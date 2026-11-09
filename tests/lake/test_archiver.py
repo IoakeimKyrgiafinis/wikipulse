@@ -200,3 +200,24 @@ def test_another_consumer_group_reads_independently(client, store) -> None:
     archiver(client, store).run(idle_exit_s=0)
     assert len(archived_ids(store)) == 40
     assert client.xpending(STREAM, "detect:live")["pending"] == 40  # untouched
+
+
+def test_restart_under_another_consumer_name_claims_old_pending_entries(client, store) -> None:
+    events = three_hours()
+    add_to_stream(client, STREAM, events)
+    archiver(client, store, consumer="archiver-old").run(max_entries=25, final_flush=False)
+    assert pending(client) == 25  # all held by "archiver-old"
+    archiver(client, store, consumer="archiver-new").run(idle_exit_s=0)
+    ids = archived_ids(store)
+    assert len(ids) == len(set(ids)) == 40
+    assert pending(client) == 0
+    consumers = {c["name"] for c in client.xinfo_consumers(STREAM, GROUP)}
+    assert consumers == {"archiver-new"}  # the old name is removed once its entries moved
+
+
+def test_claiming_works_in_batches(client, store) -> None:
+    add_to_stream(client, STREAM, three_hours())
+    archiver(client, store, consumer="a", batch_size=7).run(max_entries=30, final_flush=False)
+    archiver(client, store, consumer="b", batch_size=7).run(idle_exit_s=0)
+    assert sorted(archived_ids(store)) == sorted(e.event_id for e in three_hours())
+    assert pending(client) == 0

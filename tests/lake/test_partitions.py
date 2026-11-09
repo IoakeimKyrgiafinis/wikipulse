@@ -51,3 +51,9 @@ def test_parse_partition_inverts_part_path() -> None:
 def test_parse_partition_ignores_other_keys() -> None:
     assert parse_partition("b/edits/year=2026/month=11") is None
     assert parse_partition("b/edits/readme.txt") is None
+
+
+def test_partition_path_keeps_an_absolute_posix_prefix() -> None:
+    hour = datetime(2026, 11, 7, 12, tzinfo=UTC)
+    assert partition_path("/tmp/lake/", hour) == "/tmp/lake/year=2026/month=11/day=07/hour=12"
+    assert partition_path("/", hour) == "/year=2026/month=11/day=07/hour=12"

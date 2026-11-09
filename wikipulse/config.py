@@ -321,6 +321,11 @@ class Settings(BaseSettings):
     # acknowledged, and how many buffered edits force a write earlier.
     lake_flush_interval_s: float = Field(default=300, gt=0)
     lake_max_buffer_rows: int = Field(default=50_000, ge=1)
+    # Only one archiver may write to a lake at a time (a Redis lock, renewed while it
+    # runs). After a hard kill the lock expires by itself after this many seconds, so a
+    # restarted archiver waits at most this long. Must be well above the S3 timeouts'
+    # worst case for one hour write to stay meaningful; 10 s is the minimum.
+    lake_lock_ttl_s: float = Field(default=60, ge=10)
 
     @field_validator("log_level", mode="before")
     @classmethod
