@@ -1,6 +1,6 @@
 # Spec 06b: Event-driven worker
 
-Status: ready
+Status: done
 Stage: 6. Data lake and batch
 Owner: agent
 Depends on: 06a
