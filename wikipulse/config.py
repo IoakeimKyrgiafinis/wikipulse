@@ -263,6 +263,33 @@ class Settings(BaseSettings):
     # graph's newest event (event time, so a replayed day has trending events too).
     mcp_trending_hours: float = Field(default=24, gt=0)
 
+    # --- Stage 5: analyst agent (wikipulse.agent) ---
+    # Model that investigates events and writes briefings, as `backend:model`. The same
+    # model as QA_MODEL by default, so the agent and the `ask` tool share one model on the
+    # GPU instead of swapping two.
+    agent_model: str = "ollama:qwen3:8b"
+    # Let the model think before each answer (slower; see docs/learning/05d-analyst-agent.md).
+    agent_think: bool = False
+    # Check the finished briefing against its evidence (one more model call) and remove
+    # the sentences the evidence doesn't state.
+    agent_verify: bool = True
+    # Controls of one run: at most this many model turns with tools, this many tokens
+    # (input + output, summed over every call), this many seconds in total.
+    agent_max_steps: int = Field(default=8, ge=1, le=50)
+    agent_token_budget: int = Field(default=60_000, ge=1000)
+    agent_run_timeout_s: float = Field(default=900, gt=0)
+    # Per-tool timeouts: `ask` runs an LLM itself and needs much longer than a lookup.
+    agent_tool_timeout_s: float = Field(default=30, gt=0)
+    agent_ask_timeout_s: float = Field(default=180, gt=0)
+    # A tool result shown to the model is cut at this many characters.
+    agent_max_result_chars: int = Field(default=5000, ge=500)
+    # The trigger: an event gets a briefing when its best spike score reaches
+    # AGENT_MIN_SPIKE_SCORE or it has at least AGENT_MIN_PAGES pages.
+    agent_min_spike_score: float = Field(default=9.0, ge=0)
+    agent_min_pages: int = Field(default=3, ge=1)
+    # How often the trigger looks for new significant events, in seconds.
+    agent_poll_interval_s: float = Field(default=60, gt=0)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

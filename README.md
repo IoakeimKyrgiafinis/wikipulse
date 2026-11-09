@@ -179,3 +179,18 @@ to its `mcpServers`, with the path of your clone:
 Desktop; WikiPulse then appears under the tools icon. The Docker services must be
 running, and Ollama for `ask`. If `uv` is not found, give its full path (`where.exe uv`).
 The first `ask` takes up to a minute (it loads the embedding model and the LLM).
+
+### Analyst agent
+
+An agent that investigates each significant event through the MCP tools (plus two local
+tools, `read_page` and `related_events`) and writes a short briefing in which every
+sentence cites the Wikipedia pages and revisions it comes from. The briefing is stored
+on the event in Neo4j, so `get_event` shows it; the full transcript of every run goes to
+`data/agent_runs/`. The loop (`wikipulse/agent/loop.py`) is written without a framework,
+with a step limit, a token budget, per-tool timeouts and loop detection
+(`AGENT_*` settings).
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.agent.run` | The trigger: every `AGENT_POLL_INTERVAL_S` seconds, briefs the events whose best spike score reaches `AGENT_MIN_SPIKE_SCORE` or that have at least `AGENT_MIN_PAGES` pages, and that have no up-to-date briefing. Starts the MCP server as a subprocess. `--once`, `--limit N`, `--event KEY` (repeatable), `--dry-run`, `--force`, `--model`, `--neo4j-uri`, `--mcp-url`. |
+| `uv run python -m wikipulse.agent.injection` | Prompt-injection tests: replays invented events whose page text carries planted instructions through the agent and checks the briefings don't follow them. Writes a report to `evals/results/`. |
