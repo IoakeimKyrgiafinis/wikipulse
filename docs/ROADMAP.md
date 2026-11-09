@@ -49,7 +49,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 05c | MCP server | done |
 | 05d | Analyst agent | done |
 | 05e | API and live web page | done |
-| 06a | Data lake archive | ready |
+| 06a | Data lake archive | done |
 | 06b | Event-driven worker | ready |
 | 06c | Scheduled jobs with Airflow | ready |
 | 07a | Training dataset | ready |
