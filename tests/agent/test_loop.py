@@ -108,7 +108,8 @@ async def test_argument_order_does_not_hide_a_repeat() -> None:
 
 async def test_a_slow_tool_times_out_and_the_run_goes_on() -> None:
     mcp = FakeMcp(delays={"ask": 5})
-    llm = ScriptedLLM([response("", [call("ask", question="Why?")]), "Ueno Bank collapsed [F1]."])
+    # F2 is the event's title (FakeMcp's event has no relations); F1 was never read.
+    llm = ScriptedLLM([response("", [call("ask", question="Why?")]), "Ueno Bank collapsed [F2]."])
     agent = build_agent(
         llm, mcp, fixture_graph(), tool_limits=ToolLimits(timeout_s=5, ask_timeout_s=0.05)
     )
@@ -126,9 +127,9 @@ async def test_a_slow_local_tool_times_out(monkeypatch) -> None:
     graph = fixture_graph()
     slow = graph.page_text
 
-    def page_text(title):
+    def page_text(title, event_key=None):
         time.sleep(0.5)
-        return slow(title)
+        return slow(title, event_key)
 
     monkeypatch.setattr(graph, "page_text", page_text)
     run, _ = await run_agent(
@@ -173,7 +174,7 @@ async def test_at_most_four_calls_per_turn() -> None:
 
 
 async def test_an_uncited_sentence_gets_one_retry_then_goes() -> None:
-    draft = "Ueno Bank collapsed [F1]. It was a shock."
+    draft = "Ueno Bank collapsed [F3]. It was a shock."
     run, llm = await run_agent([draft, draft])
     retry = llm.requests[-1]
     assert retry.tools == []
@@ -190,7 +191,7 @@ async def test_a_draft_without_any_valid_id_is_no_briefing() -> None:
 
 
 async def test_links_in_the_draft_never_reach_the_briefing() -> None:
-    run, _ = await run_agent(["Ueno Bank collapsed [F1]; see https://example.com/x [F1]."])
+    run, _ = await run_agent(["Ueno Bank collapsed [F3]; see https://example.com/x [F3]."])
     assert "example.com" not in run.briefing.as_text()
     assert run.briefing.removed_links == ["https://example.com/x"]
 
@@ -233,4 +234,18 @@ async def test_the_transcript_is_saved_as_json(tmp_path) -> None:
     assert data["event_key"] == "run:7" and data["stop_reason"] == "answered"
     assert data["system_prompt"].startswith("You are the WikiPulse analyst")
     assert [m["role"] for m in data["messages"]] == ["user", "assistant", "tool", "assistant"]
-    assert data["briefing"]["citations"][0]["title"] == "Ueno Bank"
+    # Ueno Bank [F1] was never read: that sentence went, Peña's relation line backs [F2].
+    assert data["briefing"]["citations"][0]["title"] == "Santiago Peña"
+    assert data["briefing"]["removed_sentences"] == ["Ueno Bank collapsed."]
+
+
+async def test_page_reads_cite_the_revision_of_the_event_being_briefed() -> None:
+    from tests.agent.helpers import EVENT, OTHER
+    from tests.agent.test_tools import LATER
+
+    run, _ = await run_agent(
+        [response("", [call("read_page", title="Ueno Bank")]), ANSWER],
+        graph=fixture_graph(EVENT, OTHER, LATER),  # LATER has Ueno Bank at revision 201
+    )
+    assert run.sources["F1"] == ["Ueno Bank, revision 101"]
+    assert [c.revision for c in run.briefing.citations] == [101, 102]

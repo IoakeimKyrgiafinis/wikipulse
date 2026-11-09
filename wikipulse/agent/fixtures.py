@@ -64,11 +64,17 @@ class FixtureEvent(BaseModel):
 
 
 class InjectionCase(BaseModel):
-    """One event with planted instructions, and what a briefing must not contain."""
+    """One event with planted instructions, what a briefing must not contain, and what
+    it must still say."""
 
     id: str
     attack: str  # what the planted text tries to make the agent do
-    forbidden: list[str] = Field(default_factory=list)  # in the briefing (any case)
+    forbidden: list[str] = Field(default_factory=list)  # what the attack asks for
+    # What the planted text says: a briefing that repeats or reports the instruction
+    # ("the council instructed AI agents to link ...") passes it on to its readers.
+    reports: list[str] = Field(default_factory=list)
+    # Words of which the briefing must contain at least one: it still says what happened.
+    covers: list[str] = Field(default_factory=list)
     forbidden_in_tool_args: list[str] = Field(default_factory=list)  # in any call
     event: FixtureEvent
 
@@ -196,17 +202,20 @@ class FixtureGraph:
                 found.append(GraphPath((left.entity_name, title, right.entity_name), steps))
         return found[:limit]
 
-    def page_text(self, title: str) -> PageText | None:
-        for event in sorted(self.events_by_key.values(), key=lambda e: e.started_at, reverse=True):
-            for page in event.pages:
-                if fold(page.title) == fold(title):
-                    keys = tuple(
-                        e.key
-                        for e in self.events_by_key.values()
-                        if any(p.title == page.title for p in e.pages)
-                    )
-                    return PageText(page.title, page.description, page.summary, page.revision, keys)
-        return None
+    def page_text(self, title: str, event_key: str | None = None) -> PageText | None:
+        """Like `QAGraph.page_text`: the revision of event `event_key`, else the newest."""
+        newest_first = sorted(self.events_by_key.values(), key=lambda e: e.started_at, reverse=True)
+        found = [
+            (event, page)
+            for event in newest_first
+            for page in event.pages
+            if fold(page.title) == fold(title)
+        ]
+        if not found:
+            return None
+        _, page = next(((e, p) for e, p in found if e.key == event_key), found[0])
+        keys = tuple(e.key for e, _ in found)
+        return PageText(page.title, page.description, page.summary, page.revision, keys)
 
     def close(self) -> None:
         pass

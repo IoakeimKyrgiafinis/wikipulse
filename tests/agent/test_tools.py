@@ -125,3 +125,33 @@ async def test_long_results_are_cut() -> None:
     await tools.load()
     outcome = await tools.call(call("ask", question="Why?"), SourceBook())
     assert len(outcome.text) <= 500 and outcome.text.endswith("longer than 500 characters)")
+
+
+LATER = FixtureEvent.model_validate(
+    {
+        "key": "run:12",
+        "title": "Ueno Bank's licence revoked",
+        "started_at": "2026-11-08T10:00:00Z",
+        "pages": [{"title": "Ueno Bank", "revision": 201, "summary": "Ueno Bank was a bank."}],
+    }
+)
+
+
+async def test_read_page_cites_the_revision_of_the_event_under_investigation() -> None:
+    tools = ToolBox(FakeMcp(), fixture_graph(EVENT, LATER))
+    await tools.load()
+    book = SourceBook()
+    book.event_key = "run:7"  # set by the loop from get_event
+    briefed = await tools.call(call("read_page", title="Ueno Bank"), book)
+    assert briefed.text.splitlines()[0] == "Wikipedia page 'Ueno Bank' [F1] (revision 101)"
+    assert "Part of events: run:12, run:7" in briefed.text  # newest first
+    newest = await tools.call(call("read_page", title="Ueno Bank"), SourceBook())
+    assert "(revision 201)" in newest.text.splitlines()[0]  # no event: the newest one
+
+
+async def test_what_read_page_shows_is_noted_as_evidence() -> None:
+    tools = ToolBox(FakeMcp(), fixture_graph())
+    await tools.load()
+    book = SourceBook()
+    outcome = await tools.call(call("read_page", title="Ueno Bank"), book)
+    assert book.evidence["F1"] == [outcome.text]

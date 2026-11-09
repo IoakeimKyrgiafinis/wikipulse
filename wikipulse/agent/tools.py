@@ -71,7 +71,7 @@ RELATED_EVENTS = ToolSpec(
 class AgentGraph(ExplorerGraph, Protocol):
     """The reads of the MCP tools plus the page text `read_page` needs."""
 
-    def page_text(self, title: str) -> PageText | None: ...
+    def page_text(self, title: str, event_key: str | None = None) -> PageText | None: ...
 
 
 class McpSession(Protocol):
@@ -196,22 +196,24 @@ class ToolBox:
     def read_page(self, arguments: dict[str, Any], book: SourceBook) -> ToolOutcome:
         # Small models often copy the source id with the title: "Ueno Bank [F1]".
         title = _SOURCE_MARKER.sub("", _text_argument(arguments, "title", READ_PAGE.name)).strip()
-        page = self.graph.page_text(title)
+        page = self.graph.page_text(title, book.event_key)  # the revision of this event
         if page is None:
             raise ToolInputError(
                 f"There is no page {title!r} in the graph. Use a title from get_event's list "
                 "of Wikipedia pages."
             )
-        source = marker(book.cite(Citation(title=page.title, revision=page.revision)))
+        page_id = book.cite(Citation(title=page.title, revision=page.revision))
         revision = f"revision {page.revision}" if page.revision is not None else "no revision"
-        lines = [f"Wikipedia page {defang(page.title)!r} {source} ({revision})"]
+        lines = [f"Wikipedia page {defang(page.title)!r} {marker(page_id)} ({revision})"]
         if page.description:
             lines.append(f"Short description: {defang(page.description)}")
         if page.event_keys:
             lines.append(f"Part of events: {', '.join(page.event_keys)}")
         lines.append(untrusted(page.summary or "(no summary stored)", page.title))
+        text = "\n".join(lines)
+        book.note(page_id, text)  # what the run read from this page revision
         raw = " ".join(x for x in (page.title, page.description, page.summary) if x)
-        return warn_if_suspicious("\n".join(lines), raw)
+        return warn_if_suspicious(text, raw)
 
     def related_events(self, arguments: dict[str, Any], book: SourceBook) -> ToolOutcome:
         event = self.explorer.find_event(_text_argument(arguments, "event_id", "related_events"))
@@ -233,7 +235,10 @@ class ToolBox:
         lines = [f"Other events sharing entities with {event.key}:"]
         for key, entry in ranked[:MAX_RELATED_EVENTS]:
             shared = ", ".join(f"{defang(n)} {marker(i)}" for n, i in entry["shared"].items())
-            lines.append(f"- {key}: {defang(entry['title'])} (shares {shared})")
+            line = f"- {key}: {defang(entry['title'])} (shares {shared})"
+            lines.append(line)
+            for source_id in entry["shared"].values():
+                book.note(source_id, line)
         raw = " ".join(t for entry in found.values() for t in entry["raw"])
         return warn_if_suspicious("\n".join(lines), raw)
 

@@ -22,6 +22,7 @@ from tests.graph.helpers import event, saff_page
 from wikipulse.agent.briefing import Briefing
 from wikipulse.agent.loop import AgentLimits, AnalystAgent
 from wikipulse.agent.run import mcp_client
+from wikipulse.agent.sources import ExtractionCitation
 from wikipulse.agent.store import BriefingMeta, BriefingStore
 from wikipulse.agent.tools import ToolBox
 from wikipulse.config import get_settings
@@ -111,6 +112,14 @@ def test_page_text_on_the_snapshot(snapshot_uri: str) -> None:
         assert page is not None and page.title == "Ueno Bank"
         assert page.summary and page.revision and page.event_keys
         assert graph.page_text("No such page at all") is None
+        # With an event: the revision the page had in that event, not in its newest one.
+        rows = graph._read(
+            "MATCH (:Page {title: 'Ueno Bank'})-[po:PART_OF]->(ev:Event) "
+            "RETURN ev.key AS key, po.revision AS revision"
+        )
+        assert rows
+        for row in rows:
+            assert graph.page_text("Ueno Bank", row["key"]).revision == row["revision"]
 
 
 async def test_the_agent_over_the_real_mcp_server(snapshot_uri: str) -> None:
@@ -127,5 +136,22 @@ async def test_the_agent_over_the_real_mcp_server(snapshot_uri: str) -> None:
                 run = await agent.run(key)
     assert run.stop_reason == "answered" and run.event_key == key
     assert "Ueno Bank [F1]" in llm.requests[0].messages[2].content
-    urls = [c.url for c in run.briefing.citations]
-    assert urls and all(u.startswith("https://en.wikipedia.org/w/index.php?oldid=") for u in urls)
+    page, description = run.briefing.citations
+    # The page at its revision in *this* event, with its permanent link ...
+    assert page.title == "Ueno Bank"
+    assert page.url == f"https://en.wikipedia.org/w/index.php?oldid={page.revision}"
+    assert page.revision == graph_revision(snapshot_uri, "Ueno Bank", key)
+    # ... and [F6], the event's title and description, cited as the extraction's.
+    assert isinstance(description, ExtractionCitation) and description.url == ""
+
+
+def graph_revision(uri: str, title: str, event_key: str) -> int:
+    settings = get_settings().model_copy(update={"neo4j_uri": uri})
+    with QAGraph.from_settings(settings) as graph:
+        rows = graph._read(
+            "MATCH (:Page {title: $title})-[po:PART_OF]->(:Event {key: $key}) "
+            "RETURN po.revision AS revision",
+            title=title,
+            key=event_key,
+        )
+    return rows[0]["revision"]

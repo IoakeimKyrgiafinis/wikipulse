@@ -18,10 +18,11 @@ That is all an "agent" is. `AnalystAgent.run(event_id)`:
    with a warning; the third ends the investigation. Whatever stops the loop, the model
    then gets one last turn *without tools* to write the briefing from what it has.
 4. The draft is checked by code (`briefing.py`): links removed, unknown source ids
-   removed, sentences without a source id sent back once, then dropped. Then the
-   grounding check (`verify`): in a fresh conversation, the model (thinking) gets each
-   sentence with the evidence its ids point to and says which ones the evidence states;
-   the others are dropped.
+   removed, sentences without a source id sent back once, then dropped; citations of
+   sources the run never read anything from are removed too. Then the grounding check
+   (`verify`): in a fresh conversation, the model (thinking) gets each sentence with the
+   text the run read from its sources and says which ones that text states; the others
+   (and any sentence without an explicit verdict) are dropped.
 
 The result, `AgentRun`, holds the briefing (or why there is none), every step, the
 whole conversation and the token usage; `transcript.py` saves it as JSON.
@@ -43,6 +44,7 @@ from wikipulse.agent.briefing import (
     VERIFY_SCHEMA,
     Briefing,
     clean_draft,
+    drop_unread_citations,
     finish,
     missing_citations,
     unsupported_sentences,
@@ -248,6 +250,7 @@ class AnalystAgent:
             run.stop_reason, run.error = "event_not_found", outcome.text
             return
         run.event_key = ((outcome.data or {}).get("event") or {}).get("event_id")
+        book.event_key = run.event_key  # page reads cite this event's revisions
         messages += [Message.assistant("", [first]), Message.tool_result(first, outcome.text)]
         reason = await self._loop(run, book, messages, specs, started)
         draft = run.draft
@@ -388,8 +391,10 @@ class AnalystAgent:
             messages.append(Message.assistant(response.text))
             text, more = clean_draft(response.text, book)
             links += more
+        tool_texts = [m.content for m in messages if m.role == "tool"]
+        text = drop_unread_citations(text, book, tool_texts)
         if self.verify:
-            run.unsupported = await self._verify(run, text, messages)
+            run.unsupported = await self._verify(run, text, book, tool_texts)
         briefing = finish(text, book, links, run.unsupported)
         if briefing is not None:
             briefing.verified = run.verified
@@ -397,10 +402,12 @@ class AnalystAgent:
             run.error = "No sentence of the draft passed the checks (source ids, evidence)."
         return briefing
 
-    async def _verify(self, run: AgentRun, text: str, messages: list[Message]) -> list[str]:
-        """Ask the model, in a fresh conversation, which sentences the evidence states."""
-        tool_texts = [m.content for m in messages if m.role == "tool"]
-        request, sentences = verification_request(text, tool_texts)
+    async def _verify(
+        self, run: AgentRun, text: str, book: SourceBook, tool_texts: list[str]
+    ) -> list[str]:
+        """Ask the model, in a fresh conversation, which sentences the evidence states.
+        Only sentences it explicitly calls supported are kept (`unsupported_sentences`)."""
+        request, sentences = verification_request(text, book, tool_texts)
         if not sentences:
             return []
         try:
