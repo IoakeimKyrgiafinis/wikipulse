@@ -1,6 +1,6 @@
 # Spec 05d: Analyst agent
 
-Status: ready
+Status: done
 Stage: 5. GraphRAG, MCP, agent
 Owner: agent
 Depends on: 05c
