@@ -113,6 +113,17 @@ class PageHit:
 
 
 @dataclass(frozen=True)
+class PageText:
+    """A page's own text as enrichment stored it (written by anyone: untrusted)."""
+
+    title: str
+    description: str | None
+    summary: str | None
+    revision: int | None  # the revision its newest event's burst ended with
+    event_keys: tuple[str, ...] = ()  # its events, newest first
+
+
+@dataclass(frozen=True)
 class EventHit:
     key: str
     cosine: float
@@ -203,6 +214,15 @@ ORDER BY ev.page_count DESC, score DESC, ev.started_at DESC LIMIT $limit
 EVENT_BRIEFING = """
 MATCH (ev:Event {key: $key})
 RETURN properties(ev)['briefing'] AS briefing
+"""
+PAGE_TEXT = """
+MATCH (p:Page) WHERE p.title = $title OR toLower(p.title) = toLower($title)
+OPTIONAL MATCH (p)-[po:PART_OF]->(ev:Event)
+WITH p, po, ev ORDER BY ev.started_at DESC
+WITH p, collect(po.revision) AS revisions, collect(ev.key) AS events
+RETURN p.title AS title, p.description AS description, p.summary AS summary,
+       revisions[0] AS revision, events[..5] AS events
+ORDER BY p.title = $title DESC LIMIT 1
 """
 ENTITIES_BY_KEY = """
 MATCH (n:Entity) WHERE n.key IN $keys
@@ -346,6 +366,15 @@ class QAGraph:
         """The briefing the analyst agent (spec 05d) stored on the event, if any."""
         rows = self._read(EVENT_BRIEFING, key=key)
         return rows[0]["briefing"] if rows else None
+
+    def page_text(self, title: str) -> PageText | None:
+        """A page's description and summary (exact title first, else any case)."""
+        rows = self._read(PAGE_TEXT, title=title)
+        if not rows:
+            return None
+        r = rows[0]
+        revision = int(r["revision"]) if r["revision"] is not None else None
+        return PageText(r["title"], r["description"], r["summary"], revision, tuple(r["events"]))
 
     def entities_by_key(self, keys: list[str]) -> list[EntityCandidate]:
         """Entities by their key (the Wikidata ID for linked entities)."""
