@@ -1,0 +1,16 @@
+{
+  "hour": "2026-11-05T01:00:00+00:00",
+  "rows": 8492,
+  "bytes": {
+    "json": 3487580,
+    "json_gzip": 680056,
+    "parquet_zstd_stored": 568995,
+    "parquet_snappy": 863974,
+    "parquet_uncompressed": 1169355
+  },
+  "query_seconds": {
+    "json": 0.06496489996789023,
+    "parquet": 0.004532500053755939
+  },
+  "lake": "wikipulse-lake/history/edits"
+}

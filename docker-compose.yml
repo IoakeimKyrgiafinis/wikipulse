@@ -85,8 +85,31 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  rustfs:
+    # S3-compatible object storage for the data lake (stage 6, spec 06a). MinIO's free
+    # edition no longer ships container images, so this is RustFS, an Apache-2.0,
+    # MinIO-compatible server. Any S3 store works: the code only knows S3_ENDPOINT.
+    # Web console: http://localhost:9001 (S3_ACCESS_KEY / S3_SECRET_KEY).
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-wikipulse}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-wikipulse-lake}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
 volumes:
   redis-data:
   postgres-data:
   neo4j-data:
   neo4j-eval-data:
+  rustfs-data:

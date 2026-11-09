@@ -24,6 +24,10 @@ dependencies = [
     "fastapi>=0.162.2",
     "uvicorn>=0.54.0",
     "websockets>=17.4",
+    # Stage 6 (spec 06a): the data lake. pyarrow writes Parquet and talks S3 (its own
+    # S3 filesystem, so no boto3); DuckDB runs SQL over the archive.
+    "pyarrow>=26",
+    "duckdb>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -71,6 +75,6 @@ asyncio_default_fixture_loop_scope = "function"
 # overrides this one, e.g. `uv run pytest -m integration`.
 addopts = "-m 'not integration and not live'"
 markers = [
-    "integration: needs the Docker services (Redis, Postgres, Neo4j) running",
+    "integration: needs the Docker services (Redis, Postgres, Neo4j, RustFS) running",
     "live: touches real outside services (Wikimedia over the network, or the local Ollama)",
 ]
