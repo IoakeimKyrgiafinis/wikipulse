@@ -97,3 +97,21 @@ jobs:
 
       - name: Run integration tests
         run: uv run pytest -m integration
+
+  # DAG import tests (spec 06c): load dags/ with Airflow itself, inside the same image
+  # Docker Compose builds. No Airflow server or database is started.
+  dags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Build the Airflow image
+        run: docker build -t wikipulse-airflow:ci docker/airflow
+
+      - name: Import the DAGs with Airflow
+        run: >-
+          docker run --rm -v "$PWD:/src:ro" -e AIRFLOW__CORE__LOAD_EXAMPLES=false
+          -e PYTHONDONTWRITEBYTECODE=1 --entrypoint bash wikipulse-airflow:ci -c
+          "pip install --quiet --user pytest==9.2.0 &&
+          cd /src && python -m pytest tests/dags -p no:cacheprovider -o addopts='' -v"
