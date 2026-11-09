@@ -26,9 +26,22 @@ WIKIPULSE_PYTHON = os.environ.get("WIKIPULSE_PYTHON", "/opt/wikipulse-venv/bin/p
 # doesn't run every missed day on its own either: past days are run with a backfill.
 START_DATE = datetime(2026, 11, 1, tzinfo=UTC)
 
-# Pool (created by docker/airflow/start.py) with one slot: tasks in it run one at a time,
-# across all DAGs, scheduled runs and backfills. For everything that calls Wikimedia.
+# Pool with one slot: tasks in it run one at a time, across all DAGs, scheduled runs and
+# backfills. For everything that calls Wikimedia.
 WIKIMEDIA_POOL = "wikimedia_api"
+
+# The pools the DAGs use, name -> (slots, description). docker/airflow/start.py imports
+# this and creates them at every start, so the names are defined only here.
+POOLS = {
+    WIKIMEDIA_POOL: (1, "Tasks that call Wikimedia APIs: one at a time (AGENTS.md)"),
+}
+
+# The UTC day a run is for: the start of its data interval. A scheduled run for day D
+# starts after D ends and has the interval [D, D+1). A manual run (UI "Trigger") gets
+# the last *complete* interval before its logical date, so it never processes a day
+# that is still going on. (`{{ ds }}` would be the logical date itself, which for a
+# manual run may be today.)
+DAY_TEMPLATE = "{{ data_interval_start | ds }}"
 
 # The names a parameter may contain (run ids, '<bucket>/<prefix>'); empty = the default.
 NAME_PATTERN = r"^[A-Za-z0-9._:/-]*$"
@@ -80,8 +93,9 @@ def job_task(
 ) -> BashOperator:
     """A task that runs `python -m wikipulse.jobs.<module> <step> --date <day> <options>`.
 
-    `<day>` is `{{ ds }}`: the start of the run's data interval, i.e. the UTC day the run
-    is *for* (yesterday for a scheduled run, any past day for a backfill). Values from
+    `<day>` is `DAY_TEMPLATE`, the start of the run's data interval: the UTC day the run
+    is *for* (yesterday for a scheduled run, any past day for a backfill, the last
+    complete day before the chosen logical date for a manual run). Values from
     the UI (parameters) reach the command as environment variables (`env`, templated),
     which `options` refers to as "$NAME"; they are never pasted into the shell line.
     The rest of `kwargs` goes to the operator (retries, ...).
@@ -91,7 +105,7 @@ def job_task(
         task_id=task_id,
         bash_command=command.strip(),
         cwd=WIKIPULSE_HOME,
-        env={"DAY": "{{ ds }}", **(env or {})},
+        env={"DAY": DAY_TEMPLATE, **(env or {})},
         append_env=True,  # keep the container's settings (POSTGRES_DSN, S3_ENDPOINT, ...)
         **kwargs,
     )

@@ -11,4 +11,7 @@ USER root
 RUN python -m venv /opt/wikipulse-venv \
     && /opt/wikipulse-venv/bin/pip install --no-cache-dir -r /tmp/requirements-jobs.txt \
     && chown -R airflow:root /opt/wikipulse-venv
+# The repository is mounted from the host and owned by another user, so git would refuse
+# it ("detected dubious ownership") and evaluations would store no commit hash.
+RUN git config --system --add safe.directory /opt/wikipulse
 USER airflow

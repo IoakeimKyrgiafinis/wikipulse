@@ -13,6 +13,9 @@ one `daily_stats` row, together with the result of the quality checks:
 - **day drop**: a day with fewer edits than `JOBS_DAY_DROP_RATIO` times the mean of the
   earlier complete days (a drop compared with normal days).
 
+`aggregate` refuses a day that isn't over yet, plus `LATE_DATA_WAIT` for the last
+hours' files, so a partial day is never stored as if it were complete.
+
 `check` reads the stored row and exits with code 1 when it has issues, so a scheduler
 shows the failure. Both steps only read and replace rows keyed by (dataset, day), so they
 can be re-run for any past day.
@@ -21,16 +24,34 @@ can be re-run for any past day.
 import argparse
 import logging
 import sys
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 import psycopg
 
 from wikipulse.config import Settings, get_settings
 from wikipulse.db.daily import baseline_totals, get_daily_stats, hour_counts, upsert_daily_stats
-from wikipulse.jobs.stats import DailyStats, QualityRules, aggregate_day
+from wikipulse.jobs.stats import DailyStats, QualityRules, aggregate_day, day_start
 from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
+
+# How long after a day ends its last hours are complete: the archiver writes a file every
+# few minutes and the 06b worker counts it soon after. The DAG's `wait_for_late_data`
+# sensor waits the same hour.
+LATE_DATA_WAIT = timedelta(hours=1)
+
+
+class DayNotCompleteError(ValueError):
+    """The day hasn't ended yet, or its late data may still be arriving."""
+
+
+def check_day_is_complete(day: date, now: datetime, wait: timedelta = LATE_DATA_WAIT) -> None:
+    """Only a finished day (plus `wait`) can be aggregated: its hours are all in."""
+    ready = day_start(day) + timedelta(days=1) + wait
+    if now < ready:
+        raise DayNotCompleteError(
+            f"{day} is not complete yet: its data is in from {ready.isoformat()} (now {now})"
+        )
 
 
 # --- The two steps -------------------------------------------------------------------
@@ -83,6 +104,13 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     setup_logging()
     dataset = args.dataset or default_dataset(settings)
+    if args.step == "aggregate":
+        try:
+            # The clock only decides whether the day is complete; never the results.
+            check_day_is_complete(args.date, datetime.now(UTC))
+        except DayNotCompleteError as error:
+            logger.error("%s", error)
+            return 1
     with psycopg.connect(settings.postgres_dsn, autocommit=True, connect_timeout=10) as conn:
         if args.step == "aggregate":
             stats = run_aggregate(conn, dataset, args.date, QualityRules.from_settings(settings))

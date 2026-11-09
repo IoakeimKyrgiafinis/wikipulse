@@ -11,7 +11,7 @@ spec 02b for "yesterday", and daily statistics of the lake with data-quality che
 | `docker/airflow/Dockerfile` | `FROM apache/airflow:3.3.2-python3.12`, plus a second Python environment `/opt/wikipulse-venv` with only the packages the jobs need. |
 | `docker/airflow/requirements-jobs.txt` | Those packages (httpx, psycopg, pydantic, pydantic-settings), pinned to the versions in `uv.lock`. |
 | `docker/airflow/start.py` | The container's command: create the `airflow` database if missing, `airflow db migrate`, create the pool `wikimedia_api` (1 slot), then `exec airflow standalone`. All repeatable. |
-| `dags/wikipulse_jobs.py` | What both DAGs share: `job_task()` (a `BashOperator` running `python -m wikipulse.jobs.<module> <step> --date {{ ds }}`), `DEFAULT_ARGS` (retries, backoff, timeout, failure alert), `name_param()`, `WIKIMEDIA_POOL`. |
+| `dags/wikipulse_jobs.py` | What both DAGs share: `job_task()` (a `BashOperator` running `python -m wikipulse.jobs.<module> <step> --date {{ data_interval_start | ds }}`), `DEFAULT_ARGS` (retries, backoff, timeout, failure alert), `name_param()`, `WIKIMEDIA_POOL`. |
 | `dags/daily_eval.py` | `wait_for_late_data >> fetch_ground_truth >> evaluate`. |
 | `dags/daily_stats.py` | `wait_for_late_data >> aggregate >> check_quality`. |
 | `wikipulse/jobs/daily_eval.py` | `fetch` (portal pages into the cache) and `evaluate` (02b's `build_report()` for one day, stored in Postgres and `data/daily_eval/<run>/<day>.md/.json`). |
@@ -98,9 +98,13 @@ are simple chains of three tasks. The DAG files say *when* and *in which order*;
 
 Each run is *for* a stretch of time, its **data interval**. The DAGs use
 `CronDataIntervalTimetable("0 0 * * *", timezone="UTC")`: the run for 6 November covers
-[6 Nov 00:00, 7 Nov 00:00), starts after the interval is over, and its `ds` (the start of
-the interval, as `YYYY-MM-DD`) is `2026-11-06`. Every task gets the day as `--date "$DAY"`
-with `DAY = {{ ds }}`. This is the same idea as the project's "event time, not
+[6 Nov 00:00, 7 Nov 00:00), starts after the interval is over, and the start of the
+interval, as `YYYY-MM-DD`, is `2026-11-06`. Every task gets the day as `--date "$DAY"`
+with `DAY = {{ data_interval_start | ds }}` (`DAY_TEMPLATE` in `dags/wikipulse_jobs.py`).
+Not `{{ ds }}`: that is the run's *logical date*, which equals the interval start only
+for scheduled runs. A manual run triggered "for 9 November, 14:00" gets the last
+complete interval before that moment, [8 Nov, 9 Nov), so `ds` would be the 9th (a day
+still going on) while the interval start is the 8th, a finished day. This is the same idea as the project's "event time, not
 wall-clock time" rule: the job processes *the day it is given*, never "whatever today
 is", so the run for 6 November gives the same answer whether it runs on the 7th or a
 month later as a backfill.
@@ -352,3 +356,24 @@ see the runs.
    after another.
 
 </details>
+
+## Review fixes
+
+Review `docs/reviews/06c-scheduled-jobs.md`, problems 1, 2, 3 and 7:
+
+- The image runs `git config --system --add safe.directory /opt/wikipulse`, so
+  evaluations in the container record the commit again. Checked: `git_commit()` in the
+  container returned `6c40bd7...`, and the `02b-baseline`/5 Nov row of
+  `detection_eval_daily` written by `airflow dags test daily_eval 2026-11-06` has it
+  (same metrics as before: 73 spikes, recall 1.0%).
+- Tasks get the day as `{{ data_interval_start | ds }}` instead of `{{ ds }}`, so a
+  manual trigger never processes an unfinished day. `airflow dags test daily_stats
+  2026-11-07` processed the 6th (127,199 edits, 24 hours, check passed with the
+  `wikipulse-lake/history/edits` dataset). `daily_stats aggregate` itself now also
+  refuses a day until an hour after it ended (`check_day_is_complete`,
+  `LATE_DATA_WAIT`; tests in `tests/jobs/test_daily_stats.py`), so a hand-run command
+  can't store a partial day either.
+- The pool is defined once, in `POOLS` of `dags/wikipulse_jobs.py`, which
+  `docker/airflow/start.py` imports; the comment in `requirements-jobs.txt` names the
+  right test. New tests in `tests/dags` check the day template, the scheduled and manual
+  data intervals, and that every pool a task uses is created at start.

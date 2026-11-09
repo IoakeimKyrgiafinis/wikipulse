@@ -1,6 +1,7 @@
 # Python packages of the WikiPulse environment inside the Airflow image (spec 06c):
 # only what the scheduled jobs in wikipulse/jobs/ import, at the versions in uv.lock
-# (tests/dags/test_airflow_image.py checks that they stay equal).
+# (test_image_requirements_match_the_lockfile in tests/dags/test_dag_files.py checks that
+# they stay equal).
 httpx==0.28.1
 psycopg[binary]==3.3.8
 pydantic==2.14.3

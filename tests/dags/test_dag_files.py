@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DAGS = ROOT / "dags"
 DAG_FILES = sorted(DAGS.glob("*.py"))
 REQUIREMENTS = ROOT / "docker" / "airflow" / "requirements-jobs.txt"
+START_SCRIPT = ROOT / "docker" / "airflow" / "start.py"
+HELPER = DAGS / "wikipulse_jobs.py"
 # What a DAG file may import: Airflow, the standard library, and the shared helper.
 ALLOWED_TOP_LEVEL = {"airflow", "wikipulse_jobs"}
 
@@ -75,3 +77,33 @@ def test_image_requirements_match_the_lockfile() -> None:
     assert pins
     for name, version in pins:
         assert locked[name.split("[")[0]] == version, f"{name}: {version} vs uv.lock"
+
+
+def module_constants(path: Path) -> dict[str, object]:
+    """The module-level `NAME = <literal>` assignments of a file."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    constants = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    constants[target.id] = node.value.value
+    return constants
+
+
+def test_tasks_process_the_start_of_the_data_interval() -> None:
+    """Not `{{ ds }}`: for a manual run that is the chosen logical date, maybe today."""
+    template = module_constants(HELPER)["DAY_TEMPLATE"]
+    assert template == "{{ data_interval_start | ds }}"
+
+
+def test_the_start_script_takes_the_pools_from_the_dag_helper() -> None:
+    """The pool names live only in dags/wikipulse_jobs.py (no copy that could drift)."""
+    pool = module_constants(HELPER)["WIKIMEDIA_POOL"]
+    assert "wikipulse_jobs" in imports(START_SCRIPT)
+    strings = {
+        node.value
+        for node in ast.walk(ast.parse(START_SCRIPT.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    }
+    assert not any(pool in string for string in strings if "dags/wikipulse_jobs.py" not in string)

@@ -5,8 +5,9 @@
    WikiPulse's, so neither can touch the other's tables.
 2. `airflow db migrate`: create or upgrade Airflow's tables.
 3. Create the pools the DAGs use (a pool caps how many tasks run at once across all
-   DAGs and backfills): `wikimedia_api` with one slot, so only one task at a time talks
-   to Wikipedia, as AGENTS.md asks.
+   DAGs and backfills), as `POOLS` in dags/wikipulse_jobs.py defines them:
+   `wikimedia_api` with one slot, so only one task at a time talks to Wikipedia, as
+   AGENTS.md asks.
 4. Replace this process with `airflow standalone` (scheduler, DAG processor,
    triggerer and the web UI/API in one container).
 
@@ -17,15 +18,15 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError
 
-# name -> (slots, description)
-POOLS = {
-    "wikimedia_api": (1, "Tasks that call Wikimedia APIs: one at a time (AGENTS.md)"),
-}
+# The pools are defined once, next to the DAGs that use them (dags/wikipulse_jobs.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "dags"))
+from wikipulse_jobs import POOLS  # noqa: E402
 
 
 def create_database() -> int:
