@@ -1,6 +1,6 @@
 # Spec 06c: Scheduled jobs with Airflow
 
-Status: ready
+Status: done
 Stage: 6. Data lake and batch
 Owner: agent
 Depends on: 02b, 06a

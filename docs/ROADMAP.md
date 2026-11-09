@@ -51,7 +51,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 05e | API and live web page | done |
 | 06a | Data lake archive | done |
 | 06b | Event-driven worker | done |
-| 06c | Scheduled jobs with Airflow | ready |
+| 06c | Scheduled jobs with Airflow | done |
 | 07a | Training dataset | ready |
 | 07b | News classifier with experiment tracking | ready |
 | 07c | Serving, monitoring and retraining | ready |
