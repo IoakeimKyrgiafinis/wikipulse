@@ -221,6 +221,7 @@ class FeedEvent:
     page_count: int
     score: float
     pages: tuple[FeedPage, ...]
+    merged_into: int | None = None
 
 
 def feed_events(
@@ -265,3 +266,68 @@ def feed_events(
     for row in pages:
         by_event.setdefault(row.pop("event_number"), []).append(FeedPage(**row))
     return [FeedEvent(**e, pages=tuple(by_event.get(e["number"], []))) for e in events]
+
+
+# Most recent activity first: active events, then by their latest spike start.
+RECENT_EVENTS = """
+SELECT number, status, title, started_at, last_spike_at, ended_at, page_count, score,
+       merged_into
+FROM events
+WHERE run_id = %(run_id)s AND status = ANY(%(statuses)s)
+  AND (%(number)s::integer IS NULL OR number = %(number)s::integer)
+  AND (SELECT count(DISTINCT coalesce(p.canonical_title, s.title))
+       FROM event_pages ep JOIN spikes s ON s.id = ep.spike_id
+       LEFT JOIN pages p ON p.title = s.title
+       WHERE ep.run_id = events.run_id AND ep.event_number = events.number) >= %(min_pages)s
+ORDER BY (status = 'active') DESC, last_spike_at DESC, number DESC
+LIMIT %(limit)s
+"""
+EVENT_PAGES = """
+SELECT ep.event_number, s.title, coalesce(p.canonical_title, s.title) AS canonical_title,
+       s.started_at, s.ended_at, s.score, ep.joined_score
+FROM event_pages ep
+JOIN spikes s ON s.id = ep.spike_id
+LEFT JOIN pages p ON p.title = s.title
+WHERE ep.run_id = %s AND ep.event_number = ANY(%s)
+ORDER BY s.score DESC, s.started_at, s.title
+"""
+
+
+def recent_events(
+    conn: psycopg.Connection,
+    run_id: str,
+    limit: int = 50,
+    statuses: Sequence[str] = ("active", "ended"),
+    min_pages: int = 1,
+    number: int | None = None,
+) -> list[FeedEvent]:
+    """The run's events with their pages, most recent activity first (spec 05e).
+
+    Active events come first, then the others by their latest spike start. `min_pages`
+    counts distinct pages (canonical titles), not spikes. `number` picks one event.
+    """
+    params = {
+        "run_id": run_id,
+        "statuses": list(statuses),
+        "number": number,
+        "min_pages": min_pages,
+        "limit": limit,
+    }
+    with conn.cursor(row_factory=dict_row) as cur:
+        events = cur.execute(RECENT_EVENTS, params).fetchall()
+        numbers = [e["number"] for e in events]
+        pages = cur.execute(EVENT_PAGES, (run_id, numbers)).fetchall() if numbers else []
+    by_event: dict[int, list[FeedPage]] = {}
+    for row in pages:
+        by_event.setdefault(row.pop("event_number"), []).append(FeedPage(**row))
+    return [FeedEvent(**e, pages=tuple(by_event.get(e["number"], []))) for e in events]
+
+
+def latest_event_time(conn: psycopg.Connection, run_id: str) -> datetime | None:
+    """The run's "now" in event time: its latest spike start or event end."""
+    row = conn.execute(
+        "SELECT max(greatest(last_spike_at, coalesce(ended_at, last_spike_at))) "
+        "FROM events WHERE run_id = %s",
+        (run_id,),
+    ).fetchone()
+    return row[0] if row else None

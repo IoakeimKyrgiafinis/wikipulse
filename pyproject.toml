@@ -19,6 +19,11 @@ dependencies = [
     "neo4j>=5.26",
     # Stage 5 (spec 05c): the official MCP Python SDK (2.x API: mcp.server.mcpserver.MCPServer).
     "mcp>=2.3",
+    # Stage 5 (spec 05e): the web API and page. uvicorn serves it; websockets is the
+    # library uvicorn speaks WebSocket with (uvicorn alone has none).
+    "fastapi>=0.162.2",
+    "uvicorn>=0.54.0",
+    "websockets>=17.4",
 ]
 
 [project.optional-dependencies]

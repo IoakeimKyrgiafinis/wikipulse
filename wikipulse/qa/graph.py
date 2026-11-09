@@ -124,6 +124,22 @@ class PageText:
 
 
 @dataclass(frozen=True)
+class EventOverview:
+    """What the web API shows of an extracted event in a list (spec 05e)."""
+
+    key: str
+    title: str | None
+    description: str | None
+    entity_count: int = 0
+    extracted_at: datetime | None = None
+    briefing_written_at: datetime | None = None  # None: no briefing yet
+    briefing_verified: bool | None = None
+    briefing_model: str | None = None
+    briefing_sources: tuple[str, ...] = ()  # page titles, in [n] order
+    briefing_urls: tuple[str, ...] = ()  # permanent links, in [n] order ("" for none)
+
+
+@dataclass(frozen=True)
 class EventHit:
     key: str
     cosine: float
@@ -227,6 +243,21 @@ RETURN p.title AS title, p.description AS description, p.summary AS summary,
        CASE WHEN size(own) > 0 THEN own[0].revision ELSE parts[0].revision END AS revision,
        [x IN parts | x.key][..5] AS events
 ORDER BY p.title = $title DESC LIMIT 1
+"""
+# Briefing properties are read as a map: events without a briefing give no warning.
+EVENT_OVERVIEWS = """
+MATCH (ev:Event) WHERE ev.key IN $keys
+WITH ev, properties(ev) AS props
+RETURN ev.key AS key, ev.title AS title, ev.description AS description,
+       COUNT { (:Entity)-[:INVOLVED_IN]->(ev) } AS entities,
+       props['extracted_at'] AS extracted_at,
+       CASE WHEN props['briefing'] IS NULL THEN NULL
+            ELSE coalesce(props['briefing_written_at'], props['extracted_at']) END
+         AS briefing_written_at,
+       props['briefing_verified'] AS briefing_verified,
+       props['briefing_model'] AS briefing_model,
+       coalesce(props['briefing_sources'], []) AS briefing_sources,
+       coalesce(props['briefing_urls'], []) AS briefing_urls
 """
 ENTITIES_BY_KEY = """
 MATCH (n:Entity) WHERE n.key IN $keys
@@ -380,6 +411,27 @@ class QAGraph:
         r = rows[0]
         revision = int(r["revision"]) if r["revision"] is not None else None
         return PageText(r["title"], r["description"], r["summary"], revision, tuple(r["events"]))
+
+    def event_overviews(self, keys: list[str]) -> dict[str, EventOverview]:
+        """Title, description, entity count and briefing metadata of the events in `keys`
+        that are in the graph (extracted), by key."""
+        if not keys:
+            return {}
+        return {
+            r["key"]: EventOverview(
+                r["key"],
+                r["title"],
+                r["description"],
+                r["entities"],
+                _native(r["extracted_at"]),
+                _native(r["briefing_written_at"]),
+                r["briefing_verified"],
+                r["briefing_model"],
+                tuple(r["briefing_sources"]),
+                tuple(r["briefing_urls"]),
+            )
+            for r in self._read(EVENT_OVERVIEWS, keys=keys)
+        }
 
     def entities_by_key(self, keys: list[str]) -> list[EntityCandidate]:
         """Entities by their key (the Wikidata ID for linked entities)."""
