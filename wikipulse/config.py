@@ -327,6 +327,23 @@ class Settings(BaseSettings):
     # worst case for one hour write to stay meaningful; 10 s is the minimum.
     lake_lock_ttl_s: float = Field(default=60, ge=10)
 
+    # --- Stage 6: event-driven worker (wikipulse.workers) ---
+    # The object store publishes an "object created" event on this Redis pub/sub channel
+    # for every new Parquet file (set up by `uv run python -m wikipulse.workers.setup`).
+    lake_notify_channel: str = "lake:notifications"
+    # Redis as the *object store* reaches it: inside Docker that is the Compose service
+    # name, not localhost (localhost inside the RustFS container is RustFS itself).
+    lake_notify_redis_url: str = "redis://redis:6379/0"
+    # Name of the notification target in the object store (its ARN ends in :<name>:redis).
+    lake_notify_target: str = "wikipulse"
+    # A failing handler is tried this many times in all, waiting worker_retry_delay_s,
+    # then twice as long, ...; then the notification goes to the dead-letter list.
+    worker_max_attempts: int = Field(default=3, ge=1)
+    worker_retry_delay_s: float = Field(default=2, ge=0)
+    worker_dead_letter_key: str = "workers:hourly_stats:dead"
+    # How many of an hour's most edited pages `hourly_stats.top_pages` keeps.
+    worker_top_pages: int = Field(default=10, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:
