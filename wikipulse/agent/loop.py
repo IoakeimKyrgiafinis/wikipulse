@@ -61,6 +61,7 @@ from wikipulse.llm import (
     ToolCall,
     ToolSpec,
     Usage,
+    trace,
 )
 
 logger = logging.getLogger(__name__)
@@ -226,11 +227,18 @@ class AnalystAgent:
         started = time.monotonic()
         book = SourceBook(event_id)
         messages: list[Message] = []
-        try:
-            await self._investigate(run, book, messages, started)
-        except LLMError as error:
-            logger.warning("The agent's model failed on %s: %s", event_id, error)
-            run.stop_reason, run.error = "llm_error", str(error)
+        # One trace per run (spec 09b): the model's turns and the tool calls inside it.
+        with trace("agent run", as_type="agent", input={"event_id": event_id}) as observed:
+            try:
+                await self._investigate(run, book, messages, started)
+            except LLMError as error:
+                logger.warning("The agent's model failed on %s: %s", event_id, error)
+                run.stop_reason, run.error = "llm_error", str(error)
+            observed.update(
+                output=run.briefing.as_text() if run.briefing else None,
+                error=run.error,
+                metadata={"stop_reason": run.stop_reason, "model_turns": run.model_turns},
+            )
         run.messages = messages
         run.sources = {
             fact.id: [citation.label() for citation in fact.sources] for fact in book.context.facts

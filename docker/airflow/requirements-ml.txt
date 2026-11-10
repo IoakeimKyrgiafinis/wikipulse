@@ -12,6 +12,7 @@ annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.16.0
 attrs==26.1.0
+backoff==2.2.1
 blinker==1.9.0
 cachetools==7.3.0
 certifi==2026.10.23
@@ -36,6 +37,7 @@ fsspec==2026.9.0
 gitdb==4.0.12
 gitpython==3.2.1
 google-auth==2.62.1
+googleapis-common-protos==1.76.0
 graphene==3.4
 graphql-core==3.2.14
 graphql-relay==3.2.0
@@ -58,6 +60,7 @@ joblib==1.6.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kiwisolver==1.5.1
+langfuse==5.2.0
 lazy-importer==0.1.0
 mako==1.4.3
 markdown-it-py==4.2.0
@@ -77,6 +80,10 @@ networkx==3.7
 numpy==2.5.4
 ollama==0.6.3
 opentelemetry-api==1.45.2
+opentelemetry-exporter-http-transport==0.66b2
+opentelemetry-exporter-otlp-common==0.66b2
+opentelemetry-exporter-otlp-proto-common==1.45.2
+opentelemetry-exporter-otlp-proto-http==1.45.2
 opentelemetry-proto==1.45.2
 opentelemetry-sdk==1.45.2
 opentelemetry-semantic-conventions==0.66b2
@@ -141,5 +148,6 @@ waitress==3.0.2 ; sys_platform == 'win32'
 wcwidth==0.9.4
 websockets==17.4
 werkzeug==3.1.9
+wrapt==2.5.2
 yarl==1.25.1
 zipp==4.1.2
