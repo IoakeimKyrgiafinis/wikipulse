@@ -71,6 +71,12 @@ def test_variables_go_to_the_environment_and_never_override_yours() -> None:
     assert env["PATH"] == "/bin"
 
 
+def test_your_variables_keep_lower_case_names_on_windows() -> None:
+    """Python on Windows upper-cases environment names; Terraform's are case-sensitive."""
+    env = infra.terraform_env({"image_tag": "newest"}, {"TF_VAR_IMAGE_TAG": "mine", "Path": "x"})
+    assert env == {"TF_VAR_image_tag": "mine", "Path": "x"}
+
+
 def test_terraform_runs_in_the_stack_folder() -> None:
     command = infra.terraform_command("cluster", ["plan"])
     assert command == ["terraform", f"-chdir={INFRA / 'cluster'}", "plan"]

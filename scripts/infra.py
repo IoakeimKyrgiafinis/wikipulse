@@ -16,7 +16,8 @@ Terraform reads every variable named TF_VAR_<name> from the environment. This sc
 sets those from wikipulse/config.py's settings (.env and the defaults) for the one
 Terraform process it starts, so the passwords never land in a file or on the command
 line. A TF_VAR_ variable you set yourself wins. For the cluster stack it also sets
-image_tag to the newest wikipulse image (build one with `scripts/cluster.py build`).
+image_tag: the image of the current commit if built (`scripts/cluster.py build`),
+otherwise the newest wikipulse image.
 
 `offline` stays your choice (`-var offline=true`): Terraform itself refuses the
 placeholder contact in USER_AGENT unless the release is offline.
@@ -43,6 +44,7 @@ logger = logging.getLogger("infra")
 INFRA = ROOT / "infra"
 STACKS = ("storage", "cluster")
 # Terraform commands that read the variables (init, fmt and validate don't need them).
+TF_VAR = "TF_VAR_"
 COMMANDS_WITH_VARIABLES = ("plan", "apply", "destroy", "refresh", "import", "console", "output")
 
 
@@ -73,11 +75,27 @@ def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
 
 
 def terraform_env(variables: dict[str, str], environ: dict[str, str]) -> dict[str, str]:
-    """`environ` plus TF_VAR_<name> for each variable it doesn't set already."""
-    env = dict(environ)
+    """`environ` plus TF_VAR_<name> for each variable it doesn't set already.
+
+    Terraform matches the name after TF_VAR_ case-sensitively, but Python on Windows
+    upper-cases every environment name (`TF_VAR_image_tag` arrives as `TF_VAR_IMAGE_TAG`).
+    The stacks' variable names are all lower case, so the names are lower-cased back.
+    """
+    env = {}
+    for key, value in environ.items():
+        if key.upper().startswith(TF_VAR):
+            key = TF_VAR + key[len(TF_VAR) :].lower()
+        env[key] = value
     for name, value in variables.items():
-        env.setdefault(f"TF_VAR_{name}", value)
+        env.setdefault(TF_VAR + name, value)
     return env
+
+
+def default_image_tag() -> str:
+    """The image of the current commit if it was built, else the newest image."""
+    commit = cluster.run(["git", "rev-parse", "--short", "HEAD"], capture=True).strip()
+    built = cluster.run(["docker", "image", "ls", f"{cluster.IMAGE}:{commit}", "-q"], capture=True)
+    return commit if built.strip() else cluster.newest_image_tag()
 
 
 def terraform_command(stack: str, args: list[str]) -> list[str]:
@@ -91,12 +109,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     setup_logging()
     stack, args = argv[0], argv[1:]
-    env = dict(os.environ)
+    env = terraform_env({}, dict(os.environ))
     if args and args[0] in COMMANDS_WITH_VARIABLES:
         variables = stack_variables(stack, get_settings())
-        if stack == "cluster" and "TF_VAR_image_tag" not in env:
-            variables["image_tag"] = cluster.newest_image_tag()
-            logger.info("image_tag = %s (the newest wikipulse image)", variables["image_tag"])
+        if stack == "cluster" and TF_VAR + "image_tag" not in env:
+            variables["image_tag"] = default_image_tag()
+            logger.info("image_tag = %s", variables["image_tag"])
         env = terraform_env(variables, env)
     command = terraform_command(stack, args)
     logger.info("$ %s", " ".join(command))
