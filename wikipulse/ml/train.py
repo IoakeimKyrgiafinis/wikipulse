@@ -21,10 +21,13 @@ What one run does:
    the validation split, precision-recall and calibration curves, permutation importance,
    latency, logged as metrics and artifacts; the fitted model is logged as a pyfunc model.
 5. **Choice and registration.** The comparison table goes to the parent run. The model
-   registered as `ML_MODEL_NAME` is the *simplest* one (rule, logistic regression, trees,
-   network) that the test set can't tell from the best: the paired-bootstrap interval of
-   its gap in test average precision reaches `ML_SELECT_MARGIN` (`select_model`). It is
-   tagged with the dataset version and fingerprint.
+   registered as `ML_MODEL_NAME` is chosen by `ML_SELECT_RULE`, fixed in config and logged
+   before any model is trained (`select_model`). The default, `simplest_not_worse`, takes
+   the *simplest* one (rule, logistic regression, trees, network) that the test set can't
+   tell from the best: the paired-bootstrap interval of its gap in test average precision
+   reaches `ML_SELECT_MARGIN`. The new version is tagged with the dataset version, the
+   fingerprint and the selection rule, and older versions are tagged as superseded by it
+   (`supersede_older_versions`).
 """
 
 import argparse
@@ -81,6 +84,14 @@ MODEL_TITLES = {
     "logreg": "logistic regression",
     "gbt": "gradient-boosted trees",
     "torch": "neural network + summary embedding",
+}
+# How `select_model` may choose (`ML_SELECT_RULE`); the text is logged with every run.
+SELECT_RULES = {
+    "simplest_not_worse": (
+        "the simplest model (rule < logreg < gbt < torch) whose 95% paired-bootstrap "
+        "interval of the gap in test average precision to the best reaches the margin"
+    ),
+    "best_test_ap": "the model with the highest test average precision",
 }
 LOGREG_C = (0.003, 0.01, 0.03, 0.1, 0.3, 1.0)
 GBT_GRID = tuple(
@@ -159,6 +170,7 @@ def data_params(frames: dict[str, pd.DataFrame], splits: dict[str, Split]) -> di
 class TrainConfig:
     seed: int = 42
     target_precision: float = 0.8
+    select_rule: str = "simplest_not_worse"
     select_margin: float = 0.0
     embed_model: str = "BAAI/bge-small-en-v1.5"
     net: NetConfig = field(default_factory=NetConfig)
@@ -287,15 +299,23 @@ def add_gaps(evaluations: dict[str, Evaluation], y_test: np.ndarray, seed: int) 
     return best
 
 
-def select_model(results: dict[str, dict[str, float]], margin: float) -> tuple[str, str]:
-    """The simplest model the test set can't tell from the best one.
+def select_model(
+    results: dict[str, dict[str, float]], margin: float, rule: str = "simplest_not_worse"
+) -> tuple[str, str]:
+    """The model to register, by `rule` (one of `SELECT_RULES`, fixed before training).
 
-    A model qualifies when the 95 % paired-bootstrap interval of its gap in test average
-    precision to the best model reaches down to `margin` (0: "not significantly worse").
-    `results` maps model name -> metrics (with `test_ap_gap_low` from `add_gaps`); names
-    are tried in `MODELS` order, simplest first. Returns (name, reason)."""
+    `simplest_not_worse`: the simplest model the test set can't tell from the best one. A
+    model qualifies when the 95 % paired-bootstrap interval of its gap in test average
+    precision to the best model reaches down to `margin` (0: "not significantly worse");
+    names are tried in `MODELS` order, simplest first. `best_test_ap`: the best model.
+    `results` maps model name -> metrics (with `test_ap_gap_low` from `add_gaps`).
+    Returns (name, reason)."""
+    if rule not in SELECT_RULES:
+        raise ValueError(f"unknown selection rule {rule!r} (choose from {list(SELECT_RULES)})")
     ap = {name: m["test_average_precision"] for name, m in results.items()}
     best = max(ap, key=lambda name: ap[name])
+    if rule == "best_test_ap":
+        return best, f"highest test average precision ({ap[best]:.3f})"
     for name in sorted(ap, key=MODELS.index):
         m = results[name]
         if name == best:
@@ -435,10 +455,35 @@ def train_one(
 
 
 def register(model_uri: str, model_name: str, tags: dict[str, str], description: str) -> str:
-    """Register the model as a new version of `model_name`; returns the version."""
+    """Register the model as a new version of `model_name` and mark the older versions as
+    superseded by it; returns the version."""
     version = mlflow.register_model(model_uri, model_name, tags=tags)
     mlflow.MlflowClient().update_model_version(model_name, version.version, description)
+    supersede_older_versions(model_name, str(version.version))
     return str(version.version)
+
+
+def supersede_older_versions(model_name: str, new_version: str) -> list[str]:
+    """Tag `new_version` `status=latest` and every older, not yet superseded version
+    `status=superseded`, `superseded_by=<new_version>` (with a note in its description).
+    Versions are history and stay in the registry; the tags say which one is the newest
+    choice. Which version is *served* is spec 07c's business (aliases). Returns the
+    versions marked now."""
+    client = mlflow.MlflowClient()
+    marked = []
+    for old in client.search_model_versions(f"name = '{model_name}'"):
+        if int(old.version) >= int(new_version) or old.tags.get("status") == "superseded":
+            continue
+        client.set_model_version_tag(model_name, old.version, "status", "superseded")
+        client.set_model_version_tag(model_name, old.version, "superseded_by", new_version)
+        note = f"Superseded by version {new_version}."
+        description = f"{note} {old.description}" if old.description else note
+        client.update_model_version(model_name, old.version, description)
+        marked.append(str(old.version))
+    client.set_model_version_tag(model_name, new_version, "status", "latest")
+    if marked:
+        logger.info("%s: versions %s superseded by %s", model_name, marked, new_version)
+    return sorted(marked, key=int)
 
 
 def train_all(
@@ -479,12 +524,21 @@ def train_all(
         mlflow.start_run(run_name=f"train {dataset.version}") as parent,
     ):
         work = Path(tmp)
-        mlflow.set_tags({**dataset.tags(), "role": "comparison", "labels": "llm+portal"})
+        mlflow.set_tags(
+            {
+                **dataset.tags(),
+                "role": "comparison",
+                "labels": "llm+portal",
+                "selection_rule": config.select_rule,
+                "selection_rule_text": SELECT_RULES[config.select_rule],
+            }
+        )
         mlflow.log_params(
             {
                 **data_params(frames, splits),
                 "seed": config.seed,
                 "target_precision": config.target_precision,
+                "select_rule": config.select_rule,
                 "select_margin": config.select_margin,
                 "models": ",".join(config.models),
             }
@@ -504,7 +558,7 @@ def train_all(
             gaps = ("test_ap_gap", "test_ap_gap_low", "test_ap_gap_high")
             mlflow.log_metrics(finite({f"{name}_{k}": e.metrics[k] for k in gaps}))
         table = comparison_table(results)
-        chosen, reason = select_model(results, config.select_margin)
+        chosen, reason = select_model(results, config.select_margin, config.select_rule)
         (work / "comparison.md").write_text(markdown_table(table), encoding="utf-8", newline="\n")
         table.to_csv(work / "comparison.csv", index=False, lineterminator="\n")
         y_test = splits["test"].y
@@ -523,6 +577,8 @@ def train_all(
                 "model_type": chosen,
                 "test_average_precision": f"{m['test_average_precision']:.4f}",
                 "threshold": f"{m['threshold']:.4f}",
+                "selection_rule": config.select_rule,
+                "select_margin": f"{config.select_margin:g}",
                 "training_run": parent.info.run_id,
             }
             description = f"{MODEL_TITLES[chosen]}: {reason}. Trained on {dataset.version}."
@@ -622,6 +678,7 @@ def main(argv: list[str] | None = None) -> int:
     config = TrainConfig(
         seed=settings.ml_seed,
         target_precision=settings.ml_target_precision,
+        select_rule=settings.ml_select_rule,
         select_margin=settings.ml_select_margin,
         embed_model=settings.events_embed_model,
         models=tuple(sorted(models, key=MODELS.index)),

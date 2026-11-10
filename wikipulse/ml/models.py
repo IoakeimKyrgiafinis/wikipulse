@@ -136,7 +136,7 @@ class SklearnScorer:
 class NewsNet(nn.Module):
     """features (scaled) + summary embedding -> one hidden layer -> one logit.
 
-    The 384 embedding numbers would swamp ~90 feature columns and a few hundred training
+    The 384 embedding numbers would swamp the 43 feature columns and a few hundred training
     rows, so they first pass through a narrow linear layer (`embed_dim` numbers): the
     network learns which directions of meaning matter.
     """

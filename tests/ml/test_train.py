@@ -18,6 +18,7 @@ from wikipulse.ml.train import (
     TrainReport,
     known_rows,
     markdown_table,
+    register,
     select_model,
     train_all,
 )
@@ -103,6 +104,33 @@ def test_the_chosen_model_is_registered_with_the_dataset_version(report):
     assert version.tags["dataset_version"] == "v9"
     assert version.tags["dataset_fingerprint"] == "f" * 64
     assert version.tags["model_type"] == report.chosen
+    assert version.tags["selection_rule"] == "simplest_not_worse"
+    assert version.tags["status"] == "latest"
+
+
+def test_the_selection_rule_is_logged_on_the_parent_run(report):
+    run = mlflow.MlflowClient().get_run(report.parent_run_id)
+    assert run.data.tags["selection_rule"] == "simplest_not_worse"
+    assert run.data.params["select_rule"] == "simplest_not_worse"
+
+
+def test_a_new_registration_marks_older_versions_as_superseded(report):
+    client = mlflow.MlflowClient()
+    name = "test-supersede"
+    uri = report.model_uris["rule"]
+    first = register(uri, name, {"model_type": "rule"}, "first try")
+    assert client.get_model_version(name, first).tags["status"] == "latest"
+    second = register(uri, name, {"model_type": "rule"}, "second try")
+    third = register(uri, name, {"model_type": "rule"}, "third try")
+    v1 = client.get_model_version(name, first)
+    v2 = client.get_model_version(name, second)
+    v3 = client.get_model_version(name, third)
+    assert v1.tags["status"] == "superseded"
+    assert v1.tags["superseded_by"] == second  # the first successor is kept
+    assert v1.description == f"Superseded by version {second}. first try"
+    assert v2.tags["status"] == "superseded" and v2.tags["superseded_by"] == third
+    assert v3.tags["status"] == "latest" and "superseded_by" not in v3.tags
+    assert v3.description == "third try"
 
 
 def test_the_registered_model_loads_and_scores_a_table(report):
@@ -142,6 +170,22 @@ def test_select_model_prefers_the_simpler_model_the_test_set_cant_separate():
     assert select_model(results, 0.0)[0] == "gbt"
     assert select_model(results, 0.01)[0] == "logreg"  # a margin forgives small gaps
     assert select_model(results, 0.2)[0] == "rule"
+
+
+def test_select_model_follows_the_configured_rule():
+    results = {
+        "logreg": {
+            "test_average_precision": 0.78,
+            "test_ap_gap_low": -0.01,
+            "test_ap_gap_high": 0.05,
+        },
+        "gbt": {"test_average_precision": 0.80, "test_ap_gap_low": 0.0, "test_ap_gap_high": 0.0},
+    }
+    assert select_model(results, 0.0, "simplest_not_worse")[0] == "logreg"
+    name, reason = select_model(results, 0.0, "best_test_ap")
+    assert name == "gbt" and "highest" in reason
+    with pytest.raises(ValueError, match="unknown selection rule"):
+        select_model(results, 0.0, "whatever_wins")
 
 
 def test_paired_gaps_are_logged_and_zero_for_the_best(report):

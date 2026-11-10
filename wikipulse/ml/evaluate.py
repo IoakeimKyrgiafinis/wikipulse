@@ -12,8 +12,9 @@ A classifier gives each spike a *score*; turning scores into "news / not news" n
 - **at the threshold**: precision, recall, F1, accuracy, and the share of spikes flagged.
 
 The threshold is chosen on the *validation* split for the use case (`choose_threshold`):
-the feed should flag news without crying wolf, so it is the lowest score that still
-reaches a target precision there, which gives the most recall at that precision.
+the feed should flag news without crying wolf, so it is the threshold with the most
+recall among those that reach a target precision there; among thresholds with that same
+recall, the highest one (it lets in the fewest non-news spikes).
 
 `evaluate_model` computes all of it for one model, draws the precision-recall curve, the
 calibration curve and the feature importance (`permutation_importance`), and writes them
@@ -105,15 +106,19 @@ def threshold_metrics(y: np.ndarray, score: np.ndarray, threshold: float) -> dic
 def choose_threshold(
     y: np.ndarray, score: np.ndarray, target_precision: float
 ) -> tuple[float, str]:
-    """The lowest threshold reaching `target_precision` on these rows (the most recall at
-    that precision); if none does, the one with the best F1. Returns (threshold, how)."""
+    """The threshold with the most recall among those reaching `target_precision` on
+    these rows; if none does, the one with the best F1. Returns (threshold, how).
+
+    Ties in recall go to the highest precision, then the highest threshold: lowering the
+    threshold without catching another news spike only lets in more non-news ones, and
+    leaves less room for precision to drop on new data."""
     candidates = np.unique(score)
     best_f1, best_f1_threshold = -1.0, 0.5
     reaching = []
     for threshold in candidates:
         m = threshold_metrics(y, score, float(threshold))
         if m["precision"] >= target_precision and m["recall"] > 0:
-            reaching.append((m["recall"], -threshold, float(threshold)))
+            reaching.append((m["recall"], m["precision"], float(threshold)))
         if m["f1"] > best_f1:
             best_f1, best_f1_threshold = m["f1"], float(threshold)
     if reaching:

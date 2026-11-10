@@ -21,7 +21,7 @@ uv run python -m wikipulse.ml.train --dataset v2 --no-register --models rule,log
 | `wikipulse/ml/evaluate.py` | Metrics (`ranking_metrics`, `threshold_metrics`, `expected_calibration_error`), `choose_threshold()`, `bootstrap_interval()`, `paired_gap_interval()`, `permutation_importance()`, the plots, and `evaluate_model()` / `log_evaluation()`. |
 | `wikipulse/ml/train.py` | The command: loads a dataset version, drops unknown labels, trains the four models in nested MLflow runs, evaluates them, writes the comparison, picks a model (`select_model()`) and registers it (`register()`). |
 | `wikipulse/config.py`, `.env.example` | `MLFLOW_TRACKING_URI`, `ML_EXPERIMENT`, `ML_MODEL_NAME`, `ML_TARGET_PRECISION`, `ML_SELECT_MARGIN`, `ML_SEED`; Compose-only `MLFLOW_PORT`, `MLFLOW_DB`, `MLFLOW_BUCKET`. |
-| `tests/ml/` | `synthetic.py` (a tiny synthetic dataset and a fake embedding model), `test_train.py` (12), `test_evaluate.py` (8), `test_models.py` (6), `test_summaries.py` (5), and `test_train_server.py` (1 integration test against the real server). |
+| `tests/ml/` | `synthetic.py` (a tiny synthetic dataset and a fake embedding model), `test_train.py` (15), `test_evaluate.py` (9), `test_models.py` (6), `test_summaries.py` (5), and `test_train_server.py` (1 integration test against the real server). |
 
 New dependencies: `mlflow` (the client and the registry; the spec allows MLflow from this
 stage), `scikit-learn` (logistic regression, gradient-boosted trees, the metrics; it was
@@ -89,12 +89,14 @@ so the UI shows a tree you can expand. What is logged where (`train_all()`,
 `train_one()`, `log_evaluation()`):
 
 - **Parameters** (fixed inputs): the dataset's row counts per split, how many rows were
-  left out for an unknown label, the label sources (`llm:231,portal:48,unknown:179`), the
+  left out for an unknown label, the label sources of the
+  known-label rows (`llm:231,portal:48`), the
   seed, the target precision; per model its hyperparameters (`C`, `max_depth`,
   `max_iter`, the network's sizes, `best_epoch`).
 - **Tags** (searchable labels): `dataset_version`, `dataset_fingerprint`,
   `dataset_commit`, `role` (comparison / model / candidate / ablation), `model_type`,
-  and on the parent `chosen_model` and `chosen_reason`.
+  and on the parent `chosen_model`, `chosen_reason` and the `selection_rule` fixed
+  before training.
 - **Metrics** (numbers): every metric on every split (`train_average_precision`,
   `valid_f1`, `test_brier`, ...), the threshold, latency, training time; the network's
   loss per epoch as a *step* metric (`epoch_train_loss`, `epoch_valid_loss`), which the
@@ -165,9 +167,19 @@ is what the feed shows.
 live feed (spec 07c). A feed that flags non-news as news loses trust fast, so
 `choose_threshold()` takes the threshold with the most recall among those that reach
 `ML_TARGET_PRECISION` (0.8) on the *validation* split; if none reaches it, the one with
-the best F1. Chosen on validation, reported on test, never the other way round. For
-logistic regression that gave 0.438; on the test split it flags 81 of 132 spikes with
-precision 0.864 and recall 0.886.
+the best F1. When several thresholds give that same recall, it takes the *highest* one
+(the highest precision): going lower catches no more news, only more non-news. Chosen on
+validation, reported on test, never the other way round. For logistic regression that
+gives 0.553; on the test split it flags 78 of 132 spikes with precision 0.872 and recall
+0.861.
+
+The first version of `choose_threshold()` broke such ties the other way, towards the
+*lowest* threshold, so the threshold slid down until precision only just met the target
+(the review caught it). On v2 that made logistic regression's threshold 0.438 instead of
+0.553 (6 non-news validation spikes let in for no recall gain) and the trees' 0.136
+instead of 0.167 (test precision 0.791, under the target, instead of 0.818, at the same
+test recall 0.911). `test_threshold_ties_in_recall_go_to_the_highest_threshold` now
+guards it.
 
 **Calibration.** Does a score of 0.7 come true 70 % of the time? `plot_calibration()`
 draws the reliability diagram (mean score against the share of news per score bin),
@@ -246,6 +258,21 @@ summary embedding as one block (`summary_embedding`).
   session registered the trees as `news-classifier` version 1; the final session
   registered logistic regression as version 2. Both stay in the registry (versions are
   history); spec 07c decides which one gets the `champion` alias.
+- **Caveat: the selection rule was changed after seeing test results.** This is the
+  weakest point of the method, and it should be read as such. The fixed-margin rule had
+  already picked the trees on the test split when I replaced it; the new rule picks
+  logistic regression on the same test split. The new rule is defensible on its own, but
+  a decision rule chosen after seeing which model it favours is a "forking paths"
+  choice: with enough rules to try, one always finds a rule that favours a given model,
+  so the test set no longer gives an unbiased verdict on *the choice*. Two fixes since
+  the review: the rule is now a setting fixed before training (`ML_SELECT_RULE`, default
+  `simplest_not_worse`, plus `ML_SELECT_MARGIN`; `SELECT_RULES` in `train.py`), logged
+  as a parameter and tag of the parent run before any model is trained and as a tag of
+  the registered version; and `register()` now tags older versions `status=superseded`
+  and `superseded_by=<new version>` (with a note in their description), and the new one
+  `status=latest` (`supersede_older_versions()`), so version 1 no longer looks like a
+  live choice. An honest settlement of logistic regression against the trees needs
+  *fresh* labeled days that neither rule has seen.
 - **Choosing on the test set.** The spec says to choose by test-set performance, so the
   test split is also the selection set: its numbers for the *chosen* model are slightly
   optimistic. Hyperparameters, thresholds and early stopping use only the validation
@@ -338,8 +365,8 @@ metrics, plots and model (`comparison.md` of the parent run; test split unless n
 | model | test AP | AP 95% interval | gap to best (95%) | ROC AUC | Brier | ECE | threshold | precision | recall | F1 | valid AP | train AP | train s | ms/spike |
 |---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | rule (live default detector) | 0.614 | 0.516 to 0.707 | 0.344 (0.258 to 0.432) | 0.530 | 0.477 | 0.477 | 0.5 (fixed) | 0.629 | 0.494 | 0.553 | 0.616 | 0.584 | 0 | 0.000 |
-| logistic regression (C = 0.1) | 0.938 | 0.898 to 0.970 | 0.020 (-0.001 to 0.046) | 0.903 | 0.122 | 0.091 | 0.438 | 0.864 | 0.886 | 0.875 | 0.974 | 0.992 | 1.4 | 0.005 |
-| gradient-boosted trees (depth 3, 150 trees) | **0.958** | 0.925 to 0.982 | best | 0.929 | 0.109 | 0.088 | 0.136 | 0.791 | 0.911 | 0.847 | 0.994 | 1.000 | 2.3 | 0.016 |
+| logistic regression (C = 0.1) | 0.938 | 0.898 to 0.970 | 0.020 (-0.001 to 0.046) | 0.903 | 0.122 | 0.091 | 0.553 | 0.872 | 0.861 | 0.866 | 0.974 | 0.992 | 1.4 | 0.005 |
+| gradient-boosted trees (depth 3, 150 trees) | **0.958** | 0.925 to 0.982 | best | 0.929 | 0.109 | 0.088 | 0.167 | 0.818 | 0.911 | 0.862 | 0.994 | 1.000 | 2.3 | 0.016 |
 | neural network + summary embedding (epoch 22) | 0.948 | 0.911 to 0.977 | 0.009 (-0.012 to 0.033) | 0.920 | 0.112 | 0.075 | 0.506 | 0.873 | 0.873 | 0.873 | 0.978 | 0.994 | 0.5 | 0.009 |
 | *(ablation) network, features only* | 0.906 | | | 0.872 | 0.141 | 0.095 | | | | | 0.970 | | | |
 
@@ -362,11 +389,13 @@ What the table says:
   is the network's most important input (shuffling it costs 0.022 AP). But the trees get
   further without any text.
 - **Overfitting is visible but harmless here.** The trees reach train AP 1.000 and
-  validation 0.994, and their validation-chosen threshold is very low (0.136): on 42
-  validation rows nearly every score separated cleanly, so the "most recall at 0.8
-  precision" threshold slid down, and on the test split precision dropped to 0.791, just
-  under the target. Logistic regression's threshold (0.438) transferred better: test
-  precision 0.864 at recall 0.886.
+  validation 0.994. Their threshold is low (0.167) because their scores are: boosted
+  trees fitted this closely push most news spikes far up and leave the borderline ones at
+  small scores, so the threshold that keeps every validation news spike sits low. It
+  still transfers: test precision 0.818 at recall 0.911. (The 0.136 and test precision
+  0.791 of the first run came mainly from the old tie-break in `choose_threshold()`, see
+  above, not from overfitting.) Logistic regression's threshold (0.553) gives test
+  precision 0.872 at recall 0.861.
 
 Feature importance (drop in test AP when shuffled, permutation importance):
 
@@ -394,6 +423,12 @@ the test days (`uv run python -m wikipulse.eval.label --run-id 07a-candidates --
 
 ### The model chosen: logistic regression (`news-classifier` version 2)
 
+> The numbers in this note use the corrected threshold rule (a run on v2 into a scratch
+> store; the threshold-free metrics and the choice are identical to the registered run).
+> Version 2 was registered with the old tie-break (threshold 0.4381); a retraining from
+> the fixed commit registers a new version with threshold 0.553, which supersedes 1 and
+> 2.
+
 `select_model()` registered **logistic regression** as `news-classifier` version 2
 (tags `dataset_version=v2`, `dataset_fingerprint=fb6b5a57...`, `dataset_commit=c498214...`,
 `model_type=logreg`, `threshold=0.4381`, `training_run=01d64af9...`). Its reason, as
@@ -406,8 +441,9 @@ Why I agree with the rule's choice here, weighing accuracy, simplicity and speed
 
 - **Accuracy.** The trees are ahead by 0.020 AP on 132 test spikes, and the paired
   bootstrap can't rule out that the difference is luck. At the chosen thresholds,
-  logistic regression is actually the better *decision-maker* on test (F1 0.875 vs.
-  0.847, precision 0.864 vs. 0.791, against a target of 0.8).
+  the two are equal as *decision-makers* on test (F1 0.866 vs. 0.862), logistic
+  regression with more precision (0.872 vs. 0.818), the trees with more recall (0.911
+  vs. 0.861).
 - **Simplicity.** One weight per feature, readable as above; a change in behaviour after
   retraining (07c) can be explained by looking at the weights. It needs no text, no
   embedding model and no extra API request per spike, unlike the network.
@@ -423,14 +459,16 @@ should be revisited, and the trees are the natural challenger for 07c.
 
 ### Tests and checks (acceptance criterion 1)
 
-- Training on the tiny synthetic dataset: `tests/ml/test_train.py` (12 tests: all four
+- Training on the tiny synthetic dataset: `tests/ml/test_train.py` (15 tests: all four
   runs logged as children of one parent in the right experiment, metrics computed and
   better than chance, unknown labels left out and counted, the comparison artifacts,
-  12 nested candidate runs, the rule's fixed threshold, paired gaps, the selection rule,
-  registration with the dataset tags, and loading the registered and every logged model
-  to score a table), plus `test_evaluate.py` (8), `test_models.py` (6) and
-  `test_summaries.py` (5).
-- `uv run pytest`: 941 passed, 1 skipped (before this spec: 910 passed).
+  12 nested candidate runs, the rule's fixed threshold, paired gaps, the selection rule
+  and its configured variants, registration with the dataset and selection-rule tags,
+  older versions marked superseded, and loading the registered and every logged model
+  to score a table), plus `test_evaluate.py` (9, including the threshold tie-break),
+  `test_models.py` (6) and `test_summaries.py` (5).
+- `uv run pytest`: 945 passed, 1 skipped after the review fixes (941 before them;
+  before this spec: 910 passed).
 - `uv run pytest -m integration`: 67 passed, 1 skipped, including
   `test_training_logs_and_registers_on_the_server` against the running MLflow server.
 - `uv run ruff check .` and `uv run ruff format --check .`: clean.
@@ -447,8 +485,9 @@ should be revisited, and the trees are the natural challenger for 07c.
    why is a *paired* bootstrap the right tool for that decision rather than comparing
    the two models' separate intervals?
 2. Each model's threshold was chosen on the validation split for "precision at least
-   0.8". Why not choose it on the test split, and what went wrong with the trees'
-   threshold (0.136) on the test split?
+   0.8". Why not choose it on the test split, and why did the first version of
+   `choose_threshold()` give the trees a threshold (0.136) whose test precision fell
+   below the target?
 3. The neural network with the summary embedding beats its features-only twin by 0.04
    AP. Why does `summaries.py` fetch an old revision's wikitext instead of using the
    page summaries stage 3 already stores, and what would the numbers probably have done
@@ -467,11 +506,12 @@ should be revisited, and the trees are the natural challenger for 07c.
    they overlap even when one model is consistently better on the same rows.
 2. Choosing it on the test split would make the test numbers part of the training: the
    reported precision would be the target by construction, not a measurement of how the
-   threshold works on new spikes. The trees separated the 42 validation rows almost
-   perfectly (validation AP 0.994), so the threshold reaching 0.8 precision with the most
-   recall slid all the way down to 0.136. Such a low threshold relies on the model's
-   scores for borderline spikes, which are overconfident after overfitting; on the test
-   split more non-news spikes scored above 0.136, and precision fell to 0.791.
+   threshold works on new spikes. The first version broke ties in recall towards the
+   *lowest* threshold: 0.167 and 0.136 caught the same validation news spikes, but it
+   took 0.136, letting in extra non-news spikes until precision only just met 0.8 on
+   validation. With no margin left, the test split's precision fell to 0.791. Taking the
+   highest threshold among equal recalls (0.167) costs no validation recall and kept
+   test precision at 0.818.
 3. Stage 3 stores the summary as it was when the page was enriched, which can be hours
    or days after the cutoff, and a news event changes the article's opening sentence
    ("... was an American singer" after a death, "... is the president-elect" after an

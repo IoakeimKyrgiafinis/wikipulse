@@ -54,6 +54,16 @@ def test_threshold_reaches_the_target_precision_with_the_most_recall():
     assert how == "max F1 on valid"
 
 
+def test_threshold_ties_in_recall_go_to_the_highest_threshold():
+    # 0.8, 0.7 and 0.6 all catch both news rows (recall 1.0) at precision >= 0.5; going
+    # lower than 0.8 only lets in non-news rows, so 0.8 (precision 1.0) is the choice.
+    y = np.array([1, 1, 0, 0, 0])
+    score = np.array([0.9, 0.8, 0.7, 0.6, 0.5])
+    threshold, how = choose_threshold(y, score, target_precision=0.5)
+    assert threshold == 0.8
+    assert how.startswith("precision")
+
+
 def test_calibration_error_is_zero_when_scores_come_true():
     score = np.array([0.25] * 4 + [0.75] * 4)
     y = np.array([1, 0, 0, 0, 1, 1, 1, 0])
