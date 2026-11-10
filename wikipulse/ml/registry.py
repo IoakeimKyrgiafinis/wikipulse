@@ -63,10 +63,22 @@ def alias_version(client: MlflowClient, name: str, alias: str) -> str | None:
         raise
 
 
+# Tags that say why a version stopped serving (or never started); removed when it
+# becomes the champion again, so they never describe a past state as the current one.
+LEAVING_TAGS = ("retired_by", "rolled_back_to", "rejected_reason")
+
+
 def set_status(client: MlflowClient, name: str, version: str, status: str, **tags: str) -> None:
+    """Set the lifecycle `status` (and other tags) of a version. A new champion loses
+    its `LEAVING_TAGS`."""
     client.set_model_version_tag(name, version, "status", status)
     for key, value in tags.items():
         client.set_model_version_tag(name, version, key, value)
+    if status == STATUS_CHAMPION:
+        current = client.get_model_version(name, version).tags
+        for key in LEAVING_TAGS:
+            if key in current:
+                client.delete_model_version_tag(name, version, key)
 
 
 @dataclass(frozen=True)

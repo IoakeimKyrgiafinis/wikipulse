@@ -62,6 +62,9 @@ def test_rollback_returns_to_the_previous_champion_and_forward_again(client):
     assert client.get_model_version(name, v1).tags["status"] == "champion"
     forward = promote(client, name, v2, "the problem is fixed")  # roll forward by hand
     assert (forward.before, forward.after) == (v1, v2)
+    tags = client.get_model_version(name, v2).tags
+    assert tags["status"] == "champion" and "rolled_back_to" not in tags  # no stale tag
+    assert client.get_model_version(name, v1).tags["retired_by"] == v2
 
 
 def test_rollback_without_a_previous_champion_takes_the_newest_usable_older_version(client):
