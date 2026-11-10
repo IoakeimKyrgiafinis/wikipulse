@@ -37,9 +37,13 @@ OPTIONAL MATCH (:Page)-[po:PART_OF]->(ev)
 WITH ev, max(po.score) AS score
 WHERE (score >= $min_score OR ev.page_count >= $min_pages)
   AND ($force OR NOT coalesce(properties(ev)['briefing_for'] = ev.extracted_at, false))
-RETURN ev.key AS key, toString(ev.extracted_at) AS version
+RETURN ev.key AS key, toString(ev.extracted_at) AS version, ev.correlation_id AS correlation_id
 ORDER BY ev.page_count DESC, score DESC, ev.started_at
 LIMIT $limit
+"""
+CORRELATION_ID = """
+MATCH (ev:Event {key: $key})
+RETURN ev.correlation_id AS correlation_id
 """
 SAVE = """
 MATCH (ev:Event {key: $key})
@@ -60,6 +64,7 @@ RETURN ev.key AS key
 class Candidate:
     key: str
     version: str | None  # the event's extraction time: a new one means "brief again"
+    correlation_id: str | None = None  # the edit that started the story (spec 09b)
 
 
 @dataclass(frozen=True)
@@ -101,7 +106,15 @@ class BriefingStore:
             database=self.database, default_access_mode=neo4j.READ_ACCESS
         ) as session:
             rows = [record.data() for record in session.run(CANDIDATES, params)]
-        return [Candidate(row["key"], row["version"]) for row in rows]
+        return [Candidate(row["key"], row["version"], row["correlation_id"]) for row in rows]
+
+    def correlation_id(self, key: str) -> str | None:
+        """The correlation id of event `key` (None if unknown or not set)."""
+        with self.driver.session(
+            database=self.database, default_access_mode=neo4j.READ_ACCESS
+        ) as session:
+            record = session.run(CORRELATION_ID, key=key).single()
+        return None if record is None else record["correlation_id"]
 
     def save(self, key: str, briefing: Briefing, meta: BriefingMeta) -> bool:
         """Set the briefing properties on event `key`; False if there is no such event."""

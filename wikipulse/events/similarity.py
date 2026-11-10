@@ -41,6 +41,7 @@ class SpikePage:
     score: float  # the spike's detector score
     links: frozenset[str] = frozenset()
     embedding: np.ndarray | None = field(default=None, repr=False)  # unit length
+    correlation_id: str | None = None  # the edit that started the spike (spec 09b)
 
     @property
     def names(self) -> frozenset[str]:

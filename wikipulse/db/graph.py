@@ -21,13 +21,15 @@ ACTIVE_MARK = "|active"
 # The run's events that are not merged away, with their spike ids in a fixed order.
 CURRENT = """
 SELECT ev.run_id, ev.number, ev.status, ev.title, ev.started_at, ev.ended_at,
+       ev.correlation_id,
        string_agg(ep.spike_id::text, ',' ORDER BY ep.spike_id) AS spike_ids
 FROM events ev
 JOIN event_pages ep ON ep.run_id = ev.run_id AND ep.event_number = ev.number
 WHERE ev.run_id = %(run_id)s AND ev.status <> 'merged'
   AND (%(since)s::timestamptz IS NULL OR ev.started_at >= %(since)s::timestamptz)
   AND (%(until)s::timestamptz IS NULL OR ev.started_at < %(until)s::timestamptz)
-GROUP BY ev.run_id, ev.number, ev.status, ev.title, ev.started_at, ev.ended_at
+GROUP BY ev.run_id, ev.number, ev.status, ev.title, ev.started_at, ev.ended_at,
+         ev.correlation_id
 """
 
 # Every current event with what its last extraction stored; Python decides what is due.

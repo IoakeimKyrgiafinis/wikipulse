@@ -9,6 +9,7 @@ from wikipulse.agent.run import Trigger, parse_args, summary
 from wikipulse.agent.store import Candidate
 from wikipulse.config import Settings
 from wikipulse.llm.types import Usage
+from wikipulse.logging_setup import current_context
 from wikipulse.qa.types import Citation
 
 BRIEFING = Briefing(text="A [1].", citations=[Citation(title="A", revision=1)])
@@ -28,6 +29,9 @@ class FakeStore:
         self.saved.append((key, briefing, meta))
         return True
 
+    def correlation_id(self, key: str) -> str | None:
+        return f"cid-{key}"
+
 
 class FakeClient:
     setting = "fake:m"
@@ -40,9 +44,11 @@ class FakeAgent:
     def __init__(self, briefed: set[str]) -> None:
         self.briefed = briefed
         self.runs: list[str] = []
+        self.contexts: list[dict] = []
 
     async def run(self, key: str) -> AgentRun:
         self.runs.append(key)
+        self.contexts.append(current_context())
         return AgentRun(
             event_id=key,
             event_key=key,
@@ -127,3 +133,20 @@ def test_summary_line() -> None:
         "run:1: briefing with 1 sources; stop answered, 3 model turns, 4 tool calls, "
         "1050 tokens, 12 s"
     )
+
+
+async def test_a_run_logs_and_traces_under_the_events_correlation_id(tmp_path) -> None:
+    found = [Candidate("run:1", "v1", "edit-1"), Candidate("run:2", "v1")]
+    t, _, agent = trigger(tmp_path, found, {"run:1"})
+    await t.round(asyncio.Event())
+    assert agent.contexts == [
+        {"correlation_id": "edit-1", "event_key": "run:1"},
+        {"event_key": "run:2"},  # an event extracted before spec 09b has none
+    ]
+    assert current_context() == {}
+
+
+async def test_an_event_named_on_the_command_line_gets_its_correlation_id(tmp_path) -> None:
+    t, _, agent = trigger(tmp_path, [], set(), "--event", "run:4")
+    await t.round(asyncio.Event())
+    assert agent.contexts == [{"correlation_id": "cid-run:4", "event_key": "run:4"}]

@@ -66,7 +66,9 @@ async def run(args: argparse.Namespace, settings: Settings) -> bool:
         # Before the first connection to Wikimedia: a waiting consumer stays unconnected.
         if not await lease.acquire(stop, on_wait=heartbeat):
             return True  # stopped while waiting
-        consumer = Consumer(redis, keys, settings.stream_maxlen, lease=lease)
+        consumer = Consumer(
+            redis, keys, settings.stream_maxlen, lease=lease, log_edits=settings.log_edits
+        )
         logger.info("Consuming %s into Redis Stream %s", settings.stream_url, keys.stream)
         backoff = Backoff(max_s=settings.reconnect_max_s)
         return await consume_holding(lease, consumer, source, stop, backoff, heartbeat)

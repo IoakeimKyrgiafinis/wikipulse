@@ -210,8 +210,9 @@ def mixed_events() -> list[EditEvent]:
 
 
 def test_same_input_gives_the_same_spikes() -> None:
-    first = run(mixed_events(), min_edits=2, min_editors=2, min_ratio=2)[1]
-    second = run(mixed_events(), min_edits=2, min_editors=2, min_ratio=2)[1]
+    events = mixed_events()  # built once: make_edit() numbers its event ids
+    first = run(events, min_edits=2, min_editors=2, min_ratio=2)[1]
+    second = run(events, min_edits=2, min_editors=2, min_ratio=2)[1]
     assert first == second
     assert {"Breaking", "Edit war", "Heaven (nightclub)"} <= {s.title for s in first}
 
@@ -234,3 +235,20 @@ def test_snapshot_and_restore_half_way_gives_the_same_spikes() -> None:
     for event in events[half:]:
         after.process(event)
     assert final_records(changes + after.pop_changes()) == uninterrupted
+
+
+def test_a_spike_carries_the_id_of_the_edit_that_started_it() -> None:
+    edits = burst("Breaking", 0, edits=6, editors=3)
+    detector, spikes = run(edits, min_edits=5, min_editors=3)
+    # The fifth edit is the first moment with 5 edits from 3 editors.
+    assert [s.correlation_id for s in spikes] == [edits[4].event_id]
+
+
+def test_old_snapshots_without_a_correlation_id_still_load() -> None:
+    detector, _ = run(burst("Breaking", 0, edits=6, editors=3), min_edits=5, min_editors=3)
+    state = json.loads(json.dumps(detector.state_to_dict()))
+    for spike in state["active"]:
+        spike.pop("correlation_id")
+    restored = SpikeDetector(config(min_edits=5, min_editors=3))
+    restored.load_state(state, {})
+    assert [s.correlation_id for s in restored.active_spikes()] == [None]

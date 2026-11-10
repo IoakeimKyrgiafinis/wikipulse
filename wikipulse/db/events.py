@@ -16,14 +16,16 @@ from wikipulse.events.grouper import Event
 
 UPSERT_EVENT = """
 INSERT INTO events (run_id, spike_run_id, number, status, title, started_at, last_spike_at,
-                    ended_at, page_count, score, merged_into)
+                    ended_at, page_count, score, merged_into, correlation_id)
 VALUES (%(run_id)s, %(spike_run_id)s, %(number)s, %(status)s, %(title)s, %(started_at)s,
-        %(last_spike_at)s, %(ended_at)s, %(page_count)s, %(score)s, %(merged_into)s)
+        %(last_spike_at)s, %(ended_at)s, %(page_count)s, %(score)s, %(merged_into)s,
+        %(correlation_id)s)
 ON CONFLICT (run_id, number) DO UPDATE SET
     status = EXCLUDED.status, title = EXCLUDED.title, started_at = EXCLUDED.started_at,
     last_spike_at = EXCLUDED.last_spike_at, ended_at = EXCLUDED.ended_at,
     page_count = EXCLUDED.page_count, score = EXCLUDED.score,
-    merged_into = EXCLUDED.merged_into, updated_at = now()
+    merged_into = EXCLUDED.merged_into, correlation_id = EXCLUDED.correlation_id,
+    updated_at = now()
 """
 
 UPSERT_MEMBER = """
@@ -37,7 +39,7 @@ ON CONFLICT (run_id, spike_id) DO UPDATE SET
 SPIKE_ROWS = """
 SELECT s.id AS spike_id, s.title, s.started_at, s.ended_at, s.score, s.total_edits,
        p.title IS NOT NULL AS enriched, p.status AS page_status, p.canonical_title,
-       p.description, p.summary, p.links
+       p.description, p.summary, p.links, s.correlation_id
 FROM spikes s LEFT JOIN pages p ON p.title = s.title
 """
 
@@ -78,6 +80,7 @@ class SpikeRow:
     description: str | None
     summary: str | None
     links: list[str] | None
+    correlation_id: str | None = None  # spec 09b: the edit that started the spike
 
 
 def _spike_rows(conn: psycopg.Connection, query: str, params) -> list[dict]:
@@ -162,6 +165,7 @@ def save_events(
             "page_count": e.page_count,
             "score": e.score,
             "merged_into": e.merged_into,
+            "correlation_id": e.correlation_id,
         }
         for e in events
     ]

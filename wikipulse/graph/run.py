@@ -53,8 +53,8 @@ from wikipulse.graph.inputs import EventInput, event_key, with_changes
 from wikipulse.graph.link import Linker
 from wikipulse.graph.store import GraphCounts, GraphStore, build_graph_event
 from wikipulse.health import Heartbeat
-from wikipulse.llm import LLMError, get_client
-from wikipulse.logging_setup import setup_logging
+from wikipulse.llm import LLMError, get_client, trace
+from wikipulse.logging_setup import log_context, setup_logging
 from wikipulse.metrics.catalog import EXTRACTION_DURATION, EXTRACTIONS, start_at_zero
 from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
@@ -159,8 +159,14 @@ class GraphRunner:
         event = await asyncio.to_thread(load_event, self.conn, self.run_id, number)
         if event is None:
             return True  # merged away meanwhile
+        # Logs and the LLM trace of this event carry its correlation id (spec 09b).
+        with log_context(correlation_id=event.correlation_id, event_key=event.key):
+            return await self._process(event, started)
+
+    async def _process(self, event: EventInput, started: float) -> bool:
         try:
-            result = await self._extract(event, started)
+            with trace("graph extraction", as_type="chain", input={"event_key": event.key}):
+                result = await self._extract(event, started)
         except EVENT_ERRORS as error:
             seconds = time.perf_counter() - started
             message = f"{type(error).__name__}: {error}"

@@ -1,10 +1,13 @@
 """Online grouping: assignment, merging, ending, titles and determinism."""
 
+from dataclasses import replace
+
 import pytest
 
 from tests.events.helpers import ELECTION, ELECTION_ISH, FOOTBALL, at, page, unit
 from wikipulse.config import EventsConfig
 from wikipulse.events.grouper import ACTIVE, ENDED, MERGED, Event, Grouper, Member
+from wikipulse.events.similarity import SpikePage
 
 CONFIG = EventsConfig()  # join threshold 0.55; a spike is over 30 min after its last edit
 
@@ -155,3 +158,17 @@ def test_a_restored_grouper_continues_numbering_and_events() -> None:
     assert grouper.add(page(2, "Candidate", minute=3)).event_number == 7
     assert grouper.add(page(3, "Unrelated", minute=4)).event_number == 8
     assert grouper.active[7].status == ACTIVE
+
+
+def with_id(spike: SpikePage, correlation_id: str) -> SpikePage:
+    return replace(spike, correlation_id=correlation_id)
+
+
+def test_an_event_carries_the_correlation_id_of_its_earliest_spike() -> None:
+    grouper = Grouper(CONFIG)
+    grouper.add(with_id(page(1, "Election", embedding=unit(1, 0, 0)), "edit-1"))
+    grouper.add(with_id(page(2, "Candidate", minute=5, embedding=unit(0, 1, 0)), "edit-2"))
+    assert grouper.active[2].correlation_id == "edit-2"
+    bridge = page(3, "Results", minute=10, links=("Election", "Candidate"), embedding=unit(1, 1, 0))
+    grouper.add(with_id(bridge, "edit-3"))  # merges event 2 into event 1
+    assert grouper.active[1].correlation_id == "edit-1"

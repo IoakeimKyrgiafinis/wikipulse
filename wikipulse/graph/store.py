@@ -246,6 +246,7 @@ def build_graph_event(
         "started_at": event.started_at,
         "ended_at": event.ended_at,
         "page_count": len(event.pages),
+        "correlation_id": event.correlation_id,
         **provenance,
     }
     return GraphEvent(

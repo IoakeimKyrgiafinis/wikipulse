@@ -23,6 +23,11 @@ gets `LeaseLost` and writes nothing, so two consumers never write the stream at 
 Metrics (spec 09a): every handled message counts in `wikipulse_consumer_messages_total`
 by outcome, and every written edit moves the lag clock (`wikipulse.stream.lag`). The
 replay uses this same class, so a replay exports the same metrics as the live consumer.
+
+Logs (spec 09b): with `log_edits`, every written edit logs one line carrying its
+correlation id, the edit's own `event_id` (Wikimedia's `meta.id`). When this edit starts
+a spike, the spike, its event and its briefing carry the same id, so one search finds
+the whole path (see `wikipulse.logging_setup`).
 """
 
 import asyncio
@@ -140,6 +145,21 @@ def parse_message(raw_json: str) -> dict[str, Any] | None:
     return raw if isinstance(raw, dict) else None
 
 
+def log_written(event: EditEvent) -> None:
+    """The edit's line: its correlation id is the edit's own event id."""
+    logger.info(
+        "Edit written: %s (revision %s)",
+        event.title,
+        event.rev_new,
+        extra={
+            "correlation_id": event.event_id,
+            "title": event.title,
+            "revision": event.rev_new,
+            "event_time": event.event_time.isoformat(),
+        },
+    )
+
+
 class Consumer:
     """Turns raw messages into deduplicated `EditEvent`s in a Redis Stream."""
 
@@ -151,11 +171,13 @@ class Consumer:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         lease: StreamLease | None = None,
         lag: WallClockLag | None = None,
+        log_edits: bool = False,
     ) -> None:
         self.redis = redis
         self.keys = keys
         self.maxlen = maxlen
         self.lease = lease  # None: no lease check (replay, tests)
+        self.log_edits = log_edits  # one INFO line per written edit (LOG_EDITS)
         # The lag metric: wall clock by default, the replay's own clock in a replay.
         self.lag = lag or WallClockLag()
         CONSUMER_LAG.set_function(self.lag.seconds)
@@ -202,6 +224,8 @@ class Consumer:
         CONSUMER_MESSAGES.labels(Outcome.KEPT.value).inc()
         self.lag.observe(event.event_time)
         CONSUMER_LAST_EVENT.set(self.lag.last_event.timestamp())  # the newest, not the last
+        if self.log_edits:
+            log_written(event)
         return Outcome.KEPT
 
     async def _skip(self, sse_id: str | None, outcome: Outcome) -> Outcome:

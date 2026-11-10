@@ -39,7 +39,7 @@ from wikipulse.agent.tools import ToolBox, ToolLimits
 from wikipulse.agent.transcript import save_transcript
 from wikipulse.config import Settings, get_settings
 from wikipulse.llm import get_client
-from wikipulse.logging_setup import setup_logging
+from wikipulse.logging_setup import log_context, setup_logging
 from wikipulse.qa.graph import QAGraph
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
@@ -108,7 +108,10 @@ class Trigger:
     async def candidates(self) -> list[Candidate]:
         """The events of this round: `--event`, or significant events not yet briefed."""
         if self.args.event:
-            return [Candidate(key, None) for key in self.args.event]
+            return [
+                Candidate(key, None, await asyncio.to_thread(self.store.correlation_id, key))
+                for key in self.args.event
+            ]
         args, settings = self.args, self.settings
         found = await asyncio.to_thread(
             self.store.candidates,
@@ -122,6 +125,12 @@ class Trigger:
         return fresh[: args.limit]
 
     async def brief(self, candidate: Candidate) -> AgentRun:
+        """One agent run; its logs and trace carry the event's correlation id (spec 09b)."""
+        with log_context(correlation_id=candidate.correlation_id, event_key=candidate.key):
+            return await self._brief(candidate)
+
+    async def _brief(self, candidate: Candidate) -> AgentRun:
+        logger.info("Briefing event %s", candidate.key)
         run = await self.agent.run(candidate.key)
         path = save_transcript(run, self.settings.data_dir / "agent_runs")
         if run.briefing is not None and run.event_key and not self.args.dry_run:

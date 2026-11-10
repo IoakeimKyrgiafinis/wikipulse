@@ -19,6 +19,8 @@ with `merged_into` pointing at the survivor.
   stage 4 writes better titles.
 - Everything uses event time (spike timestamps). The same spikes in the same order
   always give the same events.
+- An event's correlation id (spec 09b) is the one of its earliest spike: the edit that
+  started the story. A merge keeps the survivor's, which started earlier.
 """
 
 import logging
@@ -59,6 +61,7 @@ class Event:
     started_at: datetime | None = None  # earliest spike start
     last_spike_at: datetime | None = None  # latest spike start
     score: float = 0.0  # highest spike score
+    correlation_id: str | None = None  # the earliest spike's (spec 09b)
 
     @property
     def pages(self) -> list[SpikePage]:
@@ -73,6 +76,8 @@ class Event:
         self.started_at = min(p.started_at for p in pages)
         self.last_spike_at = max(p.started_at for p in pages)
         self.score = top.score
+        first = min(pages, key=lambda p: (p.started_at, p.spike_id))
+        self.correlation_id = first.correlation_id
 
     def is_over(self, now: datetime, close_after: timedelta) -> bool:
         """True if every spike of the event has ended and is past its close time."""
@@ -123,7 +128,12 @@ class Grouper:
             event.status = ENDED
             event.ended_at = max(p.ended_at for p in event.pages if p.ended_at is not None)
             self._forget(event)
-            logger.debug("Event %d ended: %s", event.number, event.title)
+            logger.info(
+                "Event %d ended: %s",
+                event.number,
+                event.title,
+                extra={"correlation_id": event.correlation_id, "event_number": event.number},
+            )
         return ended
 
     def update_end(self, spike_id: int, ended_at: datetime | None) -> None:
@@ -186,7 +196,16 @@ class Grouper:
         self.changed[event.number] = event
 
     def _merge(self, event: Event, survivor: Event) -> None:
-        logger.debug("Merging event %d (%s) into %d", event.number, event.title, survivor.number)
+        logger.info(
+            "Merging event %d (%s) into %d",
+            event.number,
+            event.title,
+            survivor.number,
+            extra={
+                "correlation_id": survivor.correlation_id,
+                "merged_correlation_id": event.correlation_id,
+            },
+        )
         survivor.members.extend(event.members)
         survivor.refresh()
         for page in event.pages:
