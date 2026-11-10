@@ -412,10 +412,13 @@ class Settings(BaseSettings):
     # The models retraining trains (the same choice rule as spec 07b picks among them).
     ml_retrain_models: str = "rule,logreg,gbt,torch"
     # Drift: a feature (or the score) has drifted when its population stability index
-    # against the training data reaches ML_DRIFT_PSI. The week counts as drifted when the
-    # score has, or at least ML_DRIFT_MAX_FEATURES features have. Fewer than
-    # ML_DRIFT_MIN_ROWS scored spikes are too few to judge.
+    # against the training data reaches ML_DRIFT_PSI *and* the noise floor: the PSI that
+    # two samples of the same distribution, of the same sizes, stay below with
+    # probability ML_DRIFT_CONFIDENCE (small weeks have a high floor). The week counts as
+    # drifted when the score has, or at least ML_DRIFT_MAX_FEATURES features have. Fewer
+    # than ML_DRIFT_MIN_ROWS scored spikes are too few to judge.
     ml_drift_psi: float = Field(default=0.2, gt=0)
+    ml_drift_confidence: float = Field(default=0.99, gt=0.5, lt=1)
     ml_drift_max_features: int = Field(default=5, ge=1)
     ml_drift_min_rows: int = Field(default=30, ge=1)
 

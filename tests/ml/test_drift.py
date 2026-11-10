@@ -11,9 +11,11 @@ import pytest
 from wikipulse.db.scores import ScoredSpike
 from wikipulse.ml.drift import (
     bin_edges,
+    column_drift,
     compare,
     current_table,
     ks_statistic,
+    noise_floor,
     psi,
     render,
     shares,
@@ -106,3 +108,45 @@ def test_stored_scores_become_a_table_like_the_reference():
     assert list(frame.columns) == [*FEATURE_NAMES, "score", "is_news"]
     assert math.isnan(frame.loc[0, "page_age_days"]) and frame.loc[0, "edits"] == 1.0
     assert current_table([]).empty
+
+
+def test_noise_floor_is_high_for_small_samples_and_falls_as_they_grow():
+    rng = np.random.default_rng(3)
+    reference = rng.beta(2, 2, 152)
+    small = noise_floor(reference, 30)
+    assert small > 0.2  # at 30 rows, chance alone passes the rule-of-thumb threshold
+    assert noise_floor(reference, 300) < small
+    # The reference is a sample too: only with many rows on both sides does it fall low.
+    assert noise_floor(rng.beta(2, 2, 2000), 2000) < 0.05
+    assert noise_floor(reference, 30) == small  # a fixed seed: reproducible reports
+    assert math.isnan(noise_floor(reference, 0))
+
+
+def test_two_samples_of_the_same_distribution_rarely_drift_at_the_default_sizes():
+    """The reviewer's experiment: 152 reference rows, the minimum of 30 current rows.
+    PSI alone crosses 0.2 in most of these trials; with the noise floor almost none
+    drift (about 1 in 100 at ML_DRIFT_CONFIDENCE 0.99)."""
+    rng = np.random.default_rng(2026)
+    trials, raw, flagged = 60, 0, 0
+    for i in range(trials):
+        reference, current = rng.beta(2, 2, 152), rng.beta(2, 2, 30)
+        column = column_drift("x", reference, current, threshold=0.2, seed=i)
+        raw += column.psi >= 0.2
+        flagged += column.drifted
+    assert raw > trials / 2
+    assert flagged <= 3  # at most 5%
+
+
+def test_a_real_shift_still_drifts_at_small_sizes():
+    rng = np.random.default_rng(11)
+    flagged = sum(
+        column_drift("x", rng.beta(2, 2, 152), rng.beta(6, 2, 30), 0.2, seed=i).drifted
+        for i in range(10)
+    )
+    assert flagged >= 9
+
+
+def test_a_small_week_from_the_same_distribution_is_ok():
+    for seed in (2, 3, 4):
+        report = compare(table(152, seed=1), table(30, seed=seed))
+        assert report.status == "ok", (seed, report.drifted_features, report.score)

@@ -20,14 +20,24 @@ Per feature, and for the score itself:
   for features with few values, plus one bin for "unknown"), then sum
   `(current share - reference share) * ln(current share / reference share)` over the
   bins. Rule of thumb: below 0.1 stable, 0.1 to 0.25 a moderate shift, above 0.25 a
-  large one. A feature has drifted at `ML_DRIFT_PSI` (0.2).
+  large one.
+- **Noise floor.** That rule of thumb assumes large samples. With a few dozen spikes a
+  week, PSI between two samples of the *same* distribution is often above 0.25 by
+  chance alone (on average about (bins - 1) * (1/n + 1/m)). So each column gets its
+  own floor (`noise_floor`): draw a fake reference and a fake current sample of the same
+  sizes from the reference itself (no drift by construction), compute their PSI, repeat
+  `NULL_DRAWS` times, and take the `ML_DRIFT_CONFIDENCE` quantile (0.99). A column has
+  drifted when its PSI reaches both `ML_DRIFT_PSI` (big enough to matter) and the floor
+  (too big to be chance). Same idea as a permutation test, with a fixed seed so a
+  report is reproducible.
 - **KS** (Kolmogorov-Smirnov statistic): the largest gap between the two cumulative
   distributions (0 = identical, 1 = no overlap); reported, not used for the decision.
 
 The period has drifted when the score has, or at least `ML_DRIFT_MAX_FEATURES` features
 have. With fewer than `ML_DRIFT_MIN_ROWS` scored spikes the answer is `too_few_rows`:
-PSI of a tiny sample is mostly noise. Reports go to the table `drift_reports`; a drift
-is logged as a warning (`DRIFT:`), and stage 9 turns that into an alert.
+even with the floor, a tiny sample can only show huge shifts. Reports go to the table
+`drift_reports`; a drift is logged as a warning (`DRIFT:`), and stage 9 turns that into
+an alert.
 """
 
 import argparse
@@ -51,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 BINS = 10
 EPSILON = 1e-4  # share given to an empty bin, so the logarithm stays finite
+NULL_DRAWS = 200  # samples drawn for a column's noise floor
 SCORE = "score"
 REFERENCES = {
     "default-rule": "training rows the live default detector also found",
@@ -92,6 +103,30 @@ def psi(reference: np.ndarray, current: np.ndarray, bins: int = BINS) -> float:
     return float(np.sum((q - p) * np.log(q / p)))
 
 
+def noise_floor(
+    reference: np.ndarray,
+    n_current: int,
+    confidence: float = 0.99,
+    draws: int = NULL_DRAWS,
+    seed: int = 0,
+) -> float:
+    """The PSI that chance alone stays below with probability `confidence`, for a
+    current sample of `n_current` rows against this reference.
+
+    Both samples are drawn (with replacement) from the reference, so there is no drift
+    between them: whatever PSI they show is sampling noise. NaN when either is empty."""
+    reference = np.asarray(reference, dtype=np.float64)
+    if len(reference) == 0 or n_current == 0:
+        return math.nan
+    rng = np.random.default_rng(seed)
+    m = len(reference)
+    values = [
+        psi(reference[rng.integers(0, m, m)], reference[rng.integers(0, m, n_current)])
+        for _ in range(draws)
+    ]
+    return float(np.quantile(values, confidence))
+
+
 def ks_statistic(reference: np.ndarray, current: np.ndarray) -> float:
     """Largest gap between the two empirical distribution functions (known values)."""
     a = np.sort(np.asarray(reference, dtype=np.float64))
@@ -116,6 +151,7 @@ class ColumnDrift:
 
     name: str
     psi: float
+    noise_floor: float  # the PSI chance alone reaches at these sample sizes
     ks: float
     reference_mean: float
     current_mean: float
@@ -124,19 +160,30 @@ class ColumnDrift:
     drifted: bool
 
 
-def column_drift(name: str, reference: np.ndarray, current: np.ndarray, threshold: float):
+def column_drift(
+    name: str,
+    reference: np.ndarray,
+    current: np.ndarray,
+    threshold: float,
+    confidence: float = 0.99,
+    seed: int = 0,
+) -> ColumnDrift:
+    """PSI, noise floor and KS of one column; drifted when the PSI reaches both the
+    threshold and the noise floor."""
     reference = np.asarray(reference, dtype=np.float64)
     current = np.asarray(current, dtype=np.float64)
     value = psi(reference, current)
+    floor = noise_floor(reference, len(current), confidence, seed=seed)
     return ColumnDrift(
         name=name,
         psi=value,
+        noise_floor=floor,
         ks=ks_statistic(reference, current),
         reference_mean=nan_mean(reference),
         current_mean=nan_mean(current),
         reference_unknown=float(np.isnan(reference).mean()) if len(reference) else math.nan,
         current_unknown=float(np.isnan(current).mean()) if len(current) else math.nan,
-        drifted=not math.isnan(value) and value >= threshold,
+        drifted=not math.isnan(value) and value >= max(threshold, floor),
     )
 
 
@@ -151,6 +198,7 @@ class DriftReport:
     news_share_current: float
     psi_threshold: float
     max_features: int
+    confidence: float = 0.99
 
     @property
     def drifted_features(self) -> list[str]:
@@ -177,16 +225,24 @@ def compare(
     psi_threshold: float = 0.2,
     max_features: int = 5,
     min_rows: int = 30,
+    confidence: float = 0.99,
+    seed: int = 0,
 ) -> DriftReport:
     """Drift of `current` against `reference`: both tables hold the `FEATURE_NAMES`
     columns, `score` and `is_news`."""
-    features = [
-        column_drift(name, reference[name].to_numpy(), current[name].to_numpy(), psi_threshold)
-        for name in FEATURE_NAMES
-    ]
-    score = column_drift(
-        SCORE, reference[SCORE].to_numpy(), current[SCORE].to_numpy(), psi_threshold
-    )
+
+    def drift_of(name: str) -> ColumnDrift:
+        return column_drift(
+            name,
+            reference[name].to_numpy(),
+            current[name].to_numpy(),
+            psi_threshold,
+            confidence,
+            seed,
+        )
+
+    features = [drift_of(name) for name in FEATURE_NAMES]
+    score = drift_of(SCORE)
     drifted = [f for f in features if f.drifted]
     if len(current) < min_rows:
         status = "too_few_rows"
@@ -204,6 +260,7 @@ def compare(
         news_share_current=float(current["is_news"].mean()) if len(current) else math.nan,
         psi_threshold=psi_threshold,
         max_features=max_features,
+        confidence=confidence,
     )
 
 
@@ -289,6 +346,8 @@ def run_drift(
         settings.ml_drift_psi,
         settings.ml_drift_max_features,
         settings.ml_drift_min_rows,
+        settings.ml_drift_confidence,
+        settings.ml_seed,
     )
     if report.status == "drift":
         logger.warning(
@@ -323,15 +382,17 @@ def render(report: DriftReport, top: int = 12) -> str:
 
     lines = [
         f"Status: {report.status}  ({report.rows} scored spikes vs. {report.reference_rows} "
-        f"training rows; PSI threshold {report.psi_threshold:g})",
+        f"training rows; PSI threshold {report.psi_threshold:g}, or the noise floor "
+        f"at {report.confidence:.0%} if higher)",
         f"News share: {report.news_share_current:.1%} now vs. {report.news_share_reference:.1%} "
         "in training (at the model's threshold)",
         "",
-        "column                    PSI     KS    mean ref   mean now  unknown ref/now",
+        "column                    PSI  floor     KS    mean ref   mean now  unknown ref/now",
     ]
     for c in [report.score, *report.features[:top]]:
         lines.append(
-            f"{c.name:<24} {fmt(c.psi)} {fmt(c.ks)} {c.reference_mean:10.3f} {c.current_mean:10.3f}"
+            f"{c.name:<24} {fmt(c.psi)} {fmt(c.noise_floor)} {fmt(c.ks)} "
+            f"{c.reference_mean:10.3f} {c.current_mean:10.3f}"
             f"  {c.reference_unknown:.0%}/{c.current_unknown:.0%}{'  DRIFT' if c.drifted else ''}"
         )
     return "\n".join(lines)
