@@ -58,6 +58,12 @@ Terraform compares that with what exists and works out the steps. Run `apply` ag
 nothing happens ("No changes"); change `environment = "prod"` and it upgrades only the
 release; delete the cluster by hand and the next plan says "create" again.
 
+What Terraform compares is limited to what each provider stores, though. The Helm
+provider stores the release's *inputs* (chart version, values), not the rendered
+templates, so an edited template in `charts/wikipulse` with the same chart version
+looked like "No changes". And a changed password updates the Secret, but the pods read
+it only at start. Both are closed with checksums (see "Review fixes" below).
+
 A **resource** block (`resource "kubernetes_namespace_v1" "wikipulse" { ... }`) is one
 thing that should exist. Its address, `kubernetes_namespace_v1.wikipulse`, is how
 Terraform tracks it. `for_each` makes one resource per element:
@@ -252,6 +258,42 @@ default and no `.tf` file assigns a literal password, key, DSN or user.
   `infra/cluster/*-config` is git-ignored as a safety net.
 - **Tools**: Terraform 1.17.0 was already installed through winget
   (`Hashicorp.Terraform`); nothing was installed for this spec.
+
+### Review fixes (docs/reviews/08c-terraform.md)
+
+- **Template edits are deployed (problem 1).** `chart_checksum()` in `scripts/infra.py`
+  hashes every file of `charts/wikipulse` (relative paths and contents, line endings
+  normalized) and passes it as the variable `chart_checksum`; `helm_release` sets it as
+  the value `checksums.chart`. No template reads that value: it only changes the
+  release's inputs, so `apply` runs `helm upgrade`, which renders the edited templates and
+  changes only the objects whose rendered form changed. Chosen over the provider's
+  `experiments { manifest = true }`, which renders the chart during every plan and stores
+  the full manifest in the state; the checksum is small and testable without a cluster
+  (`tests/test_infra.py::test_a_template_edit_changes_the_chart_checksum`). The cost:
+  plain `terraform` must be given `chart_checksum` too (it has no default, like
+  `image_tag`), and any file change in the chart, even a comment, makes a new release
+  revision (without restarting pods whose objects didn't change).
+- **A changed secret restarts the pods (problem 2).** The Secret's values live in
+  `local.secret_data`; the release gets `sha256(jsonencode(local.secret_data))` as
+  `checksums.secret` (through `set_sensitive`, so not even the hash shows in the plan).
+  The chart puts it on every Deployment's pod template as the annotation
+  `checksum/secret` (`templates/_deployment.tpl`), the same trick as `checksum/config`,
+  so a new value rolls the pods. `scripts/cluster.py` doesn't set it; the annotation is
+  then left out. The migration Job needs nothing: a hook runs anew on every upgrade.
+- **The replacement trap is marked (problem 3).** `cluster/variables.tf` flags
+  `cluster_name`, `node_image` and `kubeconfig_path`, and `infra/README.md` has a
+  "Replacing the cluster" section with the `destroy -refresh=false` recovery, including
+  the case of the expanded `kubeconfig_path` from another user or machine.
+- **`s3_ssl` (problem 5).** The storage stack's provider uses `var.s3_ssl`;
+  `scripts/infra.py` sets it from `S3_ENDPOINT`'s scheme (`https` means true).
+- **Problem 7.** The comment now sits above `COMMANDS_WITH_VARIABLES`, and `output`
+  (which reads no input variables) is no longer in it.
+- Not changed: problem 4 (bucket names as defaults), 6 (same-tag image rebuilds) and 8
+  (the literal-secret test is a guard, not a proof) were not in the fix list.
+- Verified with `terraform fmt -check`, `validate` for both stacks, the full test suite,
+  ruff, `storage plan` ("No changes" with `s3_ssl = false`) and a `cluster plan`
+  (no cluster running: 5 to add, with both checksums in the release). No apply or
+  rebuild was run for these fixes.
 
 ## Results
 
