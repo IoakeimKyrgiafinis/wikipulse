@@ -1,0 +1,8 @@
+# Files in the chart folder that are not part of the packaged chart.
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*~
+# A template for the Secret the chart expects; cluster.py creates the real one.
+secret.example.yaml

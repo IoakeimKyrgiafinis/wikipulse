@@ -1,0 +1,20 @@
+# The web API and live page (stage 5). It has no authentication: it is reachable only
+# inside the cluster and through `kubectl port-forward`, and it answers only requests
+# addressed to localhost (which is what port-forward sends).
+# Settings: .Values.api in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "api" "http" true) }}
+---
+# A stable name and address for the API pods. ClusterIP: reachable only inside the
+# cluster (and through port-forward), never from the network.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $ "name" "api") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "wikipulse.selectorLabels" (dict "root" $ "name" "api") | nindent 4 }}
+  ports:
+    - {name: http, port: {{ .Values.api.port }}, targetPort: http}

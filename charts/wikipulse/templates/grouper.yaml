@@ -1,0 +1,4 @@
+# Event grouping (stage 3): groups spikes into events with links, start times and
+# summary embeddings (the embedding model is cached on the model-cache volume).
+# Settings: .Values.grouper in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "grouper") }}

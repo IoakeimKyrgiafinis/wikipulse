@@ -1,0 +1,85 @@
+{{- if .Values.networkPolicies.enabled }}
+# Who may talk to whom. The first policy denies all traffic, in and out, for every pod
+# of the namespace; the others allow exactly what each service needs: DNS for everyone,
+# then the ports of .Values.<service>.egressPorts. kind's network plugin enforces them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+{{- range $name := list "consumer" "detector" "archiver" "enricher" "grouper" "graph" "api" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}-egress
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: {{ $name }}}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        {{- range (index $.Values $name).egressPorts }}
+        - {protocol: TCP, port: {{ . }}}
+        {{- end }}
+{{- end }}
+---
+# The API is the only pod that accepts connections, on its HTTP port, and only from pods
+# of this namespace. The kubelet's probes come from the node itself (always allowed), and
+# `kubectl port-forward` enters the pod's own network namespace: neither crosses this.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-ingress
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: api}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}  # any pod of this namespace, nothing outside it
+      ports:
+        - {protocol: TCP, port: {{ .Values.api.port }}}
+---
+# The migration Job (a hook, see migrate-job.yaml) only needs Postgres.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: migrate-egress
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: migrate}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+{{- end }}

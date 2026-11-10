@@ -1,0 +1,21 @@
+# A volume for the embedding model, shared by the grouper and the API: downloaded from
+# Hugging Face on the first start, then kept across pod restarts and image rebuilds.
+# kind's local-path provisioner creates it as a directory on the node; ReadWriteOnce
+# means "one node", and kind has one.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+  annotations:
+    # `helm uninstall` leaves the volume (and the downloaded model) in place.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.modelCache.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.modelCache.size }}

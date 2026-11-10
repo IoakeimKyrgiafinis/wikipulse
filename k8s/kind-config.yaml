@@ -1,6 +1,7 @@
 # The local cluster: `kind create cluster --name wikipulse --config k8s/kind-config.yaml`
 # (scripts/cluster.py create). One node, which is both control plane and worker: the
 # laptop's memory is better spent on the services than on more nodes.
+# The cluster itself, not WikiPulse's deployment: that is the Helm chart, charts/wikipulse.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

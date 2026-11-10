@@ -1,0 +1,8 @@
+# The local kind cluster on the laptop (scripts/cluster.py uses this file).
+# Everything once: Docker Desktop has about 7 GB of memory for the cluster and Compose
+# together, and each API replica loads its own embedding model. Generous limits: the
+# laptop's numbers aren't measured precisely yet, and an OOM kill is a confusing way
+# to find out. values.yaml already holds these defaults; they are written out here so
+# the difference to values-prod.yaml is visible side by side.
+api:
+  replicas: 1

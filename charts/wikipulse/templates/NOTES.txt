@@ -1,0 +1,12 @@
+WikiPulse {{ .Chart.AppVersion }} (image {{ include "wikipulse.image" . }}) is {{ if .Release.IsInstall }}installed{{ else }}upgraded{{ end }}: release {{ .Release.Name }}, revision {{ .Release.Revision }}, namespace {{ .Release.Namespace }}.
+
+Replicas: consumer {{ .Values.consumer.replicas }}, detector {{ .Values.detector.replicas }}, archiver {{ .Values.archiver.replicas }}, enricher {{ .Values.enricher.replicas }}, grouper {{ .Values.grouper.replicas }}, graph {{ .Values.graph.replicas }}, api {{ .Values.api.replicas }}
+
+  Pods:          kubectl -n {{ .Release.Namespace }} get pods
+  Migrations:    kubectl -n {{ .Release.Namespace }} logs job/migrate
+  Live page:     kubectl -n {{ .Release.Namespace }} port-forward svc/api {{ .Values.api.port }}:{{ .Values.api.port }}   then http://localhost:{{ .Values.api.port }}
+  History:       helm -n {{ .Release.Namespace }} history {{ .Release.Name }}
+  Roll back:     helm -n {{ .Release.Namespace }} rollback {{ .Release.Name }} <revision>
+
+The pods read the Secret {{ .Values.existingSecret }}, which the chart doesn't create
+(scripts/cluster.py secret does).

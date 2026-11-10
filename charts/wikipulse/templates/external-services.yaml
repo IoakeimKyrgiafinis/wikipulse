@@ -1,0 +1,16 @@
+# Redis, Postgres, Neo4j and the S3 store run outside the cluster, in Docker Compose.
+# Docker Desktop gives every container, kind's node included, the name
+# host.docker.internal for the host, where Compose publishes their ports.
+# An ExternalName Service is a DNS alias: inside the cluster, `redis` resolves to the host.
+{{- range .Values.externalServices.names }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ . }}
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ $.Values.externalServices.host }}
+{{- end }}

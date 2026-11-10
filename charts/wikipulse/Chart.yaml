@@ -1,0 +1,12 @@
+# The WikiPulse Helm chart (spec 08b): the whole live pipeline on Kubernetes.
+#   helm upgrade --install wikipulse charts/wikipulse -n wikipulse -f charts/wikipulse/values-dev.yaml
+# scripts/cluster.py runs this for you on the local kind cluster, with the image it built.
+apiVersion: v2
+name: wikipulse
+description: WikiPulse - Wikipedia breaking-news detection, knowledge graph and GraphRAG API
+type: application
+# The chart's own version: raise it when the templates or default values change.
+version: 0.1.0
+# The version of WikiPulse it deploys (pyproject.toml). The image tag is set separately
+# (image.tag), because every local build gets its own tag.
+appVersion: "0.1.0"

@@ -17,4 +17,5 @@ docs/
 dags/
 docker/
 k8s/
+charts/
 scripts/

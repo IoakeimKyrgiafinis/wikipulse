@@ -1,0 +1,43 @@
+# "Production": the same chart, stricter settings. Not a real production environment
+# (there is none yet); it shows what changes between environments.
+#
+# More replicas where that is correct: only the API is stateless. The workers stay
+# singletons (values.schema.json refuses more): the consumer holds the one Wikimedia
+# connection, the detector keeps per-page state, the archiver holds the lake's lock.
+#
+# Stricter limits: lower ceilings, closer to what the services were measured to use on
+# the kind cluster (docs/learning/08b-helm-chart.md), so a leak or a runaway loop is
+# stopped early instead of starving its neighbours. Requests stay what the services
+# need to be scheduled.
+api:
+  replicas: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: 500m, memory: 1Gi}
+consumer:
+  resources:
+    requests: {cpu: 100m, memory: 96Mi}
+    limits: {cpu: 250m, memory: 192Mi}
+detector:
+  resources:
+    requests: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 768Mi}
+archiver:
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 768Mi}
+enricher:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 250m, memory: 384Mi}
+grouper:
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: 500m, memory: 1Gi}
+graph:
+  resources:
+    requests: {cpu: 50m, memory: 192Mi}
+    limits: {cpu: 250m, memory: 512Mi}

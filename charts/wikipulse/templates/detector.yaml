@@ -1,0 +1,5 @@
+# Spike detection (stage 2): reads wiki:edits with the consumer group detect:live and
+# writes spikes to Postgres. One replica: it keeps per-page state (windows, baselines),
+# and a consumer group can't send all edits of a page to the same detector.
+# Settings: .Values.detector in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "detector") }}
