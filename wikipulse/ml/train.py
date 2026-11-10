@@ -454,12 +454,22 @@ def train_one(
         return evaluation, run.info.run_id, uri
 
 
-def register(model_uri: str, model_name: str, tags: dict[str, str], description: str) -> str:
-    """Register the model as a new version of `model_name` and mark the older versions as
-    superseded by it; returns the version."""
+def register(
+    model_uri: str,
+    model_name: str,
+    tags: dict[str, str],
+    description: str,
+    supersede: bool = True,
+) -> str:
+    """Register the model as a new version of `model_name`; returns the version.
+
+    With `supersede` (a training session by hand), the older versions are marked as
+    superseded by it. Retraining (spec 07c) passes False: its new version is only a
+    challenger until it has beaten the champion (`wikipulse.ml.registry`)."""
     version = mlflow.register_model(model_uri, model_name, tags=tags)
     mlflow.MlflowClient().update_model_version(model_name, version.version, description)
-    supersede_older_versions(model_name, str(version.version))
+    if supersede:
+        supersede_older_versions(model_name, str(version.version))
     return str(version.version)
 
 
@@ -495,9 +505,12 @@ def train_all(
     model_name: str,
     register_best: bool = True,
     artifact_location: str | None = None,
+    supersede: bool = True,
+    extra_tags: dict[str, str] | None = None,
 ) -> TrainReport:
     """Everything from the dataset's tables to the registered model (see the module
-    docstring). Uses the tracking URI set with `mlflow.set_tracking_uri`."""
+    docstring). Uses the tracking URI set with `mlflow.set_tracking_uri`. `supersede` and
+    `extra_tags` (on the parent run and the registered version) are for retraining."""
     needs_text = "torch" in config.models and embedder is not None
     embed_seconds = 0.0
 
@@ -531,6 +544,7 @@ def train_all(
                 "labels": "llm+portal",
                 "selection_rule": config.select_rule,
                 "selection_rule_text": SELECT_RULES[config.select_rule],
+                **(extra_tags or {}),
             }
         )
         mlflow.log_params(
@@ -580,9 +594,10 @@ def train_all(
                 "selection_rule": config.select_rule,
                 "select_margin": f"{config.select_margin:g}",
                 "training_run": parent.info.run_id,
+                **(extra_tags or {}),
             }
             description = f"{MODEL_TITLES[chosen]}: {reason}. Trained on {dataset.version}."
-            version = register(uris[chosen], model_name, tags, description)
+            version = register(uris[chosen], model_name, tags, description, supersede)
             mlflow.set_tag("registered_version", f"{model_name}/{version}")
             logger.info("Registered %s as %s version %s (%s)", chosen, model_name, version, reason)
     return TrainReport(

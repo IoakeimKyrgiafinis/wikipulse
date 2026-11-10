@@ -32,10 +32,17 @@ def test_expected_dags_and_tasks(dagbag) -> None:
     assert tasks == {
         "daily_eval": ["wait_for_late_data", "fetch_ground_truth", "evaluate"],
         "daily_stats": ["wait_for_late_data", "aggregate", "check_quality"],
+        "retrain": [
+            "check_drift",
+            "build_dataset",
+            "train_challenger",
+            "evaluate_against_champion",
+            "promote_or_reject",
+        ],
     }
 
 
-@pytest.mark.parametrize("dag_id", ["daily_eval", "daily_stats"])
+@pytest.mark.parametrize("dag_id", ["daily_eval", "daily_stats", "retrain"])
 def test_tasks_form_a_chain_and_dag_is_lean(dagbag, dag_id: str) -> None:
     dag = dagbag.dags[dag_id]
     order = [t.task_id for t in dag.tasks]
@@ -99,3 +106,31 @@ def test_every_pool_a_task_uses_is_created_at_start(dagbag, monkeypatch) -> None
     used = {task.pool for dag in dagbag.dags.values() for task in dag.tasks}
     assert used - {"default_pool"} <= set(POOLS)
     assert POOLS["wikimedia_api"][0] == 1
+
+
+def test_retraining_runs_weekly_with_the_ml_environment(dagbag) -> None:
+    from airflow.timetables.base import DataInterval, TimeRestriction
+
+    dag = dagbag.dags["retrain"]
+    last = DataInterval(datetime(2026, 11, 2, tzinfo=UTC), datetime(2026, 11, 9, tzinfo=UTC))
+    info = dag.timetable.next_dagrun_info(
+        last_automated_data_interval=last,
+        restriction=TimeRestriction(earliest=None, latest=None, catchup=True),
+    )
+    assert info.data_interval.start == datetime(2026, 11, 9, tzinfo=UTC)  # a Monday
+    assert info.data_interval.end == datetime(2026, 11, 16, tzinfo=UTC)
+    for task in dag.tasks:
+        assert task.bash_command.startswith('"/opt/wikipulse-ml-venv/bin/python" -m ')
+        assert "wikipulse.jobs.retrain" in task.bash_command
+
+
+def test_retraining_passes_values_on_and_survives_a_failed_drift_check(dagbag) -> None:
+    dag = dagbag.dags["retrain"]
+    assert dag.get_task("build_dataset").trigger_rule == "all_done"
+    train = dag.get_task("train_challenger")
+    assert train.env["DATASET"] == "{{ ti.xcom_pull(task_ids='build_dataset') }}"
+    assert train.bash_command.endswith('train --date "$DAY" --dataset "$DATASET"')
+    promote = dag.get_task("promote_or_reject")
+    assert promote.env["CHALLENGER"] == "{{ ti.xcom_pull(task_ids='train_challenger') }}"
+    assert promote.retries == 0
+    assert dag.get_task("build_dataset").pool == "wikimedia_api"

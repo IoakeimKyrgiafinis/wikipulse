@@ -1,0 +1,144 @@
+# Python packages of the machine-learning environment in the Airflow image (spec 07c):
+# the whole project's dependencies at the versions of uv.lock, for the retraining DAG.
+# Regenerate after changing dependencies (then put these comment lines back):
+#   uv export --frozen --no-dev --no-emit-project --no-hashes --no-header --no-annotate
+# test_ml_requirements_match_the_lockfile in tests/dags/test_dag_files.py checks it.
+# torch comes from the CPU-only index: the Dockerfile installs it first.
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.5
+aiosignal==1.4.0
+alembic==1.20.1
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.16.0
+attrs==26.1.0
+blinker==1.9.0
+cachetools==7.3.0
+certifi==2026.10.23
+cffi==2.1.1 ; platform_python_implementation != 'PyPy'
+charset-normalizer==3.5.2
+click==8.5.1
+cloudpickle==3.1.2
+colorama==0.4.6 ; sys_platform == 'win32'
+contourpy==1.4.0
+cryptography==50.0.2
+cycler==0.12.1
+databricks-sdk==0.163.0
+docker==7.2.0
+duckdb==2.0.0
+fastapi==0.162.2
+filelock==4.2.9
+flask==3.1.3
+flask-cors==6.0.5
+fonttools==4.68.0
+frozenlist==1.8.0
+fsspec==2026.9.0
+gitdb==4.0.12
+gitpython==3.2.1
+google-auth==2.62.1
+graphene==3.4
+graphql-core==3.2.14
+graphql-relay==3.2.0
+gunicorn==26.2.0 ; sys_platform != 'win32'
+h11==0.16.0
+hf-xet==1.8.0 ; platform_machine == 'AMD64' or platform_machine == 'ARM64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
+httpcore==1.0.9
+httpcore2==2.16.0 ; sys_platform != 'emscripten'
+httpx==0.28.1
+httpx-sse==0.4.3
+httpx2==2.16.0
+httpx2-jsfetch==1.0 ; sys_platform == 'emscripten'
+huey==3.5.4
+huggingface-hub==2.4.0
+idna==3.20
+importlib-metadata==10.2.0
+itsdangerous==2.2.0
+jinja2==3.1.6
+joblib==1.6.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+kiwisolver==1.5.1
+lazy-importer==0.1.0
+mako==1.4.3
+markdown-it-py==4.2.0
+markupsafe==3.0.4
+matplotlib==3.11.2
+mcp==2.3.0
+mcp-types==2.3.0
+mdurl==0.1.2
+mlflow==3.18.0
+mlflow-skinny==3.18.0
+mlflow-tracing==3.18.0
+mpmath==1.3.0
+multidict==7.2.1
+narwhals==2.28.0
+neo4j==6.4.1
+networkx==3.7
+numpy==2.5.4
+ollama==0.6.3
+opentelemetry-api==1.45.2
+opentelemetry-proto==1.45.2
+opentelemetry-sdk==1.45.2
+opentelemetry-semantic-conventions==0.66b2
+packaging==26.3
+pandas==3.1.1
+pillow==13.0.0
+prettytable==3.18.0
+propcache==0.5.4
+protobuf==7.36.2
+psycopg==3.3.8
+psycopg-binary==3.3.8 ; implementation_name != 'pypy'
+pyarrow==26.0.1
+pyasn1==0.6.5
+pyasn1-modules==0.4.2
+pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pydantic==2.14.3
+pydantic-core==2.50.4
+pydantic-settings==2.16.2
+pygments==2.21.0
+pyjwt==2.15.1
+pyparsing==3.3.3
+python-dateutil==4.0.0
+python-dotenv==1.2.4
+python-multipart==0.0.33
+pytz==2026.6
+pywin32==312 ; sys_platform == 'win32'
+pyyaml==6.0.3
+redis==8.1.0
+referencing==0.37.0
+regex==2026.11.7
+requests==2.34.2
+rich==15.0.0
+rpds-py==2026.9.1
+safetensors==0.8.0
+scikit-learn==1.9.1
+scipy==1.18.1
+sentence-transformers==6.2.0
+setuptools==84.2.1
+shellingham==1.5.4
+skops==0.16.0
+smmap==5.0.3
+sqlalchemy==2.1.8
+sqlparse==0.6.1
+sse-starlette==3.7.0
+starlette==1.10.0
+sympy==1.14.0
+threadpoolctl==3.8.0
+tokenizers==0.23.3
+torch==2.15.0 ; sys_platform == 'darwin'
+torch==2.15.0+cpu ; sys_platform != 'darwin'
+tqdm==4.70.1
+transformers==5.22.2
+truststore==0.10.5 ; sys_platform != 'emscripten'
+typer==0.28.0
+typing-extensions==4.16.0
+typing-inspection==0.4.5
+tzdata==2026.6
+urllib3==2.8.0
+uvicorn==0.54.0
+waitress==3.0.2 ; sys_platform == 'win32'
+wcwidth==0.9.4
+websockets==17.4
+werkzeug==3.1.9
+yarl==1.25.1
+zipp==4.1.2

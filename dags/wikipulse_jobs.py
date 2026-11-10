@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 WIKIPULSE_HOME = os.environ.get("WIKIPULSE_HOME", "/opt/wikipulse")
 WIKIPULSE_PYTHON = os.environ.get("WIKIPULSE_PYTHON", "/opt/wikipulse-venv/bin/python")
+# The machine-learning jobs (spec 07c: training, evaluation, drift) need the whole
+# project's dependencies (MLflow, scikit-learn, PyTorch, ...), at the versions of uv.lock,
+# in a second environment of their own.
+WIKIPULSE_ML_PYTHON = os.environ.get("WIKIPULSE_ML_PYTHON", "/opt/wikipulse-ml-venv/bin/python")
 
 # Runs before this date are never scheduled. `catchup=False` in the DAGs means Airflow
 # doesn't run every missed day on its own either: past days are run with a backfill.
@@ -89,6 +93,7 @@ def job_task(
     step: str,
     options: str = "",
     env: dict[str, str] | None = None,
+    python: str = WIKIPULSE_PYTHON,
     **kwargs: Any,
 ) -> BashOperator:
     """A task that runs `python -m wikipulse.jobs.<module> <step> --date <day> <options>`.
@@ -98,9 +103,10 @@ def job_task(
     complete day before the chosen logical date for a manual run). Values from
     the UI (parameters) reach the command as environment variables (`env`, templated),
     which `options` refers to as "$NAME"; they are never pasted into the shell line.
+    `python` is the environment that runs it (`WIKIPULSE_ML_PYTHON` for the ML jobs).
     The rest of `kwargs` goes to the operator (retries, ...).
     """
-    command = f'"{WIKIPULSE_PYTHON}" -m wikipulse.jobs.{module} {step} --date "$DAY" {options}'
+    command = f'"{python}" -m wikipulse.jobs.{module} {step} --date "$DAY" {options}'
     return BashOperator(
         task_id=task_id,
         bash_command=command.strip(),
