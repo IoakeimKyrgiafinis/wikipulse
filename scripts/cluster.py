@@ -161,8 +161,23 @@ def load(tag: str) -> None:
     run(["kind", "load", "docker-image", f"{IMAGE}:{tag}", "--name", CLUSTER])
 
 
+# What the migration Job needs before the services exist: its namespace, the settings,
+# the names of the Compose services, and the network policies (which also let it out).
+BASE_MANIFESTS = (
+    "namespace.yaml",
+    "configmap.yaml",
+    "external-services.yaml",
+    "network-policies.yaml",
+)
+
+
 def ensure_namespace() -> None:
     run(kubectl("apply", "-f", str(MANIFESTS / "namespace.yaml")))
+
+
+def apply_base() -> None:
+    files = [arg for name in BASE_MANIFESTS for arg in ("-f", str(MANIFESTS / name))]
+    run(kubectl("apply", *files))
 
 
 def secret(settings: Settings) -> None:
@@ -174,7 +189,7 @@ def secret(settings: Settings) -> None:
 
 
 def migrate(tag: str) -> None:
-    ensure_namespace()
+    apply_base()
     run(kubectl("-n", NAMESPACE, "delete", "job", "migrate", "--ignore-not-found"))
     job = with_image_tag(MIGRATE_JOB.read_text(encoding="utf-8"), tag)
     run(kubectl("apply", "-f", "-"), stdin=job)

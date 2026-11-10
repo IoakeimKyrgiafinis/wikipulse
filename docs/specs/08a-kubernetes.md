@@ -1,6 +1,6 @@
 # Spec 08a: Kubernetes deployment
 
-Status: ready
+Status: done
 Stage: 8. Kubernetes, Helm, Terraform
 Owner: agent
 Depends on: 05e

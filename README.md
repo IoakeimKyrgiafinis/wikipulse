@@ -225,3 +225,25 @@ Every kept edit is archived as hourly Parquet files in S3-compatible object stor
 | `uv run python scripts/fill_stream.py --recording <file> --stream-key <key>` | Bulk-loads a recording's kept edits into a stream of your own (much faster than replay), e.g. to archive recorded history. |
 | `uv run python scripts/lake_crash_test.py --recording <file>` | Kills the archiver hard three times mid-hour and checks the archive has no gaps or duplicates. |
 | `uv run python scripts/lake_size_report.py` | One hour as Parquet vs. the same edits as JSON (sizes and query time); writes `evals/results/<today>_lake-size.md`. |
+
+## Stage 8: Kubernetes
+
+The pipeline runs on a local Kubernetes cluster ([kind](https://kind.sigs.k8s.io/),
+installed with `winget install Kubernetes.kind`; `kubectl` comes with Docker Desktop).
+One image (`Dockerfile`: multi-stage, uv, non-root) runs every service with a different
+command. Redis, Postgres, Neo4j and the S3 store stay in Docker Compose and Ollama on the
+host; pods reach them through `host.docker.internal` (`k8s/external-services.yaml`).
+Start Compose first (`docker compose up -d`).
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python scripts/cluster.py up` | Creates the cluster `wikipulse`, builds the image `wikipulse:<commit>`, loads it into kind, creates the Secret from your settings, runs the migrations as a Job and deploys `k8s/` (consumer, detector, archiver, enricher, grouper, graph, api). `create`, `build`, `load`, `secret`, `migrate`, `apply`, `status` run one step; `down` deletes the cluster. |
+| `kubectl -n wikipulse get pods` | The pods (kubectl's context is `kind-wikipulse` after `up`). |
+| `kubectl -n wikipulse port-forward svc/api 8000:8000` | The live page at http://localhost:8000. |
+| `uv run python scripts/k8s_crash_test.py` | Deletes the consumer pod mid-stream (hard, then gracefully), lets Kubernetes restart it, and checks no edit was lost or doubled. About 10 minutes; one Wikimedia connection at a time. |
+
+The cluster's consumer keeps its own checkpoint (`wiki:k8s:consumer:*`) and writes the
+shared stream `wiki:edits`: don't run `wikipulse.stream.consume` on the laptop at the
+same time. Manifests: `k8s/` (`kubectl apply -k k8s` applies them; `secret.example.yaml`
+is only a template). Probes run `python -m wikipulse.health` (workers) or `GET /health`
+(API).

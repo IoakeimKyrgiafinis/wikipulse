@@ -25,6 +25,9 @@ spec:
         app.kubernetes.io/part-of: wikipulse
     spec:
       automountServiceAccountToken: false
+      # No "service links": Kubernetes would otherwise set variables such as
+      # API_PORT=tcp://10.96.0.12:8000 for every Service, and API_PORT is a WikiPulse setting.
+      enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001

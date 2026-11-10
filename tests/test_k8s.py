@@ -74,6 +74,8 @@ def test_pods_run_as_non_root_with_a_read_only_filesystem(workload: dict) -> Non
     assert spec["securityContext"]["runAsUser"] != 0
     assert spec["securityContext"]["seccompProfile"]["type"] == "RuntimeDefault"
     assert spec["automountServiceAccountToken"] is False
+    # Service links would set API_PORT=tcp://... and break the settings.
+    assert spec["enableServiceLinks"] is False
     for container in spec["containers"]:
         context = container["securityContext"]
         assert context["allowPrivilegeEscalation"] is False
