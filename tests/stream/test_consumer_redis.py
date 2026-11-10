@@ -23,6 +23,7 @@ from wikipulse.config import Settings, get_settings
 from wikipulse.stream import replay
 from wikipulse.stream.consumer import Consumer, Outcome, RedisKeys
 from wikipulse.stream.filters import is_wanted
+from wikipulse.stream.lease import LeaseLost, StreamLease
 from wikipulse.stream.models import EditEvent
 
 pytestmark = pytest.mark.integration
@@ -126,3 +127,23 @@ async def test_replay_by_default_does_not_write_to_the_live_stream(real_redis, m
     finally:
         async for key in real_redis.scan_iter(match=f"{namespace}:*", count=1000):
             await real_redis.delete(key)
+
+
+async def test_writer_lease_in_real_redis(real_redis, test_keys) -> None:
+    """A killed pod's lease expires; the restarted pod takes over; the old one is fenced."""
+    old = StreamLease(real_redis, test_keys.stream, ttl_s=0.5, owner="old-pod")
+    new = StreamLease(real_redis, test_keys.stream, ttl_s=0.5, owner="new-pod")
+    old_consumer = Consumer(real_redis, test_keys, maxlen=10_000, lease=old)
+    new_consumer = Consumer(real_redis, test_keys, maxlen=10_000, lease=new)
+    messages = with_unique_ids(fixture_messages())
+    assert await old.try_acquire()
+    await old_consumer.process(*messages[0])
+    assert not await new.try_acquire()  # the old pod still holds it
+    # The old pod is killed: it neither renews nor releases. The new one waits it out.
+    assert await asyncio.wait_for(new.acquire(asyncio.Event(), retry_s=0.1), timeout=5)
+    for message in messages[1:]:
+        await new_consumer.process(*message)
+    with pytest.raises(LeaseLost):  # a zombie of the old pod can't write any more
+        await old_consumer.process(*messages[0])
+    assert await stream_event_ids(real_redis, test_keys) == WANTED_IDS
+    await new.release()

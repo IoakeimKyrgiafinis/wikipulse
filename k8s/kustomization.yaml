@@ -1,0 +1,24 @@
+# The WikiPulse deployment, in the order it is applied:
+#   kubectl apply -k k8s          (scripts/cluster.py does this, with the image tag it built)
+# Not listed: secret.example.yaml (a template; cluster.py creates the real Secret) and
+# migrate-job.yaml (a Job, run by cluster.py before the services).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - external-services.yaml
+  - model-cache.yaml
+  - network-policies.yaml
+  - consumer.yaml
+  - detector.yaml
+  - archiver.yaml
+  - enricher.yaml
+  - grouper.yaml
+  - graph.yaml
+  - api.yaml
+# Every manifest says `image: wikipulse:dev`; this replaces the tag for all of them.
+# cluster.py renders the manifests with the tag of the image it just built instead.
+images:
+  - name: wikipulse
+    newTag: dev

@@ -26,6 +26,7 @@ import asyncio
 import logging
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
@@ -51,6 +52,7 @@ from wikipulse.graph.extract import Extractor
 from wikipulse.graph.inputs import EventInput, event_key, with_changes
 from wikipulse.graph.link import Linker
 from wikipulse.graph.store import GraphCounts, GraphStore, build_graph_event
+from wikipulse.health import Heartbeat
 from wikipulse.llm import LLMError, get_client
 from wikipulse.logging_setup import setup_logging
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
@@ -233,8 +235,12 @@ class GraphRunner:
         force: bool = False,
         limit: int | None = None,
         stop: asyncio.Event | None = None,
+        heartbeat: Callable[[], None] = lambda: None,
     ) -> int:
-        """One round: drop stale events, then process pending ones. Returns the count."""
+        """One round: drop stale events, then process pending ones. Returns the count.
+
+        `heartbeat` is called after every event (see `wikipulse.health`).
+        """
         await self.remove_stale()
         numbers = await asyncio.to_thread(
             pending_events, self.conn, self.run_id, RETRY, since, until, force, limit
@@ -247,6 +253,7 @@ class GraphRunner:
                 break
             await self.process(number)
             done += 1
+            heartbeat()
         return done
 
     def reset(self) -> int:
@@ -308,8 +315,10 @@ async def run(args: argparse.Namespace, settings: Settings, stop: asyncio.Event)
                 removed = await asyncio.to_thread(runner.reset)
                 logger.info("Removed %d extracted events of run %s", removed, args.run_id)
             force = args.force
+            heartbeat = Heartbeat.from_settings(settings)
             while not stop.is_set():
-                await runner.step(args.since, args.until, force, args.limit, stop)
+                heartbeat.beat()
+                await runner.step(args.since, args.until, force, args.limit, stop, heartbeat)
                 if args.once or await wait_or_stop(stop, settings.graph_poll_interval_s):
                     break
                 force = False  # --force applies to the first round only

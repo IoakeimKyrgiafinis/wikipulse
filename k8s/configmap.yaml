@@ -1,0 +1,28 @@
+# Settings every WikiPulse container reads as environment variables (wikipulse/config.py).
+# Only what differs from the defaults in config.py, and nothing secret: passwords and the
+# User-Agent's contact address are in the Secret `wikipulse-secrets` (secret.example.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wikipulse-config
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/part-of: wikipulse
+data:
+  # The stateful services stay in Docker Compose on the host; inside the cluster each one
+  # has a Service name (external-services.yaml) that points at the host.
+  REDIS_URL: redis://redis:6379/0
+  NEO4J_URI: bolt://neo4j:7687
+  S3_ENDPOINT: http://s3:9000
+  # Ollama is called by the host's own name, not through a Service alias: Ollama listens
+  # on the host's loopback and refuses requests whose Host header isn't a local name
+  # (localhost, *.local, *.internal); `ollama` got HTTP 403, host.docker.internal works.
+  OLLAMA_HOST: http://host.docker.internal:11434
+  # Workers touch this file as they work; their probes run `python -m wikipulse.health`.
+  HEALTH_FILE: /tmp/heartbeat
+  LOG_LEVEL: INFO
+  # Scratch space only: the services keep their state in Redis, Postgres, Neo4j and S3.
+  DATA_DIR: /tmp/data
+  # Where the embedding model is cached (the `model-cache` volume).
+  HF_HOME: /models/huggingface
+  HF_HUB_DISABLE_TELEMETRY: "1"

@@ -2,7 +2,7 @@
 
 Options override the settings: `--run-id` (API_RUN_ID) picks the grouping run to show,
 `--neo4j-uri` another graph, `--host`/`--port` the address (loopback only: the API has no
-authentication).
+authentication; in a container, API_LISTEN_ALL=true allows 0.0.0.0, see config.py).
 """
 
 import argparse
@@ -19,6 +19,14 @@ from wikipulse.mcp_server.server import check_host
 logger = logging.getLogger(__name__)
 
 WS_MAX_MESSAGE_BYTES = 64 * 1024  # clients only send "ping"
+ALL_INTERFACES = ("0.0.0.0", "::")
+
+
+def listen_host(host: str, listen_all: bool) -> str:
+    """The address to listen on: loopback, or every interface when API_LISTEN_ALL allows it."""
+    if listen_all and host in ALL_INTERFACES:
+        return host
+    return check_host(host)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     settings: Settings = get_settings()
     updates = {"api_run_id": args.run_id, "neo4j_uri": args.neo4j_uri}
     settings = settings.model_copy(update={k: v for k, v in updates.items() if v})
-    host = check_host(args.host or settings.api_host)
+    host = listen_host(args.host or settings.api_host, settings.api_listen_all)
     port = args.port or settings.api_port
     logger.info("WikiPulse at http://%s:%d (run %s)", host, port, settings.api_run_id)
     uvicorn.run(

@@ -1,0 +1,78 @@
+# Page enrichment (stage 3): fetches summaries, links and Wikidata ids of spiking pages
+# from the Wikimedia APIs (politely: the User-Agent from the Secret, rate limited,
+# cached in Postgres). It polls Postgres, so a restart simply polls again.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enricher
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/name: enricher
+    app.kubernetes.io/part-of: wikipulse
+spec:
+  replicas: 1
+  # One replica, replaced with Recreate (the old pod stops before the new one starts):
+  # two at once would process the same work twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: enricher
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: enricher
+        app.kubernetes.io/part-of: wikipulse
+    spec:
+      automountServiceAccountToken: false
+      # No "service links": Kubernetes would otherwise set variables such as
+      # API_PORT=tcp://10.96.0.12:8000 for every Service, and API_PORT is a WikiPulse setting.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # SIGTERM: it finishes the pages in progress.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: enricher
+          image: wikipulse:dev
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "wikipulse.enrich.run"]
+          envFrom:
+            - configMapRef: {name: wikipulse-config}
+            - secretRef: {name: wikipulse-secrets}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # It beats once per poll (ENRICH_POLL_INTERVAL_S) and after every page.
+          startupProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "600"]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}

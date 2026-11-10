@@ -1,0 +1,7 @@
+# The local cluster: `kind create cluster --name wikipulse --config k8s/kind-config.yaml`
+# (scripts/cluster.py create). One node, which is both control plane and worker: the
+# laptop's memory is better spent on the services than on more nodes.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane

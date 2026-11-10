@@ -1,0 +1,115 @@
+# The web API and live page (stage 5). Stateless: it reads events from Postgres and the
+# graph from Neo4j, and answers questions with the LLM. Open it with
+#   kubectl -n wikipulse port-forward svc/api 8000:8000      then http://localhost:8000
+# (the API has no authentication: it is reachable only through port-forward, and it
+# answers only requests addressed to localhost, which is what port-forward sends).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: wikipulse
+spec:
+  replicas: 1
+  # The API is stateless, so it can be updated without downtime: the new pod starts and
+  # must be ready before the old one is stopped.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: wikipulse
+    spec:
+      automountServiceAccountToken: false
+      # No "service links": Kubernetes would otherwise set variables such as
+      # API_PORT=tcp://10.96.0.12:8000 for every Service, and API_PORT is a WikiPulse setting.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: wikipulse:dev
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "wikipulse.api"]
+          env:
+            # Listen on the pod's address, so the Service and the probes reach it.
+            - {name: API_HOST, value: "0.0.0.0"}
+            - {name: API_LISTEN_ALL, value: "true"}
+          envFrom:
+            - configMapRef: {name: wikipulse-config}
+            - secretRef: {name: wikipulse-secrets}
+          ports:
+            - {name: http, containerPort: 8000}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1536Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # GET /health answers 200 while the API runs ("degraded" in the body when Postgres
+          # or Neo4j is down). The Host header must be a loopback name: the API refuses
+          # others (protection against DNS rebinding).
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: model-cache, mountPath: /models}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
+        - name: model-cache
+          persistentVolumeClaim: {claimName: model-cache}
+---
+# A stable name and address for the API pods. ClusterIP: reachable only inside the
+# cluster (and through `kubectl port-forward`), never from the network.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: wikipulse
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: api
+  ports:
+    - {name: http, port: 8000, targetPort: http}

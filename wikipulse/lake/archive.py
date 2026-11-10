@@ -24,6 +24,7 @@ import redis
 
 from wikipulse.config import Settings, get_settings
 from wikipulse.detect.run import StopFlag
+from wikipulse.health import Heartbeat, beat_while
 from wikipulse.lake.archiver import DEFAULT_CONSUMER, Archiver, ArchiveStats, reset_group
 from wikipulse.lake.lock import LockLostError
 from wikipulse.lake.store import LakeStore
@@ -124,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
     stop = StopFlag()
     stop.install()
     try:
-        run(args, settings, stop)
+        run(args, settings, beat_while(stop, Heartbeat.from_settings(settings)))
     except LockLostError as exc:
         logger.error("%s", exc)
         return 1

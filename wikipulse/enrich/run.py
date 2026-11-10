@@ -18,6 +18,7 @@ import logging
 import sys
 import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -29,6 +30,7 @@ from wikipulse.db.pages import pending_titles, record_error, upsert_page
 from wikipulse.enrich.cache import PostgresCache
 from wikipulse.enrich.client import ClientStats, WikiApiError, WikimediaClient
 from wikipulse.enrich.pages import Enricher, PageStatus
+from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
@@ -87,6 +89,7 @@ async def enrich_titles(
     titles: list[str],
     workers: int = 8,
     stop: asyncio.Event | None = None,
+    heartbeat: Callable[[], None] = lambda: None,
 ) -> Counter:
     """Enrich titles, `workers` pages at a time, oldest spike first.
 
@@ -95,6 +98,7 @@ async def enrich_titles(
     in progress. Starting every title at once would queue all their first requests
     ahead of every second request: in a backfill no page would be finished until almost
     all had been asked about. The client's semaphore still bounds requests in flight.
+    `heartbeat` is called after every page (see `wikipulse.health`).
     """
     statuses: Counter = Counter()
     remaining = iter(titles)  # shared by the workers; `next()` never runs concurrently
@@ -104,6 +108,7 @@ async def enrich_titles(
             if stop is not None and stop.is_set():
                 return
             statuses[(await enrich_one(enricher, conn, title)).value] += 1
+            heartbeat()
 
     await asyncio.gather(*(worker() for _ in range(max(1, min(workers, len(titles))))))
     return statuses
@@ -158,8 +163,10 @@ async def run(args: argparse.Namespace, settings: Settings, stop: asyncio.Event)
         enricher = Enricher(
             client, settings.wiki_api_url, settings.wiki_rest_url, settings.enrich_max_links
         )
+        heartbeat = Heartbeat.from_settings(settings)
         async with client:
             while not stop.is_set():
+                heartbeat.beat()
                 titles = await asyncio.to_thread(
                     pending_titles,
                     conn,
@@ -172,7 +179,7 @@ async def run(args: argparse.Namespace, settings: Settings, stop: asyncio.Event)
                 )
                 if titles:
                     logger.info("Enriching %d page(s) of run %s", len(titles), args.run_id)
-                    done = await enrich_titles(enricher, conn, titles, workers, stop)
+                    done = await enrich_titles(enricher, conn, titles, workers, stop, heartbeat)
                     report.statuses += done
                     report.pages += sum(done.values())
                     report.seconds = time.monotonic() - started

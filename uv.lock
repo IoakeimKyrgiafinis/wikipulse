@@ -2313,6 +2313,7 @@ dev = [
     { name = "fakeredis", extra = ["lua"] },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -2346,6 +2347,7 @@ dev = [
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.40.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.8" },
 ]
 

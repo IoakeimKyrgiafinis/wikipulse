@@ -1,0 +1,83 @@
+# Spike detection (stage 2): reads `wiki:edits` with the consumer group `detect:live`
+# and writes spikes to Postgres as run `live`.
+#
+# Why not three replicas sharing the stream through the consumer group? The group hands
+# each entry to ONE consumer, but the detector keeps per-page state (windows, baselines):
+# the edits of one page must all reach the same detector. Redis consumer groups can't
+# route by page, so the detector runs once. If it is killed, the entries it read but had
+# not acknowledged stay pending in the group and are re-read by the next pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detector
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/name: detector
+    app.kubernetes.io/part-of: wikipulse
+spec:
+  replicas: 1
+  # One replica, replaced with Recreate (the old pod stops before the new one starts):
+  # two at once would process the same work twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: detector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: detector
+        app.kubernetes.io/part-of: wikipulse
+    spec:
+      automountServiceAccountToken: false
+      # No "service links": Kubernetes would otherwise set variables such as
+      # API_PORT=tcp://10.96.0.12:8000 for every Service, and API_PORT is a WikiPulse setting.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # SIGTERM: it takes a final snapshot of its state, then exits.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: detector
+          image: wikipulse:dev
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "wikipulse.detect.run"]
+          envFrom:
+            - configMapRef: {name: wikipulse-config}
+            - secretRef: {name: wikipulse-secrets}
+          resources:
+            requests: {cpu: 200m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # It beats every time it checks whether to stop: per entry and per 2 s read.
+          startupProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "300"]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
