@@ -371,6 +371,21 @@ class Settings(BaseSettings):
     # later split less than this many hours after it ended.
     ml_split_gap_hours: float = Field(default=24, ge=0)
 
+    # --- News classifier (stage 7, spec 07b): uv run python -m wikipulse.ml.train ---
+    # MLflow tracking server (docker compose --profile mlflow up -d): runs, metrics,
+    # artifacts and the model registry. A local `sqlite:///...` URI works too.
+    mlflow_tracking_uri: str = "http://localhost:5000"
+    ml_experiment: str = "news-classifier"
+    ml_model_name: str = "news-classifier"
+    # The threshold of each model is the lowest score that reaches this precision on the
+    # validation split (the most recall at that precision); max F1 if none reaches it.
+    ml_target_precision: float = Field(default=0.8, gt=0, le=1)
+    # Model choice: the simplest model the test set can't tell from the best one, i.e.
+    # the 95 % paired-bootstrap interval of its gap in test average precision to the best
+    # reaches down to this (0: "not significantly worse").
+    ml_select_margin: float = Field(default=0.0, ge=0)
+    ml_seed: int = 42
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

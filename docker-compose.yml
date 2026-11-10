@@ -155,6 +155,42 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  mlflow:
+    # Experiment tracking and the model registry (stage 7, spec 07b). Metadata in its own
+    # database (MLFLOW_DB, default `mlflow`) of the postgres service, artifacts (models,
+    # plots) in their own bucket (MLFLOW_BUCKET) of the rustfs service; both created on
+    # first start. Clients upload artifacts through the server, so they need no S3
+    # credentials. Only started with the "mlflow" profile:
+    #   docker compose --profile mlflow up -d      then http://localhost:5000
+    build: docker/mlflow
+    image: wikipulse-mlflow:3.18.0
+    profiles: ["mlflow"]
+    environment:
+      MLFLOW_POSTGRES_DSN: postgresql://${POSTGRES_USER:-wikipulse}:${POSTGRES_PASSWORD:-wikipulse}@postgres:5432
+      MLFLOW_DB: ${MLFLOW_DB:-mlflow}
+      MLFLOW_BUCKET: ${MLFLOW_BUCKET:-wikipulse-mlflow}
+      MLFLOW_S3_ENDPOINT_URL: http://rustfs:9000
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-wikipulse}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-wikipulse-lake}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      # Lean: no background job runner. It serves GenAI features WikiPulse doesn't use
+      # (online trace scoring, trace archival) and starts ~9 processes of ~250 MB each.
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+    ports:
+      - "127.0.0.1:${MLFLOW_PORT:-5000}:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   redis-data:
   postgres-data:
