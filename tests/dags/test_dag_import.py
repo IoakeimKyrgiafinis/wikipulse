@@ -34,6 +34,7 @@ def test_expected_dags_and_tasks(dagbag) -> None:
         "daily_stats": ["wait_for_late_data", "aggregate", "check_quality"],
         "retrain": [
             "check_drift",
+            "extend_history",
             "build_dataset",
             "train_challenger",
             "evaluate_against_champion",
@@ -126,7 +127,8 @@ def test_retraining_runs_weekly_with_the_ml_environment(dagbag) -> None:
 
 def test_retraining_passes_values_on_and_survives_a_failed_drift_check(dagbag) -> None:
     dag = dagbag.dags["retrain"]
-    assert dag.get_task("build_dataset").trigger_rule == "all_done"
+    assert dag.get_task("extend_history").trigger_rule == "all_done"
+    assert dag.get_task("build_dataset").trigger_rule == "all_success"  # on the new edits
     train = dag.get_task("train_challenger")
     assert train.env["DATASET"] == "{{ ti.xcom_pull(task_ids='build_dataset') }}"
     assert train.bash_command.endswith('train --date "$DAY" --dataset "$DATASET"')
@@ -134,3 +136,4 @@ def test_retraining_passes_values_on_and_survives_a_failed_drift_check(dagbag) -
     assert promote.env["CHALLENGER"] == "{{ ti.xcom_pull(task_ids='train_challenger') }}"
     assert promote.retries == 0
     assert dag.get_task("build_dataset").pool == "wikimedia_api"
+    assert dag.get_task("extend_history").pool == "wikimedia_api"

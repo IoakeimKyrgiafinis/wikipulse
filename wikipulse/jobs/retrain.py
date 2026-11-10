@@ -1,6 +1,7 @@
 """Weekly retraining of the news classifier: the steps of `dags/retrain.py`.
 
     python -m wikipulse.jobs.retrain drift    --date 2026-11-02 [--run-id live]
+    python -m wikipulse.jobs.retrain extend   --date 2026-11-02 [--lake-prefix history/edits]
     python -m wikipulse.jobs.retrain build    --date 2026-11-02 [--lake-prefix history/edits]
     python -m wikipulse.jobs.retrain train    --date 2026-11-02 --dataset v3
     python -m wikipulse.jobs.retrain evaluate --date 2026-11-02 --dataset v3 --challenger 4
@@ -10,20 +11,25 @@
 
 1. **drift**: the week's scored spikes against the champion's training data
    (`wikipulse.ml.drift`), stored in `drift_reports`. Drift is reported, not a failure.
-2. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
+2. **extend**: brings the history lake (`ML_LAKE_PREFIX`, `history/edits`) up to the
+   last complete hour, by reading the stream's retained history from the lake's last
+   hour on (`wikipulse.lake.backfill`; one connection, polite, idempotent). Without it
+   every week would rebuild the same dataset from the same edits. Skipped for the live
+   archive (`LAKE_PREFIX`), which the archiver extends itself.
+3. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
    line printed is its name, which the DAG hands to the next steps.
-3. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
+4. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
    same fixed rule (`ML_SELECT_RULE`) but on the *validation* split, so the test split
    is not used to pick the challenger and stays a fair ground for step 4. The chosen one
    is registered as a new version with the alias `@challenger` and `status=challenger`;
    older versions are *not* marked superseded. Running the step again for the same week
    and dataset reuses that version.
-4. **evaluate**: champion and challenger score the *same* rows: the labeled test split of
+5. **evaluate**: champion and challenger score the *same* rows: the labeled test split of
    the new dataset. The decision (`decide`): promote only if the challenger's test
    average precision beats the champion's by at least `ML_PROMOTE_MARGIN`, with at least
    `ML_PROMOTE_MIN_TEST_ROWS` labeled rows. Everything is logged as an MLflow run
    (`role=promotion`) and as tags on the challenger version.
-5. **promote**: carries the decision out: `@champion` moves to the challenger
+6. **promote**: carries the decision out: `@champion` moves to the challenger
    (`wikipulse.ml.registry.promote`), or the challenger is tagged `status=rejected`. It
    refuses if the champion changed after the evaluation (someone promoted or rolled back
    by hand in between): then the comparison is out of date.
@@ -35,6 +41,7 @@ made a challenger again, re-evaluated, or tagged rejected.
 """
 
 import argparse
+import asyncio
 import json
 import logging
 import re
@@ -52,9 +59,13 @@ from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
 
-STEPS = ("drift", "build", "train", "evaluate", "promote")
+STEPS = ("drift", "extend", "build", "train", "evaluate", "promote")
 FORMATS = {"dataset": re.compile(r"v\d+"), "challenger": re.compile(r"\d+")}
 PROMOTE, REJECT = "promote", "reject"
+# The stream keeps about two weeks of history; the extend step stays well inside that.
+HISTORY_RETENTION = timedelta(days=12)
+# An hour is complete once the stream is a few minutes past its end (late events).
+HOUR_SETTLE = timedelta(minutes=10)
 SKIPPED = "skipped"  # a repeated step on a version that is past the challenger stage
 
 
@@ -155,6 +166,58 @@ def step_drift(settings: Settings, day: date, run_id: str | None) -> int:
     logger.info(
         "Drift of v%s on run %s, week of %s:\n%s", model.version, run_id, day, render(report)
     )
+    return 0
+
+
+def floor_hour(moment: datetime) -> datetime:
+    return moment.replace(minute=0, second=0, microsecond=0)
+
+
+def extend_window(last_hour: datetime | None, now: datetime) -> tuple[datetime, datetime] | None:
+    """The hours [since, until) the extend step backfills, or None if the lake is current.
+
+    From the hour after the lake's last one to the last complete hour. The stream only
+    keeps recent history: an older start is moved up to `HISTORY_RETENTION` ago (the
+    lake then has a gap, and the dataset build uses the stretch after it)."""
+    until = floor_hour(now - HOUR_SETTLE)
+    earliest = floor_hour(now - HISTORY_RETENTION) + timedelta(hours=1)
+    since = last_hour + timedelta(hours=1) if last_hour else earliest
+    if since < earliest:
+        logger.warning(
+            "The lake ends at %s, older than the stream's history: it will have a gap "
+            "from %s to %s",
+            last_hour,
+            since,
+            earliest,
+        )
+        since = earliest
+    return (since, until) if since < until else None
+
+
+def step_extend(settings: Settings, lake_prefix: str | None) -> int:
+    from wikipulse.lake import backfill
+    from wikipulse.lake.lock import LockLostError
+    from wikipulse.lake.store import LakeStore
+    from wikipulse.stream.consume import warn_if_placeholder_user_agent
+
+    prefix = (lake_prefix or settings.ml_lake_prefix).strip("/")
+    if prefix == settings.lake_prefix.strip("/"):
+        logger.info("%s is the live archive: the archiver extends it", prefix)
+        return 0
+    hours = LakeStore.from_settings(settings, prefix).hours()
+    window = extend_window(hours[-1] if hours else None, datetime.now(UTC))
+    if window is None:
+        logger.info("%s is up to date (last hour %s)", prefix, hours[-1] if hours else None)
+        return 0
+    since, until = window
+    warn_if_placeholder_user_agent(settings)
+    args = argparse.Namespace(since=since.isoformat(), until=until.isoformat(), prefix=prefix)
+    try:
+        done = asyncio.run(backfill.run(args, settings))
+    except LockLostError as error:  # another writer: the task's retry tries again
+        logger.error("%s", error)
+        return 1
+    logger.info("Extended %s from %s to %s: %d edits", prefix, since, until, done.kept)
     return 0
 
 
@@ -453,7 +516,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--run-id", default="", help="drift: detector run (default ML_SERVE_RUN_ID)"
     )
-    parser.add_argument("--lake-prefix", default="", help="build: lake prefix (ML_LAKE_PREFIX)")
+    parser.add_argument(
+        "--lake-prefix", default="", help="extend/build: lake prefix (ML_LAKE_PREFIX)"
+    )
     parser.add_argument("--dataset", default="", help="train/evaluate: dataset version, e.g. v3")
     parser.add_argument("--challenger", default="", help="evaluate/promote: model version")
     args = parser.parse_args(argv)
@@ -480,6 +545,8 @@ def main(argv: list[str] | None = None) -> int:
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     if args.step == "drift":
         return step_drift(settings, args.date, args.run_id.strip() or None)
+    if args.step == "extend":
+        return step_extend(settings, args.lake_prefix.strip() or None)
     if args.step == "build":
         return step_build(settings, args.lake_prefix.strip() or None)
     if args.step == "train":

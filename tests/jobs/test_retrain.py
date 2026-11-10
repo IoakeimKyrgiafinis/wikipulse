@@ -2,12 +2,14 @@
 champion/challenger comparison on the same rows, and the command line."""
 
 from dataclasses import replace
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from wikipulse.config import Settings
 from wikipulse.jobs.retrain import (
     PROMOTE,
     REJECT,
@@ -15,9 +17,11 @@ from wikipulse.jobs.retrain import (
     compare_models,
     decide,
     existing_challenger,
+    extend_window,
     parse_args,
     parse_models,
     retrain_key,
+    step_extend,
 )
 
 BASE = Comparison(
@@ -151,3 +155,49 @@ def test_the_models_to_retrain_are_checked():
         parse_models("logreg,xgboost")
     with pytest.raises(ValueError, match="empty"):
         parse_models(" , ")
+
+
+def utc(day: int, hour: int, minute: int = 0) -> datetime:
+    return datetime(2026, 11, day, hour, minute, tzinfo=UTC)
+
+
+def test_the_history_is_extended_from_its_last_hour_to_the_last_complete_hour():
+    since, until = extend_window(utc(9, 21), now=utc(16, 3, 30))
+    assert (since, until) == (utc(9, 22), utc(16, 3))
+    assert extend_window(utc(16, 2), now=utc(16, 3, 5)) is None  # 03:00 is not settled yet
+    assert extend_window(utc(16, 2), now=utc(16, 3, 30)) is None  # the lake is current
+
+
+def test_history_older_than_the_stream_keeps_starts_inside_its_retention():
+    since, until = extend_window(utc(1, 0), now=utc(20, 12, 30))
+    assert since == utc(8, 13) and until == utc(20, 12)
+    assert extend_window(None, now=utc(20, 12, 30))[0] == utc(8, 13)
+
+
+def test_extend_backfills_the_missing_hours_and_skips_the_live_archive(monkeypatch):
+    from wikipulse.lake import backfill
+    from wikipulse.lake import store as lake_store
+
+    calls = []
+
+    class FakeStore:
+        def __init__(self, prefix):
+            self.prefix = prefix
+
+        def hours(self):
+            return [utc(9, 20), utc(9, 21)]
+
+    async def fake_run(args, settings):
+        calls.append((args.prefix, args.since, args.until))
+        return SimpleNamespace(kept=5)
+
+    monkeypatch.setattr(
+        lake_store.LakeStore, "from_settings", classmethod(lambda cls, s, p: FakeStore(p))
+    )
+    monkeypatch.setattr(backfill, "run", fake_run)
+    settings = Settings(_env_file=None, ml_lake_prefix="history/edits", lake_prefix="edits")
+    assert step_extend(settings, None) == 0
+    [(prefix, since, until)] = calls
+    assert prefix == "history/edits" and since == utc(9, 22).isoformat()
+    assert step_extend(settings, "edits") == 0  # the archiver's lake: not touched
+    assert len(calls) == 1

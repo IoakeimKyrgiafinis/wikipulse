@@ -1,7 +1,7 @@
 """retrain: the news classifier's weekly drift check, retraining and promotion (spec 07c).
 
-    check_drift >> build_dataset >> train_challenger >> evaluate_against_champion
-                >> promote_or_reject
+    check_drift >> extend_history >> build_dataset >> train_challenger
+                >> evaluate_against_champion >> promote_or_reject
 
 One run per week (Monday 00:00 to Monday 00:00 UTC), started after the week ends:
 
@@ -9,7 +9,10 @@ One run per week (Monday 00:00 to Monday 00:00 UTC), started after the week ends
   `run_id`) with the champion's training data and stores the report in `drift_reports`.
   It runs first, against the champion that served that week. Drift is logged as a
   warning, not a failure, and even a failed drift check doesn't stop the retraining
-  (`build_dataset` runs when `check_drift` is done, whatever its result).
+  (`extend_history` runs when `check_drift` is done, whatever its result).
+- `extend_history` brings the history lake up to the last complete hour from the
+  stream's retained history, so each week's dataset includes the newest edits. It is
+  a no-op when the lake is current, or when `lake_prefix` is the live archive.
 - `build_dataset` builds a new dataset version from the lake and hands its name on.
 - `train_challenger` trains the models of spec 07b on it and registers the chosen one as
   a new version with the alias `@challenger`.
@@ -40,6 +43,8 @@ from wikipulse_jobs import (
 BUILT_DATASET = "{{ ti.xcom_pull(task_ids='build_dataset') }}"
 CHALLENGER = "{{ ti.xcom_pull(task_ids='train_challenger') }}"
 LONG = timedelta(hours=1)  # building and training take minutes, more on a first run
+# Reading a week of the stream's history takes about 2.5 hours (07a: 94 hours in 80 min).
+EXTEND = timedelta(hours=6)
 
 with DAG(
     dag_id="retrain",
@@ -50,7 +55,7 @@ with DAG(
     start_date=START_DATE,
     catchup=False,
     max_active_runs=1,
-    dagrun_timeout=timedelta(hours=6),
+    dagrun_timeout=timedelta(hours=12),
     default_args=DEFAULT_ARGS,
     params={
         "run_id": name_param("Detector run whose scores the drift check reads; empty: live"),
@@ -67,6 +72,17 @@ with DAG(
         python=WIKIPULSE_ML_PYTHON,
         retries=1,
     )
+    extend_history = job_task(
+        "extend_history",
+        "retrain",
+        "extend",
+        options='--lake-prefix "$LAKE_PREFIX"',
+        env={"LAKE_PREFIX": "{{ params.lake_prefix }}"},
+        python=WIKIPULSE_ML_PYTHON,
+        pool=WIKIMEDIA_POOL,  # one stream connection, never two at once
+        execution_timeout=EXTEND,
+        trigger_rule="all_done",  # retrain even if the drift check failed
+    )
     build_dataset = job_task(
         "build_dataset",
         "retrain",
@@ -76,7 +92,6 @@ with DAG(
         python=WIKIPULSE_ML_PYTHON,
         pool=WIKIMEDIA_POOL,  # page revisions and portal pages (cached after the first time)
         execution_timeout=LONG,
-        trigger_rule="all_done",  # retrain even if the drift check failed
     )
     train_challenger = job_task(
         "train_challenger",
@@ -109,6 +124,7 @@ with DAG(
 
     (
         check_drift
+        >> extend_history
         >> build_dataset
         >> train_challenger
         >> evaluate_against_champion
