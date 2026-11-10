@@ -4,7 +4,7 @@
   "description": "Helm checks the merged values against this schema before rendering (install, upgrade, template, lint). A typo or a forbidden value fails early, with a message, instead of producing a broken cluster.",
   "type": "object",
   "required": ["image", "existingSecret", "config", "externalServices", "modelCache", "migrations", "networkPolicies",
-               "consumer", "detector", "archiver", "enricher", "grouper", "graph", "api"],
+               "metrics", "consumer", "detector", "archiver", "enricher", "grouper", "graph", "api"],
   "definitions": {
     "resources": {
       "type": "object",
@@ -105,6 +105,17 @@
       "type": "object",
       "required": ["enabled"],
       "properties": {"enabled": {"type": "boolean"}}
+    },
+    "metrics": {
+      "description": "Prometheus metrics: the port every pod serves /metrics on, and the namespace allowed to scrape it.",
+      "type": "object",
+      "required": ["enabled", "port", "scraperNamespace"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "port": {"type": "integer", "minimum": 1024, "maximum": 65535},
+        "scraperNamespace": {"type": "string", "minLength": 1}
+      }
     },
     "consumer": {"$ref": "#/definitions/worker"},
     "detector": {"$ref": "#/definitions/worker"},

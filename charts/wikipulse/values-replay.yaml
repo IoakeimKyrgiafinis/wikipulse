@@ -1,0 +1,18 @@
+# An overlay for a session fed by the replay tool instead of the live stream (spec 09a):
+#   METRICS_PORT=9464 uv run python -m wikipulse.stream.replay --file <recording> --speed 2
+# The replay writes REPLAY_STREAM_KEY (wiki:replay:edits) from the laptop; here the
+# detector reads that stream as run "replay", the grouper groups that run's spikes, and the
+# API shows that run's events. The live run's state, spikes and events stay untouched, and
+# the archiver keeps reading wiki:edits, so replayed edits never reach the data lake.
+#
+# Start a session from scratch (the run's group, state, spikes and events):
+#   uv run python -m wikipulse.detect.run --stream-key wiki:replay:edits --run-id replay --reset --max-entries 0
+#   uv run python -m wikipulse.events.run --spike-run replay --reset --once
+# Add it after the environment file (and values-offline.yaml while the contact is a
+# placeholder); Terraform does it with `-var replay=true`.
+config:
+  API_RUN_ID: replay
+detector:
+  command: [python, -m, wikipulse.detect.run, --stream-key, "wiki:replay:edits", --run-id, replay]
+grouper:
+  command: [python, -m, wikipulse.events.run, --spike-run, replay]

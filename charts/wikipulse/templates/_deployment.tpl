@@ -48,19 +48,32 @@ spec:
           image: {{ include "wikipulse.image" $root }}
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           command: {{ toJson $values.command }}
-          {{- if .http }}
+          {{- if or .http $root.Values.metrics.enabled }}
           env:
+            {{- if .http }}
             # Listen on the pod's address, so the Service and the probes reach it.
             - {name: API_HOST, value: "0.0.0.0"}
             - {name: API_PORT, value: {{ $values.port | quote }}}
             - {name: API_LISTEN_ALL, value: "true"}
+            {{- end }}
+            {{- if $root.Values.metrics.enabled }}
+            # /metrics for Prometheus, on the pod's address (the network policy decides who).
+            - {name: METRICS_PORT, value: {{ $root.Values.metrics.port | quote }}}
+            - {name: METRICS_HOST, value: "0.0.0.0"}
+            {{- end }}
           {{- end }}
           envFrom:
             - configMapRef: {name: wikipulse-config}
             - secretRef: {name: {{ $root.Values.existingSecret }}}
-          {{- if .http }}
+          {{- if or .http $root.Values.metrics.enabled }}
           ports:
+            {{- if .http }}
             - {name: http, containerPort: {{ $values.port }}}
+            {{- end }}
+            {{- if $root.Values.metrics.enabled }}
+            # The PodMonitor scrapes the port by this name.
+            - {name: metrics, containerPort: {{ $root.Values.metrics.port }}}
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml $values.resources | nindent 12 }}

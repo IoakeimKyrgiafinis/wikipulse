@@ -82,6 +82,15 @@ migrations:
 networkPolicies:
   enabled: true
 
+# Prometheus metrics (spec 09a). Every pod serves /metrics on this port (METRICS_PORT,
+# from a background thread: wikipulse/metrics/server.py), and a network policy lets the
+# pods of `scraperNamespace` (where Prometheus runs) reach that port, and nothing else.
+# Prometheus finds the pods through a PodMonitor (observability/kube-prometheus-stack.yaml).
+metrics:
+  enabled: true
+  port: 9400
+  scraperNamespace: monitoring
+
 # --- the services ---
 # Every service runs the same image with its own command. The workers (all but the API)
 # are singletons: replicas 0 or 1, replaced with Recreate (the old pod stops before the
