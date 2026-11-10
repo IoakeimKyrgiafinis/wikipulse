@@ -1,6 +1,6 @@
 # Spec 07c: Model serving, monitoring and retraining
 
-Status: ready
+Status: done
 Stage: 7. Model lifecycle
 Owner: agent
 Depends on: 07b, 06c
