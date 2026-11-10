@@ -40,6 +40,8 @@ from wikipulse.metrics.catalog import (
     DETECTOR_PENDING,
     DETECTOR_STREAM_LAG,
     SPIKES_ACTIVE,
+    SPIKES_STARTED,
+    start_at_zero,
 )
 from wikipulse.stream.models import EditEvent
 
@@ -113,6 +115,7 @@ class DetectionRunner:
         self._unacked: list[str] = []
         self._last_snapshot = monotonic()
         self.processed = 0  # entries applied in this process (not counting skipped ones)
+        start_at_zero(SPIKES_STARTED, "short", "long")
 
     # --- setup ---
 

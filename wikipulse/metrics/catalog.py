@@ -25,6 +25,20 @@ dashboards sum or take the maximum, which zeros don't disturb.
 
 from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
+
+def start_at_zero(metric: Counter, *values: str) -> None:
+    """Export these label values at 0 right away, before their first increment.
+
+    A labeled series only exists once it is used. Without this, a counter's first
+    increment would make it *appear* at 1, and `rate()`/`increase()` would miss that
+    first event (they need two samples); a panel would also show "No data" instead of 0.
+    Called by the process that owns the metric (e.g. the detector for spikes started),
+    so other services don't export zeros for metrics they never touch.
+    """
+    for value in values:
+        metric.labels(value)
+
+
 # Without this, every counter also exports a `_created` timestamp series, which nothing here
 # uses: half the series for no benefit.
 disable_created_metrics()

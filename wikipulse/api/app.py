@@ -39,7 +39,12 @@ from wikipulse.api.models import AskRequest, AskResult, EventDetailOut, EventLis
 from wikipulse.config import Settings
 from wikipulse.llm.errors import LLMError
 from wikipulse.mcp_server.explore import UNREACHABLE, Explorer, ToolInputError
-from wikipulse.metrics.catalog import QUESTION_DURATION, QUESTIONS, WEBSOCKET_CLIENTS
+from wikipulse.metrics.catalog import (
+    QUESTION_DURATION,
+    QUESTIONS,
+    WEBSOCKET_CLIENTS,
+    start_at_zero,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +126,7 @@ def create_app(
         lambda: reader.cards(watch_limit, ANY_STATUS), broadcaster, poll_interval_s
     )
     gate = QuestionGate(max_waiting_questions)
+    start_at_zero(QUESTIONS, "ok", "busy", "invalid", "unavailable", "error")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

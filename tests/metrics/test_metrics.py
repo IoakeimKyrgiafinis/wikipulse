@@ -190,3 +190,13 @@ def test_the_server_serves_the_metrics_on_loopback() -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_a_consumer_exports_every_outcome_from_the_start() -> None:
+    from prometheus_client import generate_latest
+
+    redis = fakeredis.FakeAsyncRedis(decode_responses=True)
+    Consumer(redis, RedisKeys.for_namespace("m:edits", "m:consumer"), 10_000)
+    text = generate_latest().decode()
+    for outcome in ("kept", "duplicates", "discarded", "malformed"):
+        assert f'wikipulse_consumer_messages_total{{outcome="{outcome}"}}' in text

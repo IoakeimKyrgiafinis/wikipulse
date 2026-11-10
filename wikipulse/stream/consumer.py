@@ -43,6 +43,7 @@ from wikipulse.metrics.catalog import (
     CONSUMER_LAST_EVENT,
     CONSUMER_MESSAGES,
     CONSUMER_RECONNECTS,
+    start_at_zero,
 )
 from wikipulse.stream.filters import is_wanted, normalize
 from wikipulse.stream.lag import WallClockLag
@@ -158,6 +159,7 @@ class Consumer:
         # The lag metric: wall clock by default, the replay's own clock in a replay.
         self.lag = lag or WallClockLag()
         CONSUMER_LAG.set_function(self.lag.seconds)
+        start_at_zero(CONSUMER_MESSAGES, *(outcome.value for outcome in Outcome))
         self._clock = clock  # only for the `received_at` metadata, never for processing logic
         self._write_script = redis.register_script(_WRITE_SCRIPT)
         self._skip_script = redis.register_script(_SKIP_SCRIPT)

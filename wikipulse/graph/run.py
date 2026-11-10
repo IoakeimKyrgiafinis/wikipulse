@@ -55,7 +55,7 @@ from wikipulse.graph.store import GraphCounts, GraphStore, build_graph_event
 from wikipulse.health import Heartbeat
 from wikipulse.llm import LLMError, get_client
 from wikipulse.logging_setup import setup_logging
-from wikipulse.metrics.catalog import EXTRACTION_DURATION, EXTRACTIONS
+from wikipulse.metrics.catalog import EXTRACTION_DURATION, EXTRACTIONS, start_at_zero
 from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
@@ -151,6 +151,7 @@ class GraphRunner:
         self.max_pages = max_pages
         self.max_chars = max_chars
         self.stats = RunStats()
+        start_at_zero(EXTRACTIONS, "ok", "failed")
 
     async def process(self, number: int) -> bool:
         """Extract one event into the graph. False if it failed (recorded, not raised)."""

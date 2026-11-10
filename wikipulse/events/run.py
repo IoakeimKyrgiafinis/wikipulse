@@ -42,7 +42,7 @@ from wikipulse.events.grouper import Event, Grouper, Member
 from wikipulse.events.similarity import SpikePage
 from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
-from wikipulse.metrics.catalog import GROUPER_ACTIVE_EVENTS, GROUPER_SPIKES
+from wikipulse.metrics.catalog import GROUPER_ACTIVE_EVENTS, GROUPER_SPIKES, start_at_zero
 from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
@@ -129,6 +129,7 @@ class GroupingRunner:
         self.enrich_wait_s = enrich_wait_s
         self.first_seen: dict[int, float] = {}  # spike id -> monotonic time
         self.stats = RunStats()
+        start_at_zero(GROUPER_SPIKES, "created", "joined")
         self.grouper = self._restore(config)
 
     def _restore(self, config: EventsConfig) -> Grouper:
