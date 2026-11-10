@@ -14,7 +14,10 @@ data:
   REDIS_URL: redis://redis:6379/0
   NEO4J_URI: bolt://neo4j:7687
   S3_ENDPOINT: http://s3:9000
-  OLLAMA_HOST: http://ollama:11434
+  # Ollama is called by the host's own name, not through a Service alias: Ollama listens
+  # on the host's loopback and refuses requests whose Host header isn't a local name
+  # (localhost, *.local, *.internal); `ollama` got HTTP 403, host.docker.internal works.
+  OLLAMA_HOST: http://host.docker.internal:11434
   # Workers touch this file as they work; their probes run `python -m wikipulse.health`.
   HEALTH_FILE: /tmp/heartbeat
   LOG_LEVEL: INFO
