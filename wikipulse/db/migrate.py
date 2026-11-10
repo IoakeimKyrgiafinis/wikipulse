@@ -7,6 +7,10 @@ name order. Each one runs in its own transaction together with a row in
 Running the command again applies only the files that are new.
 
 A Postgres advisory lock makes two migrators started at the same time take turns.
+
+`--host` connects to another host than POSTGRES_DSN names, with the same user, password
+and database. The Helm chart's migration hook needs it: it runs before the release's
+Service `postgres` (a DNS alias) exists, so it connects to the database host directly.
 """
 
 import argparse
@@ -15,6 +19,7 @@ import sys
 from pathlib import Path
 
 import psycopg
+from psycopg.conninfo import make_conninfo
 
 from wikipulse.config import get_settings
 from wikipulse.logging_setup import setup_logging
@@ -66,12 +71,19 @@ def migrate(conn: psycopg.Connection, directory: Path = MIGRATIONS_DIR) -> list[
         conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_ID,))
 
 
+def with_host(dsn: str, host: str | None) -> str:
+    """The connection string with its host replaced (unchanged when `host` is empty)."""
+    return make_conninfo(dsn, host=host) if host else dsn
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.parse_args(argv)
+    parser.add_argument("--host", help="connect to this host instead of POSTGRES_DSN's")
+    args = parser.parse_args(argv)
     settings = get_settings()
     setup_logging()
-    with psycopg.connect(settings.postgres_dsn, autocommit=True) as conn:
+    dsn = with_host(settings.postgres_dsn, args.host)
+    with psycopg.connect(dsn, autocommit=True) as conn:
         applied = migrate(conn)
     if applied:
         print(f"Applied {len(applied)} migration(s): {', '.join(applied)}")

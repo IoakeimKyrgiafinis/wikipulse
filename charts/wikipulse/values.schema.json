@@ -86,7 +86,11 @@
     "migrations": {
       "type": "object",
       "required": ["enabled", "resources"],
-      "properties": {"enabled": {"type": "boolean"}, "resources": {"$ref": "#/definitions/resources"}}
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "databaseHost": {"type": "string"},
+        "resources": {"$ref": "#/definitions/resources"}
+      }
     },
     "networkPolicies": {
       "type": "object",

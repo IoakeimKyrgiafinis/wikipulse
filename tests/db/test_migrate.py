@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
-from wikipulse.db.migrate import MIGRATIONS_DIR, migration_files
+from psycopg.conninfo import conninfo_to_dict
+
+from wikipulse.db.migrate import MIGRATIONS_DIR, migration_files, with_host
 
 
 def test_migrations_are_applied_in_name_order(tmp_path: Path) -> None:
@@ -13,3 +15,17 @@ def test_migrations_are_applied_in_name_order(tmp_path: Path) -> None:
 
 def test_the_spikes_migration_is_shipped() -> None:
     assert [p.name for p in migration_files(MIGRATIONS_DIR)][0] == "0001_create_spikes.sql"
+
+
+def test_with_host_replaces_only_the_host() -> None:
+    dsn = "postgresql://wikipulse:pw@postgres:5432/wikipulse?sslmode=disable"
+    assert conninfo_to_dict(with_host(dsn, "host.docker.internal")) == {
+        "user": "wikipulse",
+        "password": "pw",
+        "host": "host.docker.internal",
+        "port": "5432",
+        "dbname": "wikipulse",
+        "sslmode": "disable",
+    }
+    assert with_host(dsn, None) == dsn
+    assert with_host(dsn, "") == dsn

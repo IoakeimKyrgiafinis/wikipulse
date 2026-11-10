@@ -259,6 +259,9 @@ def test_migrations_run_as_a_hook_before_install_and_upgrade() -> None:
     (config,) = of_kind(render(), "ConfigMap").values()
     env = {e["name"]: e["value"] for e in pod_spec(job)["containers"][0]["env"]}
     assert env == config["data"]
+    # ... and the Service `postgres` doesn't exist yet either: it connects to the host.
+    command = pod_spec(job)["containers"][0]["command"]
+    assert command == ["python", "-m", "wikipulse.db.migrate", "--host", "host.docker.internal"]
     assert of_kind(render(sets=("migrations.enabled=false",)), "Job") == {}
 
 

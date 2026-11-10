@@ -57,6 +57,9 @@ modelCache:
 # hook): the new services never start against an old schema.
 migrations:
   enabled: true
+  # The hook runs before the release's own objects exist, the Service `postgres` (a DNS
+  # alias) included, so it connects to the database host directly (migrate --host).
+  databaseHost: host.docker.internal
   resources:
     requests: {cpu: 50m, memory: 64Mi}
     limits: {cpu: 500m, memory: 256Mi}
