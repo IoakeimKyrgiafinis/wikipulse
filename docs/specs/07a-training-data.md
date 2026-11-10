@@ -1,6 +1,6 @@
 # Spec 07a: Training dataset
 
-Status: ready
+Status: done
 Stage: 7. Model lifecycle
 Owner: agent
 Depends on: 02b, 06a
