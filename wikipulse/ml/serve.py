@@ -55,6 +55,10 @@ from wikipulse.stream.models import EditEvent
 
 logger = logging.getLogger(__name__)
 
+# How long one read of the stream waits for new entries (as the detector's; shorter than
+# the Redis client's socket timeout).
+BLOCK_MS = 2000
+
 
 # --- the model ------------------------------------------------------------------------
 
@@ -485,7 +489,7 @@ class LiveScorer:
         self.holder.current()  # fail early if there is no champion
         idle_since = self.clock()
         while not stop():
-            if self.step(block_ms=int(min(self.poll_s, 5) * 1000)) > 0:
+            if self.step(block_ms=BLOCK_MS) > 0:
                 idle_since = self.clock()
             elif exit_when_idle is not None and self.clock() - idle_since >= exit_when_idle:
                 # A finished replay: nothing more will arrive, so score up to its end.
