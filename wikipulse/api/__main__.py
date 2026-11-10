@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     port = args.port or settings.api_port
     logger.info("WikiPulse at http://%s:%d (run %s)", host, port, settings.api_run_id)
     if start_metrics_server(settings) is not None:
-        register_model_health(settings.postgres_dsn)
+        register_model_health(settings.postgres_dsn, settings.metrics_db_connect_timeout_s)
     uvicorn.run(
         build_app(settings),
         host=host,

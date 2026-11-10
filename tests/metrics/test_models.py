@@ -75,3 +75,20 @@ def test_postgres_down_exports_only_up_zero() -> None:
     registry = registry_with(down)
     assert registry.get_sample_value("wikipulse_model_health_up") == 0
     assert registry.get_sample_value("wikipulse_drift_detected", LABELS) is None
+
+
+def test_a_malformed_report_is_skipped_not_fatal() -> None:
+    other = {**LABELS, "run_id": "other"}
+    no_name = {**DRIFT_ROW, "report": {**REPORT, "features": [{"psi": 1.0}]}}
+    bad_psi = {**DRIFT_ROW, "run_id": "bad-psi", "report": {"score": {"psi": "high"}}}
+    good = {**DRIFT_ROW, "run_id": "other"}
+    bad_score = {**SCORE_ROW, "run_id": "bad", "mean_score": "x"}
+    registry = registry_with(lambda: ModelHealth([no_name, bad_psi, good], [bad_score, SCORE_ROW]))
+    get = registry.get_sample_value
+    assert get("wikipulse_model_health_up") == 1
+    assert get("wikipulse_drift_detected", LABELS) is None  # the row without a feature name
+    assert get("wikipulse_drift_report_rows", LABELS) is None  # nothing half-added
+    assert get("wikipulse_drift_detected", {**LABELS, "run_id": "bad-psi"}) is None
+    assert get("wikipulse_drift_detected", other) == 1  # the good row survives
+    assert get("wikipulse_model_stored_scores", {**LABELS, "run_id": "bad"}) is None
+    assert get("wikipulse_model_stored_scores", LABELS) == 292
