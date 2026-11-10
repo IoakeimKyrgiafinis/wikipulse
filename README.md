@@ -226,24 +226,34 @@ Every kept edit is archived as hourly Parquet files in S3-compatible object stor
 | `uv run python scripts/lake_crash_test.py --recording <file>` | Kills the archiver hard three times mid-hour and checks the archive has no gaps or duplicates. |
 | `uv run python scripts/lake_size_report.py` | One hour as Parquet vs. the same edits as JSON (sizes and query time); writes `evals/results/<today>_lake-size.md`. |
 
-## Stage 8: Kubernetes
+## Stage 8: Kubernetes and Helm
 
 The pipeline runs on a local Kubernetes cluster ([kind](https://kind.sigs.k8s.io/),
-installed with `winget install Kubernetes.kind`; `kubectl` comes with Docker Desktop).
-One image (`Dockerfile`: multi-stage, uv, non-root) runs every service with a different
-command. Redis, Postgres, Neo4j and the S3 store stay in Docker Compose and Ollama on the
-host; pods reach them through `host.docker.internal` (`k8s/external-services.yaml`).
-Start Compose first (`docker compose up -d`).
+installed with `winget install Kubernetes.kind`; `kubectl` comes with Docker Desktop),
+deployed as a Helm chart (`charts/wikipulse/`; `winget install Helm.Helm`). One image
+(`Dockerfile`: multi-stage, uv, non-root) runs every service with a different command.
+Redis, Postgres, Neo4j and the S3 store stay in Docker Compose and Ollama on the host;
+pods reach them through `host.docker.internal` (ExternalName Services). Start Compose
+first (`docker compose up -d`).
 
 | Command | What it does |
 |---------|--------------|
-| `uv run python scripts/cluster.py up` | Creates the cluster `wikipulse`, builds the image `wikipulse:<commit>`, loads it into kind, creates the Secret from your settings, runs the migrations as a Job and deploys `k8s/` (consumer, detector, archiver, enricher, grouper, graph, api). `create`, `build`, `load`, `secret`, `migrate`, `apply`, `status` run one step; `down` deletes the cluster. |
+| `uv run python scripts/cluster.py up` | Creates the cluster `wikipulse`, builds the image `wikipulse:<commit>`, loads it into kind, creates the Secret from your settings and installs the Helm release `wikipulse` with `values-dev.yaml` (Helm runs the migrations first, as a hook). `create`, `build`, `load`, `secret`, `deploy`, `status` run one step; `down` deletes the cluster. |
+| `uv run python scripts/cluster.py deploy --values values-prod.yaml` | Upgrades the release with other values (`--set api.replicas=2` for single values). Every deploy is a new revision. |
+| `uv run python scripts/cluster.py history` / `rollback [--revision N]` | The release's revisions; go back to the previous (or a given) one. |
 | `kubectl -n wikipulse get pods` | The pods (kubectl's context is `kind-wikipulse` after `up`). |
 | `kubectl -n wikipulse port-forward svc/api 8000:8000` | The live page at http://localhost:8000. |
 | `uv run python scripts/k8s_crash_test.py` | Deletes the consumer pod mid-stream (hard, then gracefully), lets Kubernetes restart it, and checks no edit was lost or doubled. About 10 minutes; one Wikimedia connection at a time. |
 
+Values: `values.yaml` (defaults, documented), `values-dev.yaml` (the laptop),
+`values-prod.yaml` (two API replicas, stricter limits), `values-offline.yaml` (an
+overlay: the consumer, enricher and graph runner, which call Wikimedia, at 0 replicas).
+`values.schema.json` refuses, for example, a second consumer. `up`, `secret` and
+`deploy` refuse the placeholder contact in USER_AGENT; `--allow-placeholder-contact`
+deploys offline. Chart tests: `uv run pytest tests/test_chart.py` (needs `helm`), and
+`helm lint charts/wikipulse --strict`.
+
 The cluster's consumer keeps its own checkpoint (`wiki:k8s:consumer:*`) and writes the
 shared stream `wiki:edits`: don't run `wikipulse.stream.consume` on the laptop at the
-same time. Manifests: `k8s/` (`kubectl apply -k k8s` applies them; `secret.example.yaml`
-is only a template). Probes run `python -m wikipulse.health` (workers) or `GET /health`
-(API).
+same time. `charts/wikipulse/secret.example.yaml` is only a template for the Secret.
+Probes run `python -m wikipulse.health` (workers) or `GET /health` (API).
