@@ -390,6 +390,35 @@ class Settings(BaseSettings):
     ml_select_margin: float = Field(default=0.0, ge=0)
     ml_seed: int = 42
 
+    # --- Serving, drift and retraining (stage 7, spec 07c) ---
+    # `uv run python -m wikipulse.ml.serve` scores this detector run's spikes with
+    # models:/ML_MODEL_NAME@champion, FEATURE_WINDOW_MIN after each spike starts.
+    ml_serve_run_id: str = "live"
+    # How often (wall-clock seconds) the scorer looks for spikes past their cutoff, and
+    # how often it checks whether the champion alias has moved (then it reloads).
+    ml_serve_poll_s: float = Field(default=30, gt=0)
+    ml_serve_reload_s: float = Field(default=300, gt=0)
+    # A spike is scored once the stream's event time is this many seconds past its
+    # cutoff (edits arrive slightly out of order).
+    ml_serve_lateness_s: float = Field(default=120, ge=0)
+    # Hours of edits the live scorer keeps in memory: 24 h of history before a burst,
+    # the burst itself (up to an hour before the start) and the feature window.
+    ml_serve_buffer_hours: float = Field(default=26, ge=1)
+    # Retraining promotes the challenger only if its test average precision beats the
+    # champion's, on the same test rows, by at least this much, and only on a test set
+    # with at least this many labeled rows.
+    ml_promote_margin: float = Field(default=0.01, ge=0)
+    ml_promote_min_test_rows: int = Field(default=50, ge=1)
+    # The models retraining trains (the same choice rule as spec 07b picks among them).
+    ml_retrain_models: str = "rule,logreg,gbt,torch"
+    # Drift: a feature (or the score) has drifted when its population stability index
+    # against the training data reaches ML_DRIFT_PSI. The week counts as drifted when the
+    # score has, or at least ML_DRIFT_MAX_FEATURES features have. Fewer than
+    # ML_DRIFT_MIN_ROWS scored spikes are too few to judge.
+    ml_drift_psi: float = Field(default=0.2, gt=0)
+    ml_drift_max_features: int = Field(default=5, ge=1)
+    ml_drift_min_rows: int = Field(default=30, ge=1)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:
