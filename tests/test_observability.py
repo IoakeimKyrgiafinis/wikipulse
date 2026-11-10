@@ -3,10 +3,13 @@
 Checked without a cluster: the dashboards are what scripts/dashboards.py generates, every
 metric a dashboard or a rule uses really exists, and the rules have what an alert needs.
 `promtool test rules` runs the rules' unit tests when promtool is available (on the PATH,
-or the Prometheus image already pulled into Docker; nothing is downloaded).
+or the Prometheus image already pulled into Docker; nothing is downloaded). In CI a missing
+promtool is an error, not a skip: CI pulls the image, and these tests are the only check
+of the rules' logic.
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -167,8 +170,27 @@ def promtool() -> list[str] | None:
     ]  # fmt: skip
 
 
+def test_every_rule_has_a_promtool_test() -> None:
+    tests = yaml.safe_load((ALERTS / "wikipulse.rules.test.yaml").read_text())
+    tested = {check["alertname"] for test in tests["tests"] for check in test["alert_rule_test"]}
+    assert {rule["alert"] for rule in load_rules()} - tested == set()
+
+
+def test_service_down_does_not_depend_on_the_namespace() -> None:
+    # The namespace is a Terraform variable; every WikiPulse target has system="wikipulse".
+    rules = {rule["alert"]: rule for rule in load_rules()}
+    assert rules["WikiPulseServiceDown"]["expr"].strip() == 'up{system="wikipulse"} == 0'
+
+
+def test_ci_pulls_the_same_prometheus_image() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert f"docker pull {PROMETHEUS_IMAGE}" in workflow
+
+
 def test_promtool_checks_and_unit_tests_pass() -> None:
     command = promtool()
+    if command is None and os.environ.get("CI"):
+        pytest.fail(f"no promtool in CI (the workflow pulls {PROMETHEUS_IMAGE})")
     if command is None:
         pytest.skip(f"no promtool (install it, or `docker pull {PROMETHEUS_IMAGE}`)")
     cwd = ALERTS if command == ["promtool"] else None

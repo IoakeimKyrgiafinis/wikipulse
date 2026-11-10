@@ -55,15 +55,18 @@ groups:
             The detector reads more slowly than edits arrive, or is stuck. Its queue:
             wikipulse_detector_stream_lag_entries.
 
-      # A WikiPulse pod's /metrics didn't answer for 5 minutes: crashed, stuck, or OOM.
+      # A WikiPulse process's /metrics didn't answer for 5 minutes: crashed, stuck, or OOM.
+      # `system="wikipulse"` is set by every WikiPulse scrape target (the pods' PodMonitor
+      # and the host targets, infra/cluster/monitoring.tf), whatever namespace the pods
+      # run in; Prometheus' and Grafana's own targets don't have it.
       - alert: WikiPulseServiceDown
-        expr: up{namespace="wikipulse"} == 0
+        expr: up{system="wikipulse"} == 0
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} is not answering"
-          description: "Prometheus could not scrape {{ $labels.pod }} for 5 minutes."
+          description: "Prometheus could not scrape {{ $labels.instance }} for 5 minutes."
 
   - name: wikipulse-graph
     rules:
