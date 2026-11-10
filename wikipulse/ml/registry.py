@@ -43,6 +43,8 @@ STATUS_RETIRED = "retired"
 STATUS_ROLLED_BACK = "rolled_back"
 # Never rolled back *to*: they lost a comparison or were taken out of service.
 NOT_FOR_ROLLBACK = {STATUS_REJECTED, STATUS_ROLLED_BACK, STATUS_CHALLENGER}
+# A version in one of these states has served: it is past the challenger stage for good.
+HAS_SERVED = {STATUS_CHAMPION, STATUS_RETIRED, STATUS_ROLLED_BACK}
 
 
 class RegistryError(RuntimeError):
@@ -61,6 +63,21 @@ def alias_version(client: MlflowClient, name: str, alias: str) -> str | None:
         if missing and "not found" in str(error):
             return None
         raise
+
+
+def past_challenger(client: MlflowClient, name: str, version: str) -> str | None:
+    """Why `version` can no longer be treated as a challenger, or None if it can.
+
+    A version that is the champion now, or has ever served (`HAS_SERVED`), is past the
+    challenger stage: retraining must never move `@challenger` to it, evaluate it again
+    or tag it rejected. This keeps a retried or repeated retraining run from damaging
+    the registry after a promotion."""
+    if alias_version(client, name, CHAMPION) == str(version):
+        return f"version {version} is the champion"
+    status = client.get_model_version(name, version).tags.get("status")
+    if status in HAS_SERVED:
+        return f"version {version} has already served (status {status})"
+    return None
 
 
 # Tags that say why a version stopped serving (or never started); removed when it

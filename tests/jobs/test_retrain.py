@@ -16,6 +16,7 @@ from wikipulse.jobs.retrain import (
     decide,
     existing_challenger,
     parse_args,
+    parse_models,
     retrain_key,
 )
 
@@ -141,3 +142,12 @@ def test_the_command_line_checks_values_from_other_tasks():
     ):
         with pytest.raises(SystemExit):
             parse_args(bad)
+
+
+def test_the_models_to_retrain_are_checked():
+    assert parse_models("logreg, gbt") == ("logreg", "gbt")
+    assert parse_models("torch,rule ,logreg") == ("rule", "logreg", "torch")  # MODELS order
+    with pytest.raises(ValueError, match="unknown model"):
+        parse_models("logreg,xgboost")
+    with pytest.raises(ValueError, match="empty"):
+        parse_models(" , ")

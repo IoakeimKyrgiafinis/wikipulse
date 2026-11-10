@@ -12,10 +12,12 @@
    (`wikipulse.ml.drift`), stored in `drift_reports`. Drift is reported, not a failure.
 2. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
    line printed is its name, which the DAG hands to the next steps.
-3. **train**: the four models of spec 07b on it, chosen by the same fixed rule
-   (`ML_SELECT_RULE`). The chosen one is registered as a new version with the alias
-   `@challenger` and `status=challenger`; older versions are *not* marked superseded.
-   Running the step again for the same week and dataset reuses that version.
+3. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
+   same fixed rule (`ML_SELECT_RULE`) but on the *validation* split, so the test split
+   is not used to pick the challenger and stays a fair ground for step 4. The chosen one
+   is registered as a new version with the alias `@challenger` and `status=challenger`;
+   older versions are *not* marked superseded. Running the step again for the same week
+   and dataset reuses that version.
 4. **evaluate**: champion and challenger score the *same* rows: the labeled test split of
    the new dataset. The decision (`decide`): promote only if the challenger's test
    average precision beats the champion's by at least `ML_PROMOTE_MARGIN`, with at least
@@ -25,6 +27,11 @@
    (`wikipulse.ml.registry.promote`), or the challenger is tagged `status=rejected`. It
    refuses if the champion changed after the evaluation (someone promoted or rolled back
    by hand in between): then the comparison is out of date.
+
+Every step can run again safely. Once the week's challenger has been promoted (or has
+served at all, `wikipulse.ml.registry.past_challenger`), train passes its number on
+without touching it, and evaluate and promote print `skipped`: the champion is never
+made a challenger again, re-evaluated, or tagged rejected.
 """
 
 import argparse
@@ -48,6 +55,7 @@ logger = logging.getLogger(__name__)
 STEPS = ("drift", "build", "train", "evaluate", "promote")
 FORMATS = {"dataset": re.compile(r"v\d+"), "challenger": re.compile(r"\d+")}
 PROMOTE, REJECT = "promote", "reject"
+SKIPPED = "skipped"  # a repeated step on a version that is past the challenger stage
 
 
 # --- the decision (pure, unit-tested) -------------------------------------------------
@@ -115,6 +123,24 @@ def retrain_key(day: date) -> str:
     return f"retrain-{day.isoformat()}"
 
 
+def parse_models(text: str) -> tuple[str, ...]:
+    """The models to train from `ML_RETRAIN_MODELS` ("logreg, gbt"), in `MODELS` order.
+
+    Spaces around names are ignored; an unknown name or an empty list is an error,
+    rather than silently training fewer models (or none)."""
+    from wikipulse.ml.train import MODELS
+
+    names = {n.strip() for n in text.split(",") if n.strip()}
+    unknown = names - set(MODELS)
+    if unknown:
+        raise ValueError(
+            f"ML_RETRAIN_MODELS: unknown model(s) {sorted(unknown)}; choose from {MODELS}"
+        )
+    if not names:
+        raise ValueError(f"ML_RETRAIN_MODELS is empty; choose from {MODELS}")
+    return tuple(m for m in MODELS if m in names)
+
+
 def step_drift(settings: Settings, day: date, run_id: str | None) -> int:
     import psycopg
 
@@ -154,9 +180,13 @@ def step_train(settings: Settings, day: date, dataset: str) -> int:
 
     from wikipulse.events.embed import Embedder
     from wikipulse.ml.models import TEXT_COLUMN
-    from wikipulse.ml.registry import CHALLENGER, STATUS_CHALLENGER, set_status
+    from wikipulse.ml.registry import (
+        CHALLENGER,
+        STATUS_CHALLENGER,
+        past_challenger,
+        set_status,
+    )
     from wikipulse.ml.train import (
-        MODELS,
         TrainConfig,
         add_summary_texts,
         load_dataset,
@@ -166,8 +196,16 @@ def step_train(settings: Settings, day: date, dataset: str) -> int:
     client = mlflow.MlflowClient()
     name, key = settings.ml_model_name, retrain_key(day)
     version = existing_challenger(client, name, key, dataset)
+    if version is not None and (why := past_challenger(client, name, version)):
+        # This week's run already ended in a promotion: never make the champion (or a
+        # version that served) a challenger again.
+        logger.info(
+            "Version %s was trained for %s on %s, and %s: leaving it", version, key, dataset, why
+        )
+        print(version, flush=True)
+        return 0
     if version is None:
-        models = tuple(m for m in MODELS if m in settings.ml_retrain_models.split(","))
+        models = parse_models(settings.ml_retrain_models)
         frames, info = load_dataset(settings, dataset)
         embedder = None
         if "torch" in models:
@@ -180,6 +218,7 @@ def step_train(settings: Settings, day: date, dataset: str) -> int:
             target_precision=settings.ml_target_precision,
             select_rule=settings.ml_select_rule,
             select_margin=settings.ml_select_margin,
+            select_split="valid",  # keep the test split for the comparison with the champion
             embed_model=settings.events_embed_model,
             models=models,
         )
@@ -318,12 +357,17 @@ def step_evaluate(settings: Settings, day: date, dataset: str, challenger_versio
     import mlflow
 
     from wikipulse.ml.models import TEXT_COLUMN
-    from wikipulse.ml.registry import CHAMPION, alias_version
+    from wikipulse.ml.registry import CHAMPION, alias_version, past_challenger
     from wikipulse.ml.serve import load_version
     from wikipulse.ml.train import add_summary_texts, known_rows, load_dataset
 
     client = mlflow.MlflowClient()
     name = settings.ml_model_name
+    if why := past_challenger(client, name, challenger_version):
+        # A repeated run after the promotion: the decision made then stays on the version.
+        logger.info("Nothing to evaluate: %s", why)
+        print(SKIPPED, flush=True)
+        return 0
     champion_version = alias_version(client, name, CHAMPION)
     challenger = load_version(name, challenger_version)
     champion = load_version(name, champion_version) if champion_version else None
@@ -361,12 +405,19 @@ def step_promote(settings: Settings, challenger_version: str) -> int:
         STATUS_REJECTED,
         alias_version,
         describe,
+        past_challenger,
         promote,
         set_status,
     )
 
     client = mlflow.MlflowClient()
     name = settings.ml_model_name
+    if why := past_challenger(client, name, challenger_version):
+        # Already promoted (by this run's first attempt, or by hand): never tag it
+        # rejected, never promote it a second time.
+        logger.info("Nothing to promote or reject: %s", why)
+        print(SKIPPED, flush=True)
+        return 0
     tags = client.get_model_version(name, challenger_version).tags
     decision = tags.get("decision")
     if decision not in (PROMOTE, REJECT):
@@ -375,7 +426,7 @@ def step_promote(settings: Settings, challenger_version: str) -> int:
     reason = tags.get("decision_reason", "")
     if decision == PROMOTE:
         current = alias_version(client, name, CHAMPION) or "none"
-        if current not in (tags.get("champion_at_evaluation"), challenger_version):
+        if current != tags.get("champion_at_evaluation"):
             logger.error(
                 "The champion changed since the evaluation (%s then, %s now): evaluate again",
                 tags.get("champion_at_evaluation"),
