@@ -36,6 +36,10 @@ spec:
       annotations:
         # A new ConfigMap means new pods: environment variables are only read at start.
         checksum/config: {{ include (print $root.Template.BasePath "/configmap.yaml") $root | sha256sum }}
+        {{- with ($root.Values.checksums).secret }}
+        # A new Secret value means new pods too (only known when Terraform deploys).
+        checksum/secret: {{ . | quote }}
+        {{- end }}
     spec:
       {{- include "wikipulse.podSecurity" . | nindent 6 }}
       terminationGracePeriodSeconds: {{ $values.terminationGracePeriodSeconds }}

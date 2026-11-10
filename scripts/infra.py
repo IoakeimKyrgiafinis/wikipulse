@@ -17,12 +17,15 @@ sets those from wikipulse/config.py's settings (.env and the defaults) for the o
 Terraform process it starts, so the passwords never land in a file or on the command
 line. A TF_VAR_ variable you set yourself wins. For the cluster stack it also sets
 image_tag: the image of the current commit if built (`scripts/cluster.py build`),
-otherwise the newest wikipulse image.
+otherwise the newest wikipulse image; and chart_checksum, a hash of charts/wikipulse, so
+an edited template is deployed even when the chart's version stays the same. For the
+storage stack, s3_ssl follows S3_ENDPOINT's scheme.
 
 `offline` stays your choice (`-var offline=true`): Terraform itself refuses the
 placeholder contact in USER_AGENT unless the release is offline.
 """
 
+import hashlib
 import logging
 import os
 import subprocess
@@ -42,16 +45,36 @@ from wikipulse.logging_setup import setup_logging  # noqa: E402
 logger = logging.getLogger("infra")
 
 INFRA = ROOT / "infra"
+CHART = ROOT / "charts" / "wikipulse"
 STACKS = ("storage", "cluster")
-# Terraform commands that read the variables (init, fmt and validate don't need them).
 TF_VAR = "TF_VAR_"
-COMMANDS_WITH_VARIABLES = ("plan", "apply", "destroy", "refresh", "import", "console", "output")
+# Terraform commands that read the input variables (init, fmt, validate and output don't).
+COMMANDS_WITH_VARIABLES = ("plan", "apply", "destroy", "refresh", "import", "console")
 
 
 def s3_server(endpoint: str) -> str:
     """`host:port` of an S3 endpoint URL, as the MinIO provider wants it."""
     parts = urlsplit(endpoint)
     return parts.netloc or endpoint
+
+
+def s3_ssl(endpoint: str) -> bool:
+    """Whether the S3 endpoint uses HTTPS (the scheme s3_server() drops)."""
+    return urlsplit(endpoint).scheme.lower() == "https"
+
+
+def chart_checksum(chart: Path = CHART) -> str:
+    """SHA-256 of every file in the chart: their paths relative to it and their contents.
+
+    The Helm provider only notices a changed chart version or values, so a template edit
+    would never be deployed; this checksum, passed in as a value, changes with any edit.
+    Line endings are normalized, so a CRLF checkout gives the same checksum.
+    """
+    digest = hashlib.sha256()
+    for path in sorted(p for p in chart.rglob("*") if p.is_file()):
+        digest.update(path.relative_to(chart).as_posix().encode("utf-8") + b"\x00")
+        digest.update(path.read_bytes().replace(b"\r\n", b"\n") + b"\x00")
+    return digest.hexdigest()
 
 
 def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
@@ -63,6 +86,7 @@ def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
     if stack == "storage":
         return {
             "s3_server": s3_server(settings.s3_endpoint),
+            "s3_ssl": str(s3_ssl(settings.s3_endpoint)).lower(),
             "s3_region": settings.s3_region,
             **s3_keys,
         }
@@ -70,6 +94,7 @@ def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
         "postgres_dsn": cluster.cluster_dsn(settings.postgres_dsn),
         "neo4j_password": settings.neo4j_password.get_secret_value(),
         "user_agent": settings.user_agent,
+        "chart_checksum": chart_checksum(),
         **s3_keys,
     }
 

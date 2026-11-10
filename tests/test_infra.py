@@ -48,6 +48,51 @@ def test_s3_server_drops_the_scheme() -> None:
     assert infra.s3_server("https://s3.eu-west-1.amazonaws.com") == "s3.eu-west-1.amazonaws.com"
 
 
+def test_s3_ssl_follows_the_endpoint_scheme() -> None:
+    assert infra.s3_ssl("https://s3.eu-west-1.amazonaws.com") is True
+    assert infra.s3_ssl("http://localhost:9000") is False
+    https = settings().model_copy(update={"s3_endpoint": "https://s3.example.org"})
+    assert infra.stack_variables("storage", https)["s3_ssl"] == "true"
+    assert infra.stack_variables("storage", settings())["s3_ssl"] == "false"
+
+
+def copy_chart(target: Path) -> Path:
+    chart = target / "wikipulse"
+    shutil.copytree(infra.CHART, chart)
+    return chart
+
+
+def test_a_template_edit_changes_the_chart_checksum(tmp_path: Path) -> None:
+    """Without a version bump, only this value tells Terraform to run `helm upgrade`."""
+    chart = copy_chart(tmp_path)
+    before = infra.chart_checksum(chart)
+    assert before == infra.chart_checksum(infra.CHART), "independent of the chart's location"
+
+    template = chart / "templates" / "api.yaml"
+    template.write_bytes(template.read_bytes() + b"# edited\n")
+    assert infra.chart_checksum(chart) != before
+
+    template.unlink()
+    assert infra.chart_checksum(chart) != before
+
+
+def test_the_chart_checksum_ignores_line_endings(tmp_path: Path) -> None:
+    chart = copy_chart(tmp_path)
+    before = infra.chart_checksum(chart)
+    values = chart / "values.yaml"
+    values.write_bytes(values.read_bytes().replace(b"\n", b"\r\n"))
+    assert infra.chart_checksum(chart) == before
+
+
+def test_the_release_gets_the_chart_and_secret_checksums() -> None:
+    """The cluster stack passes both into the Helm release (see infra/cluster/main.tf)."""
+    variables = infra.stack_variables("cluster", settings())
+    assert variables["chart_checksum"] == infra.chart_checksum()
+    main = (INFRA / "cluster" / "main.tf").read_text(encoding="utf-8")
+    assert re.search(r'name = "checksums\.chart",\s*value = var\.chart_checksum', main)
+    assert re.search(r'name = "checksums\.secret",\s*value = sha256\(', main)
+
+
 @pytest.mark.parametrize("stack", infra.STACKS)
 def test_the_script_sets_only_variables_the_stack_declares(stack: str) -> None:
     variables = infra.stack_variables(stack, settings())

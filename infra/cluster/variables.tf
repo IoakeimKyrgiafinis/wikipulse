@@ -1,19 +1,22 @@
 # --- the environment ---
 
+# Changing cluster_name, node_image or kubeconfig_path REPLACES the cluster, and the plan
+# then fails ("localhost"): destroy with `-refresh=false` first, then apply (infra/README.md).
+
 variable "cluster_name" {
-  description = "Name of the kind cluster; kubectl's context becomes kind-<name>."
+  description = "Name of the kind cluster; kubectl's context becomes kind-<name>. Changing it replaces the cluster: destroy first (infra/README.md)."
   type        = string
   default     = "wikipulse"
 }
 
 variable "node_image" {
-  description = "kindest/node image (the Kubernetes version). null: kind's default."
+  description = "kindest/node image (the Kubernetes version). null: kind's default. Changing it replaces the cluster: destroy first (infra/README.md)."
   type        = string
   default     = null
 }
 
 variable "kubeconfig_path" {
-  description = "The kubeconfig kind merges the cluster's context into (kubectl's default)."
+  description = "The kubeconfig kind merges the cluster's context into (kubectl's default). Stored expanded (an absolute path of this user): changing it, or using the state as another user, replaces the cluster."
   type        = string
   default     = "~/.kube/config"
 }
@@ -46,6 +49,11 @@ variable "offline" {
 
 variable "image_tag" {
   description = "Tag of the wikipulse image to load and deploy, built first by `scripts/cluster.py build`."
+  type        = string
+}
+
+variable "chart_checksum" {
+  description = "Checksum of charts/wikipulse's files, set by scripts/infra.py. A new value makes apply run `helm upgrade`, so template edits are deployed without a chart version bump."
   type        = string
 }
 

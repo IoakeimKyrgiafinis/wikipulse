@@ -20,6 +20,16 @@ image:
 # from secret.example.yaml).
 existingSecret: wikipulse-secrets
 
+# Checksums Terraform (infra/cluster) passes in, so Helm sees changes it can't see itself.
+# Empty when deploying with scripts/cluster.py.
+checksums:
+  # Of the chart's files. No template reads it: a new value only makes Terraform run
+  # `helm upgrade`, which renders the edited templates (Helm compares rendered objects).
+  chart: ""
+  # Of the Secret's values. Set, it becomes the pods' annotation checksum/secret, so a
+  # changed password restarts the pods (environment variables are only read at start).
+  secret: ""
+
 # Settings every container reads as environment variables (wikipulse/config.py), in the
 # ConfigMap `wikipulse-config`. Only what differs from config.py's defaults; nothing secret.
 config:

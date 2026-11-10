@@ -7,6 +7,14 @@ locals {
     var.offline ? ["${local.chart}/values-offline.yaml"] : [],
   )
   labels = { "app.kubernetes.io/part-of" = "wikipulse" }
+  # The Secret's values, also hashed into the release below (see there).
+  secret_data = {
+    POSTGRES_DSN   = var.postgres_dsn
+    NEO4J_PASSWORD = var.neo4j_password
+    S3_ACCESS_KEY  = var.s3_access_key
+    S3_SECRET_KEY  = var.s3_secret_key
+    USER_AGENT     = var.user_agent
+  }
 }
 
 # --- the cluster ---
@@ -91,13 +99,7 @@ resource "kubernetes_secret_v1" "wikipulse" {
     labels    = local.labels
   }
   type = "Opaque"
-  data = {
-    POSTGRES_DSN   = var.postgres_dsn
-    NEO4J_PASSWORD = var.neo4j_password
-    S3_ACCESS_KEY  = var.s3_access_key
-    S3_SECRET_KEY  = var.s3_secret_key
-    USER_AGENT     = var.user_agent
-  }
+  data = local.secret_data
 }
 
 # --- the release ---
@@ -105,6 +107,13 @@ resource "kubernetes_secret_v1" "wikipulse" {
 # The same as `helm upgrade --install wikipulse charts/wikipulse -f values-<env>.yaml
 # [-f values-offline.yaml] --set image.tag=<tag> --wait`. Helm runs the migration hook
 # first and waits for the pods.
+#
+# The provider only compares the release's *inputs* (chart version, values), not the
+# rendered templates, so two checksums make changes it can't see visible:
+# - checksums.chart: of the chart's files (scripts/infra.py computes it). A template edit
+#   without a chart version bump changes it, so `apply` runs `helm upgrade`.
+# - checksums.secret: of the Secret's values. A new password updates the Secret, but pods
+#   only read it at start; as a pod annotation it makes the Deployments roll.
 resource "helm_release" "wikipulse" {
   name      = "wikipulse"
   chart     = local.chart
@@ -113,6 +122,11 @@ resource "helm_release" "wikipulse" {
   values = [for path in local.values_files : file(path)]
   set = [
     { name = "image.tag", value = var.image_tag },
+    { name = "checksums.chart", value = var.chart_checksum },
+  ]
+  # A hash of secrets is still kept out of the plan output.
+  set_sensitive = [
+    { name = "checksums.secret", value = sha256(jsonencode(local.secret_data)) },
   ]
 
   wait          = true

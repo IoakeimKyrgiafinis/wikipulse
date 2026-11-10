@@ -64,6 +64,15 @@
       }
     },
     "existingSecret": {"type": "string", "minLength": 1},
+    "checksums": {
+      "description": "Set by Terraform (infra/cluster); empty otherwise.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chart": {"type": "string"},
+        "secret": {"type": "string"}
+      }
+    },
     "config": {
       "description": "Environment variables for every container. Nothing secret: passwords, DSNs, keys and the User-Agent belong in the Secret.",
       "type": "object",
