@@ -3,7 +3,7 @@ provider "minio" {
   minio_region   = var.s3_region
   minio_user     = var.s3_access_key
   minio_password = var.s3_secret_key
-  minio_ssl      = false
+  minio_ssl      = var.s3_ssl
 }
 
 resource "minio_s3_bucket" "this" {

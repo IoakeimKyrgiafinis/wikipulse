@@ -4,6 +4,12 @@ variable "s3_server" {
   default     = "localhost:9000"
 }
 
+variable "s3_ssl" {
+  description = "Use HTTPS. scripts/infra.py sets it from S3_ENDPOINT's scheme (https://)."
+  type        = bool
+  default     = false
+}
+
 variable "s3_region" {
   description = "Region the S3 store reports (RustFS, like MinIO, uses us-east-1)."
   type        = string
