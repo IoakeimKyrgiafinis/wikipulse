@@ -158,7 +158,8 @@ Kubernetes from trying to pull it. The manifests say `wikipulse:dev`;
 - **Network policies** (`k8s/network-policies.yaml`): `default-deny-all` blocks
   everything in and out, then each service gets exactly its ports (consumer: Redis and
   HTTPS; detector: Redis and Postgres; graph: Postgres, Neo4j, Ollama, HTTPS; ...). Only
-  the API accepts connections. kind's network plugin (kindnet) enforces them; checked
+  the API accepts connections, and only from pods of the `wikipulse` namespace
+  (`from: [podSelector: {}]`). kind's network plugin (kindnet) enforces them; checked
   from inside the pods (see Results).
 
 ## Design decisions and deviations
@@ -190,7 +191,29 @@ Kubernetes from trying to pull it. The manifests say `wikipulse:dev`;
   The laptop consumer's checkpoint was three days old; resuming it would have pulled
   three days of the stream (millions of messages) from Wikimedia. The cluster consumer
   starts at "now" and writes the shared `wiki:edits`, so the detector and archiver
-  groups simply continue. Don't run the laptop consumer at the same time.
+  groups simply continue.
+- **A writer lease makes "one consumer at a time" a rule of the code** (added after the
+  review). With two checkpoint namespaces, the dedup keys are separate too, so a laptop
+  consumer started next to the cluster's would have written every edit a second time.
+  Now `wikipulse/stream/lease.py` (`StreamLease`) guards the stream: before it connects
+  to Wikimedia, `consume.run()` takes the Redis key `wiki:edits:writer` with
+  `SET NX PX` (only if nobody holds it, with a TTL), `StreamLease.keep()` renews it
+  every third of `STREAM_LEASE_TTL_S` (30 s), and a clean stop deletes it. A second
+  consumer waits in `StreamLease.acquire()`, logging once who holds the lease, and
+  beats its heartbeat meanwhile (waiting is healthy). A killed pod can't release
+  anything, so its lease simply expires after 30 s and the new pod takes over: in the
+  pod-kill test the replacement now starts writing up to 30 s later, and resumes from
+  the checkpoint as before, so nothing is lost. Renewing alone isn't enough: a holder
+  frozen for more than 30 s could wake up after someone else took over. So both Lua
+  scripts in `consumer.py` start with a *fencing* check (`_FENCE`): if the lease isn't
+  ours, they write nothing and raise `LeaseLost`; the consumer stops and exits with
+  code 1 instead of reconnecting. Replay and tests pass no lease and skip the check.
+- **`cluster.py` refuses a placeholder contact** (added after the review). The first
+  live session ran with `you@example.com` in the User-Agent, which breaks the rule that
+  Wikimedia must be able to reach us. `secret` and `up` now stop with an error asking
+  for a real contact in `.env` (`check_contact()`; `up` checks before building
+  anything). `--allow-placeholder-contact` skips the check, for offline or CI use only,
+  where the consumer never connects to Wikimedia.
 - **The pod-kill test reads its reference afterwards** (`scripts/k8s_crash_test.py`).
   `scripts/crash_test.py` records the stream next to the consumer: two connections. Here
   the consumer is scaled to 0 first, then the reference is read from the consumer's
@@ -217,8 +240,9 @@ Kubernetes from trying to pull it. The manifests say `wikipulse:dev`;
 ## Results
 
 Run on 2026-11-10 against the real Wikimedia stream (one connection, the User-Agent from
-settings, which still carries the placeholder contact `you@example.com`; `cluster.py`
-and the consumer both warn about it).
+settings, which still carried the placeholder contact `you@example.com`; `cluster.py`
+and the consumer only warned about it then. `cluster.py` now refuses this, see the
+design decisions, so the next live session needs a real contact in `.env`).
 
 **Image**: `wikipulse:ad3dd15`, 2.9 GB on disk, 642 MB compressed (torch CPU 809 MB,
 pyarrow 170 MB, transformers 120 MB, scipy 109 MB). First build about 3 minutes, a code
@@ -290,6 +314,17 @@ with 44 checks of the manifests and `cluster.py`, a heartbeat test in
 `tests/stream/test_consumer.py`); `ruff check` and `ruff format --check` clean. One
 earlier run stopped with two collection errors that didn't come back in two reruns;
 the cause is unknown.
+
+**After the review**: `uv run pytest` 1084 passed (new: `tests/stream/test_lease.py`
+with fake Redis, the placeholder checks in `tests/test_k8s.py`, a lease test against
+the real Redis in `tests/stream/test_consumer_redis.py`, which passes with
+`-m integration`). The API ingress rule was checked on a throwaway kind cluster with a
+small stand-in pod (Python's `http.server` with the same `httpGet` probe and the same
+policies): the probe made it Ready, `kubectl port-forward` answered 200, a pod of the
+same namespace got 200 and a pod of the `default` namespace timed out. Probes from the
+node and port-forward (which enters the pod's own network namespace) aren't subject to
+the policy. The full WikiPulse cluster and the pod-kill test were not rerun: that needs
+a real contact in `.env`, which `cluster.py` now insists on.
 
 **Cluster afterwards**: deleted (`scripts/cluster.py down`), to give the laptop its
 memory back and close the Wikimedia connection. `scripts/cluster.py up` recreates it in
