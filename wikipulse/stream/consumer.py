@@ -15,6 +15,10 @@ this atomically (Redis runs a script as a single step, with no other command in 
 
 So a crash leaves Redis either before or after a message, never half way. On restart
 we resume from the checkpoint; anything the server sends again is skipped by step 1.
+
+The live consumer also holds the stream's writer lease (`wikipulse.stream.lease`), and
+both scripts first check that it still does (step 0). A consumer that lost the lease
+gets `LeaseLost` and writes nothing, so two consumers never write the stream at once.
 """
 
 import asyncio
@@ -28,8 +32,10 @@ from typing import Any
 
 import redis.asyncio as aioredis
 from pydantic import ValidationError
+from redis.exceptions import ResponseError
 
 from wikipulse.stream.filters import is_wanted, normalize
+from wikipulse.stream.lease import LeaseLost, StreamLease
 from wikipulse.stream.models import EditEvent
 from wikipulse.stream.resilience import Backoff, run_with_reconnect, until_stop
 from wikipulse.stream.sources import Source
@@ -39,8 +45,18 @@ logger = logging.getLogger(__name__)
 DEDUP_TTL_S = 3600  # how long an event id is remembered for deduplication
 LIVE_NAMESPACE = "wiki:consumer"
 
+# Step 0 of both scripts: with a lease (owner not ''), stop unless we still hold it.
+_FENCE = """
+local lease, owner = KEYS[5], ARGV[8]
+if owner ~= '' and redis.call('GET', lease) ~= owner then
+  return redis.error_reply('LEASE_LOST ' .. lease)
+end
+"""
+
 # Lua script for one kept event. See the module docstring.
-_WRITE_SCRIPT = """
+_WRITE_SCRIPT = (
+    _FENCE
+    + """
 local stream, checkpoint, seen, stats = KEYS[1], KEYS[2], KEYS[3], KEYS[4]
 local sse_id, maxlen, ttl = ARGV[1], ARGV[2], ARGV[3]
 local data, title, event_time, is_bot = ARGV[4], ARGV[5], ARGV[6], ARGV[7]
@@ -58,6 +74,20 @@ end
 if sse_id ~= '' then redis.call('SET', checkpoint, sse_id) end
 return entry_id
 """
+)
+
+# Lua script for a message we don't write: count it and move the checkpoint past it.
+_SKIP_SCRIPT = (
+    _FENCE
+    + """
+local checkpoint, stats = KEYS[2], KEYS[4]
+local sse_id, outcome = ARGV[1], ARGV[2]
+redis.call('HINCRBY', stats, 'received', 1)
+redis.call('HINCRBY', stats, outcome, 1)
+if sse_id ~= '' then redis.call('SET', checkpoint, sse_id) end
+return 1
+"""
+)
 
 
 class Outcome(StrEnum):
@@ -107,12 +137,15 @@ class Consumer:
         keys: RedisKeys,
         maxlen: int,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        lease: StreamLease | None = None,
     ) -> None:
         self.redis = redis
         self.keys = keys
         self.maxlen = maxlen
+        self.lease = lease  # None: no lease check (replay, tests)
         self._clock = clock  # only for the `received_at` metadata, never for processing logic
         self._write_script = redis.register_script(_WRITE_SCRIPT)
+        self._skip_script = redis.register_script(_SKIP_SCRIPT)
 
     async def load_checkpoint(self) -> str | None:
         """The SSE id of the last processed message, or None on the very first run."""
@@ -136,34 +169,40 @@ class Consumer:
 
     async def _write(self, sse_id: str | None, event: EditEvent) -> Outcome:
         """Deduplicate, append and checkpoint in one atomic Lua script."""
-        entry_id = await self._write_script(
-            keys=[
-                self.keys.stream,
-                self.keys.checkpoint,
-                self.keys.seen_prefix + event.event_id,
-                self.keys.stats,
-            ],
-            args=[
-                sse_id or "",
-                self.maxlen,
-                DEDUP_TTL_S,
-                event.model_dump_json(),
-                event.title,
-                event.event_time.isoformat(),
-                "1" if event.is_bot else "0",
-            ],
-        )
+        args = [
+            sse_id or "",
+            self.maxlen,
+            DEDUP_TTL_S,
+            event.model_dump_json(),
+            event.title,
+            event.event_time.isoformat(),
+            "1" if event.is_bot else "0",
+        ]
+        entry_id = await self._run(self._write_script, event.event_id, args)
         return Outcome.KEPT if entry_id is not None else Outcome.DUPLICATE
 
     async def _skip(self, sse_id: str | None, outcome: Outcome) -> Outcome:
         """Count a message we don't write, and still move the checkpoint past it."""
-        async with self.redis.pipeline(transaction=True) as pipe:  # MULTI ... EXEC
-            pipe.hincrby(self.keys.stats, "received", 1)
-            pipe.hincrby(self.keys.stats, outcome.value, 1)
-            if sse_id:
-                pipe.set(self.keys.checkpoint, sse_id)
-            await pipe.execute()
+        args = [sse_id or "", outcome.value, "", "", "", "", ""]
+        await self._run(self._skip_script, "", args)
         return outcome
+
+    async def _run(self, script: Any, event_id: str, args: list[Any]) -> Any:
+        """Run one of the scripts with all five keys and the lease owner (ARGV[8])."""
+        lease_key, owner = (self.lease.key, self.lease.owner) if self.lease else ("", "")
+        keys = [
+            self.keys.stream,
+            self.keys.checkpoint,
+            self.keys.seen_prefix + event_id,
+            self.keys.stats,
+            lease_key,
+        ]
+        try:
+            return await script(keys=keys, args=[*args, owner])
+        except ResponseError as exc:
+            if "LEASE_LOST" in str(exc):
+                raise LeaseLost(f"no longer holding the writer lease {lease_key}") from exc
+            raise
 
     async def count_reconnect(self) -> None:
         """Add one to the `reconnects` counter."""
@@ -200,9 +239,13 @@ class Consumer:
             heartbeat()
             last_id = await self.load_checkpoint()
             logger.info("Connecting, resuming from checkpoint: %s", last_id or "none")
-            async for sse_id, raw_json in until_stop(source.messages(last_id), stop):
-                await self.process(sse_id, raw_json)
-                backoff.reset()
-                heartbeat()
+            try:
+                async for sse_id, raw_json in until_stop(source.messages(last_id), stop):
+                    await self.process(sse_id, raw_json)
+                    backoff.reset()
+                    heartbeat()
+            except LeaseLost as exc:  # someone else writes the stream now: stop, don't retry
+                logger.error("%s; stopping", exc)
+                stop.set()
 
         await run_with_reconnect(attempt, stop, backoff, self.count_reconnect, name="stream")

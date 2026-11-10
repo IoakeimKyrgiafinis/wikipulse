@@ -9,8 +9,10 @@ consumer; here the reference is read afterwards, from the same position):
   0:00  note where the running consumer is: its checkpoint (the SSE id of its last
         message) and the last entry it wrote to the Redis Stream
   2:00  delete the consumer pod hard (`--grace-period=0 --force`: no clean-up, like a
-        crash); the Deployment starts a new pod, which resumes from the checkpoint
-  4:00  delete the new pod normally (SIGTERM, a graceful stop); again a new pod
+        crash); the Deployment starts a new pod, which waits until the killed pod's
+        writer lease expires (STREAM_LEASE_TTL_S) and then resumes from the checkpoint
+  4:00  delete the new pod normally (SIGTERM, a graceful stop: it releases the lease);
+        again a new pod
   6:00  scale the consumer to 0 (it stops gracefully), note its final checkpoint
   then  read the stream again from the first checkpoint (Last-Event-ID), until the final
         one, and check that every kept edit is in Redis exactly once

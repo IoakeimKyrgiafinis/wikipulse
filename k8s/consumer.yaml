@@ -1,6 +1,8 @@
 # The live stream consumer (stage 1): Wikimedia's recentchange stream -> Redis Stream
 # `wiki:edits`. Exactly one replica, ever: Wikimedia asks for one stream connection per
-# client, and two consumers would write every edit twice.
+# client, and two consumers would write every edit twice. The code enforces it too: a
+# consumer must hold the Redis lease `wiki:edits:writer` to write, so a consumer started
+# on the laptop (or a second pod) waits instead of writing alongside this one.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,7 +45,9 @@ spec:
           imagePullPolicy: IfNotPresent  # the image is loaded into kind, not pulled
           # Its own checkpoint namespace (wiki:k8s:consumer:*): the cluster starts from
           # "now" instead of resuming a laptop consumer's old checkpoint. It still writes
-          # the shared stream wiki:edits that the detector and the archiver read.
+          # the shared stream wiki:edits that the detector and the archiver read, guarded
+          # by the writer lease. After a hard kill the new pod waits for the old pod's
+          # lease to expire (STREAM_LEASE_TTL_S, 30 s) and beats its heartbeat meanwhile.
           command: ["python", "-m", "wikipulse.stream.consume", "--namespace", "wiki:k8s:consumer"]
           envFrom:
             - configMapRef: {name: wikipulse-config}

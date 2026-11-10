@@ -131,6 +131,10 @@ class Settings(BaseSettings):
     stream_maxlen: int = Field(default=1_000_000, gt=0)
     # Longest wait between reconnect attempts, in seconds.
     reconnect_max_s: float = Field(default=60.0, gt=0)
+    # Only one live consumer may write STREAM_KEY: it holds a lease in Redis
+    # (`<STREAM_KEY>:writer`), renewed while it runs. A consumer killed without a clean
+    # stop loses the lease after this many seconds, and a waiting consumer takes over.
+    stream_lease_ttl_s: float = Field(default=30.0, ge=3)
 
     # --- Stage 2: spike detection (thresholds explained in DetectorConfig) ---
     detect_short_window_min: float = Field(default=10, gt=0)
