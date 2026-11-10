@@ -12,6 +12,12 @@ variable "node_image" {
   default     = null
 }
 
+variable "kubeconfig_path" {
+  description = "The kubeconfig kind merges the cluster's context into (kubectl's default)."
+  type        = string
+  default     = "~/.kube/config"
+}
+
 variable "namespace" {
   description = "Namespace of the release. One release per namespace (charts/wikipulse/values.yaml)."
   type        = string

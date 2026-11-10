@@ -12,12 +12,15 @@ locals {
 # --- the cluster ---
 
 # One node, control plane and worker at once (as k8s/kind-config.yaml, which
-# scripts/cluster.py uses). kind also adds the context kind-<name> to your kubeconfig, so
-# kubectl and scripts/cluster.py work on this cluster too.
+# scripts/cluster.py uses). kind adds the context kind-<name> to your kubeconfig (and
+# removes it on destroy), so kubectl and scripts/cluster.py work on this cluster too.
 resource "kind_cluster" "this" {
   name           = var.cluster_name
   node_image     = var.node_image
   wait_for_ready = true
+  # Without a path the provider writes a second kubeconfig, with the cluster's client key,
+  # into this folder (<name>-config).
+  kubeconfig_path = pathexpand(var.kubeconfig_path)
 
   kind_config {
     kind        = "Cluster"

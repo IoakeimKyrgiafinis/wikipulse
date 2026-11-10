@@ -17,3 +17,5 @@ mlruns/
 crash.log
 crash.*.log
 *.tfplan
+# A kubeconfig the kind provider writes when kubeconfig_path is not set (client key).
+infra/cluster/*-config
