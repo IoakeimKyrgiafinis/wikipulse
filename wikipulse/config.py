@@ -114,6 +114,15 @@ class Settings(BaseSettings):
     # Deliberately not a working value: Wikimedia requires a real contact address.
     user_agent: str = DEFAULT_USER_AGENT
     log_level: LogLevel = "INFO"
+    # Spec 09b. `text`: one readable line per record (the laptop); `json`: one JSON object
+    # per line, for Loki (the cluster's ConfigMap sets it).
+    log_format: Literal["text", "json"] = "text"
+    # The `service` field of every log line. Unset: the module that was started, e.g.
+    # `detect.run` for `python -m wikipulse.detect.run` (the chart sets `detector`, ...).
+    log_service: str | None = None
+    # Log one line per edit written to the stream (consumer and replay), with the edit's
+    # correlation id. Off on the laptop (a few lines a second); on in the cluster.
+    log_edits: bool = False
     data_dir: Path = Path("data")
     # Workers touch this file as their main loop goes round; `python -m wikipulse.health`
     # (the Kubernetes probe, spec 08a) checks it is fresh. Unset: no heartbeat.
@@ -225,6 +234,11 @@ class Settings(BaseSettings):
     llm_timeout_s: float = Field(default=120, gt=0)
     # Only for the optional `anthropic` backend; never required.
     anthropic_api_key: SecretStr | None = None
+    # LLM and agent tracing with Langfuse (spec 09b), only when both keys are set;
+    # without them tracing is a silent no-op and nothing is sent anywhere.
+    langfuse_public_key: SecretStr | None = None
+    langfuse_secret_key: SecretStr | None = None
+    langfuse_host: str = "https://cloud.langfuse.com"
 
     # --- Stage 4: knowledge graph (wikipulse.graph) ---
     # Neo4j (docker-compose.yml). The password must match NEO4J_PASSWORD of the container.
