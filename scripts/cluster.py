@@ -17,6 +17,11 @@ changes, so every build has a new tag and a rollout always means a new image. `l
 
 Every kubectl call names the context `kind-wikipulse`, so this script never touches
 another cluster. Needs Docker Desktop, kind and kubectl.
+
+`up` and `secret` refuse to run while USER_AGENT still holds the placeholder contact:
+the cluster's consumer connects to Wikimedia, which requires a real contact address.
+Set yours in .env. `--allow-placeholder-contact` skips the check, for offline or CI
+use only (a cluster whose consumer never reaches Wikimedia).
 """
 
 import argparse
@@ -180,10 +185,29 @@ def apply_base() -> None:
     run(kubectl("apply", *files))
 
 
-def secret(settings: Settings) -> None:
+PLACEHOLDER_CONTACT_ERROR = (
+    "USER_AGENT still contains the placeholder contact (e.g. you@example.com). The "
+    "cluster's consumer connects to Wikimedia, whose policy requires a real way to reach "
+    "you: set USER_AGENT in .env to your own contact address and run this again. "
+    "(--allow-placeholder-contact skips this check, for offline or CI use only.)"
+)
+
+
+def check_contact(settings: Settings, allow_placeholder: bool = False) -> None:
+    """Refuse a placeholder User-Agent contact, unless explicitly allowed (offline/CI)."""
+    if not settings.user_agent_is_placeholder():
+        return
+    if not allow_placeholder:
+        raise SystemExit(PLACEHOLDER_CONTACT_ERROR)
+    logger.warning(
+        "USER_AGENT holds the placeholder contact (--allow-placeholder-contact): "
+        "don't let this cluster's consumer connect to Wikimedia"
+    )
+
+
+def secret(settings: Settings, allow_placeholder: bool = False) -> None:
+    check_contact(settings, allow_placeholder)
     ensure_namespace()
-    if settings.user_agent_is_placeholder():
-        logger.warning("USER_AGENT still contains placeholder text; set a real contact in .env")
     # Through stdin: the values never touch the disk or show up in a process list.
     run(kubectl("apply", "-f", "-"), stdin=json.dumps(secret_manifest(settings)))
 
@@ -228,13 +252,20 @@ def main(argv: list[str] | None = None) -> int:
         choices=["up", "create", "build", "load", "secret", "migrate", "apply", "status", "down"],
     )
     parser.add_argument("--tag", help="image tag for load, migrate and apply (default: newest)")
+    parser.add_argument(
+        "--allow-placeholder-contact",
+        action="store_true",
+        help="OFFLINE/CI USE ONLY: create the Secret even though USER_AGENT still has the "
+        "placeholder contact (the consumer must then never connect to Wikimedia)",
+    )
     args = parser.parse_args(argv)
     setup_logging()
     if args.command == "up":
+        check_contact(get_settings(), args.allow_placeholder_contact)  # before any slow step
         create()
         tag = build()
         load(tag)
-        secret(get_settings())
+        secret(get_settings(), args.allow_placeholder_contact)
         migrate(tag)
         apply(tag)
         status()
@@ -246,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         tag = args.tag or newest_image_tag()
         {"load": load, "migrate": migrate, "apply": apply}[args.command](tag)
     elif args.command == "secret":
-        secret(get_settings())
+        secret(get_settings(), args.allow_placeholder_contact)
     elif args.command == "status":
         status()
     elif args.command == "down":

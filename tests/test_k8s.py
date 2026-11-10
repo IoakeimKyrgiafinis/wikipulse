@@ -148,7 +148,8 @@ def test_the_config_map_holds_no_secrets() -> None:
 
 def test_the_secret_template_holds_only_placeholders() -> None:
     (secret,) = documents("secret.example.yaml")
-    assert set(secret["stringData"]) == set(cluster.secret_manifest(Settings())["stringData"])
+    settings = Settings(_env_file=None)  # not the developer's .env
+    assert set(secret["stringData"]) == set(cluster.secret_manifest(settings)["stringData"])
     for value in secret["stringData"].values():
         assert "<" in value
 
@@ -223,3 +224,48 @@ def test_secret_manifest_from_settings() -> None:
     assert secret["stringData"]["POSTGRES_DSN"] == "postgresql://a:b@postgres:5432/c"
     assert secret["stringData"]["NEO4J_PASSWORD"] == "graph-pw"
     assert secret["stringData"]["USER_AGENT"] == "WikiPulse/0.1 (test)"
+
+
+# A User-Agent with a contact on a reserved, never-real domain (RFC 2606).
+REAL_LOOKING_UA = "WikiPulse/0.1 (https://github.com/someone/wikipulse; contact@wikipulse.invalid)"
+
+
+@pytest.fixture
+def kubectl_calls(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    """Record the commands `cluster.run` would run, instead of running them."""
+    calls: list[list[str]] = []
+    monkeypatch.setattr(cluster, "run", lambda command, **_: calls.append(command) or "")
+    return calls
+
+
+@pytest.mark.parametrize(
+    "user_agent",
+    [Settings.model_fields["user_agent"].default, "WikiPulse/0.1 (x; you@example.com)"],
+)
+def test_secret_refuses_a_placeholder_contact(kubectl_calls, user_agent: str) -> None:
+    settings = Settings(_env_file=None, user_agent=user_agent)
+    with pytest.raises(SystemExit) as refused:
+        cluster.secret(settings)
+    assert ".env" in str(refused.value) and "USER_AGENT" in str(refused.value)
+    assert kubectl_calls == []  # nothing was created or applied
+
+
+def test_secret_with_a_real_contact_is_applied(kubectl_calls) -> None:
+    cluster.secret(Settings(_env_file=None, user_agent=REAL_LOOKING_UA))
+    assert kubectl_calls[-1][-3:] == ["apply", "-f", "-"]
+
+
+def test_the_placeholder_contact_needs_the_explicit_opt_out(kubectl_calls) -> None:
+    settings = Settings(_env_file=None, user_agent="WikiPulse/0.1 (x; you@example.com)")
+    cluster.secret(settings, allow_placeholder=True)
+    assert kubectl_calls[-1][-3:] == ["apply", "-f", "-"]
+
+
+def test_up_refuses_a_placeholder_contact_before_doing_anything(
+    kubectl_calls, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    placeholder = Settings(_env_file=None, user_agent="WikiPulse/0.1 (x; you@example.com)")
+    monkeypatch.setattr(cluster, "get_settings", lambda: placeholder)
+    with pytest.raises(SystemExit, match="placeholder"):
+        cluster.main(["up"])
+    assert kubectl_calls == []  # no cluster created, no image built
