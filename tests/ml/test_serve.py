@@ -132,6 +132,50 @@ def test_the_holder_keeps_serving_when_the_registry_is_down():
     assert holder.current().version == "1"
 
 
+def test_the_holder_keeps_serving_when_the_new_version_cant_be_loaded():
+    versions = iter(["1", "2", "2"])
+
+    def load(name, version):
+        if version == "2" and not load.store_up:
+            raise OSError("artifact store down")
+        return LoadedModel(name, version, None, 0.5, False)
+
+    load.store_up = False
+    holder = ModelHolder("m", reload_s=0, resolve=lambda n, a: next(versions), load=load)
+    assert holder.current().version == "1"
+    assert holder.current().version == "1"  # v2 can't be loaded: v1 keeps serving
+    load.store_up = True
+    assert holder.current().version == "2"  # loaded at the next check
+
+
+def test_a_failed_scoring_round_doesnt_stop_the_live_scorer(monkeypatch):
+    client = FakeRedis(decode_responses=True)
+    write_stream(client, [event(0, user="A", rev=100)])
+    calls = []
+
+    def broken(conn, *args, **kwargs):
+        calls.append(1)
+        raise ConnectionError("Postgres down")
+
+    monkeypatch.setattr(serve, "spikes_to_score", broken)
+    model = LoadedModel(NAME, "7", FixedModel(0.9), 0.5, False)
+    scorer = LiveScorer(
+        client,
+        None,
+        "edits",
+        "live",
+        ModelHolder(NAME, resolve=lambda n, a: "7", load=lambda n, v: model),
+        FakePages(),
+        window_min=10,
+        lateness=timedelta(minutes=2),
+        keep=timedelta(hours=26),
+        poll_s=0,
+    )
+    scorer.step(block_ms=1)
+    scorer.step(block_ms=1)  # still running, and it tries again
+    assert len(calls) == 2
+
+
 # --- scoring ----------------------------------------------------------------------------
 
 

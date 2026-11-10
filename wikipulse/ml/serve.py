@@ -111,7 +111,8 @@ class ModelHolder:
 
     The check uses the wall clock on purpose: it is about operations (how quickly a
     promotion takes effect), not about which data a score uses. If the registry can't be
-    reached, the model already loaded keeps serving.
+    reached, or the new version can't be loaded (the artifact store down), the model
+    already loaded keeps serving, and the next check tries again.
     """
 
     def __init__(
@@ -153,7 +154,16 @@ class ModelHolder:
             return self.model
         if self.model is None or self.model.version != version:
             before = self.model.version if self.model else None
-            self.model = self.load(self.name, version)
+            try:
+                loaded = self.load(self.name, version)
+            except Exception as error:  # the artifact store down, a broken model
+                if self.model is None:
+                    raise
+                logger.warning(
+                    "Can't load version %s, keeping version %s: %s", version, before, error
+                )
+                return self.model
+            self.model = loaded
             logger.info(
                 "Serving %s version %s (%s, threshold %.3f)%s",
                 self.name,
@@ -480,7 +490,11 @@ class LiveScorer:
         count = self.read(block_ms)
         if self.clock() - self._last_poll >= self.poll_s:
             self._last_poll = self.clock()
-            self.score_due()
+            try:
+                self.score_due()
+            except Exception:  # Postgres or the wiki API down after their retries
+                # Keep reading the stream: unscored spikes are picked up at the next poll.
+                logger.exception("Scoring failed; trying again at the next poll")
             self.buffer.prune()
         return count
 
