@@ -1,0 +1,106 @@
+# Values for the community chart kube-prometheus-stack (prometheus-community), installed
+# by Terraform (infra/cluster/monitoring.tf) into the namespace `monitoring`.
+#
+# Kept lean for a laptop: Prometheus, Grafana and the Prometheus Operator, nothing else.
+# The chart's defaults would also install node-exporter, kube-state-metrics, Alertmanager
+# and dozens of rules and dashboards about the Kubernetes cluster itself; WikiPulse
+# watches its own pipeline, so they are off. Turn one back on here if you need it.
+#
+# Terraform adds what depends on its variables: the PodMonitor for the WikiPulse
+# namespace, the alert rules (observability/alerts/wikipulse.rules.yaml) and scrape
+# targets on the host (e.g. a replay running on the laptop).
+
+crds:
+  enabled: true  # PodMonitor, PrometheusRule, ... (the operator's resource types)
+
+# --- off: the Kubernetes cluster's own monitoring ---
+defaultRules:
+  create: false
+alertmanager:
+  # Alerts still fire in Prometheus (Alerts page, ALERTS metric). Alertmanager would route
+  # them to e-mail or chat; there is nowhere to send them on a laptop.
+  enabled: false
+nodeExporter:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+coreDns:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheusOperator:
+  # The admission webhook checks rules before they are stored. It needs certificates made
+  # by an extra Job at install time; Terraform's tests and promtool check the rules instead.
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 192Mi}
+
+prometheus:
+  prometheusSpec:
+    # Every 15 s: often enough that a 2-minute alert window holds 8 samples.
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    retention: 3d
+    retentionSize: 2GB
+    # Pick up PodMonitors and rules from every release, not only this chart's own.
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: "1", memory: 768Mi}
+
+grafana:
+  # The dashboards come from ConfigMaps labeled grafana_dashboard=1 (Terraform makes one per
+  # file in observability/dashboards/); the sidecar container loads them, and reloads a
+  # changed one within a minute. The chart's own Kubernetes dashboards are off.
+  defaultDashboardsEnabled: false
+  # The admin password: none set here, so the Grafana chart generates a random one and
+  # keeps it in the Secret kube-prometheus-stack-grafana (see infra/README.md).
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      # The annotation grafana_folder on a ConfigMap names the folder in Grafana.
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+        allowUiUpdates: false  # dashboards are code: change the file, not the UI
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: true
+      uid: prometheus  # the dashboards refer to their data source by this uid
+      alertmanager:
+        enabled: false
+    resources:
+      requests: {cpu: 10m, memory: 64Mi}
+      limits: {cpu: 200m, memory: 128Mi}
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  grafana.ini:
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+      check_for_plugin_updates: false
+    users:
+      default_theme: light
+    dashboards:
+      default_home_dashboard_path: /tmp/dashboards/WikiPulse/pipeline-health.json

@@ -1,0 +1,128 @@
+# Unit tests for the alert rules: `promtool test rules wikipulse.rules.test.yaml`.
+# Each test feeds made-up series (one value per `interval`) and states which alerts must
+# be firing at a given time. `_x5` repeats a value 5 more times; `stale` ends a series,
+# as when a pod stops answering.
+rule_files:
+  - wikipulse.rules.yaml
+
+evaluation_interval: 15s
+
+tests:
+  # The writer runs, then stops at minute 5: its counter disappears. Two minutes later
+  # (the window) the alert fires, not before.
+  - interval: 15s
+    input_series:
+      - series: 'wikipulse_consumer_messages_total{outcome="kept", service="replay"}'
+        values: '0+15x20 stale'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 7m30s
+        alertname: WikiPulseNoEvents
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              outcome: kept
+            exp_annotations:
+              summary: No edits written to the stream for 2 minutes
+              description: >-
+                The consumer (or replay) wrote no English Wikipedia edit in the last 2 minutes.
+                Check the consumer pod (`kubectl -n wikipulse logs deploy/consumer`), its
+                reconnects, and whether Wikimedia's stream is up.
+
+  # The writer is alive (its counter is still scraped) but writes nothing after minute 3.
+  - interval: 15s
+    input_series:
+      - series: 'wikipulse_consumer_messages_total{outcome="kept", service="consumer"}'
+        values: '0+15x12 180x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 5m30s
+        alertname: WikiPulseNoEvents
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: No edits written to the stream for 2 minutes
+              description: >-
+                The consumer (or replay) wrote no English Wikipedia edit in the last 2 minutes.
+                Check the consumer pod (`kubectl -n wikipulse logs deploy/consumer`), its
+                reconnects, and whether Wikimedia's stream is up.
+
+  # Lag above 5 minutes must last 2 minutes before the alert fires.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_consumer_lag_seconds{service="consumer"}'
+        values: '5 5 400 400 400 400'
+      - series: 'wikipulse_consumer_lag_seconds{service="api"}'
+        values: '0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: WikiPulseConsumerLagHigh
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: WikiPulseConsumerLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Stream writer is 6m 40s behind
+              description: >-
+                The newest edit in the stream is more than 5 minutes old. The consumer is
+                reconnecting, throttled, or catching up after a restart.
+
+  # Half the extractions fail, with enough attempts: fires after 10 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_extractions_total{outcome="ok"}'
+        values: '0+1x60'
+      - series: 'wikipulse_extractions_total{outcome="failed"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: WikiPulseExtractionFailuresHigh
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: WikiPulseExtractionFailuresHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: 50% of graph extractions fail
+              description: >-
+                The graph runner's extractions fail. Look at its log and the table
+                graph_extractions (error column): the LLM (Ollama down, invalid JSON),
+                Wikimedia, or Neo4j.
+
+  # A recent drift report fires; an old one (period ended long ago) doesn't.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_drift_detected{model_name="news-classifier", model_version="3", run_id="recent"}'
+        values: '1x5'
+      - series: 'wikipulse_drift_report_period_end_timestamp_seconds{model_name="news-classifier", model_version="3", run_id="recent"}'
+        values: '0x5'
+      - series: 'wikipulse_drift_detected{model_name="news-classifier", model_version="3", run_id="old"}'
+        values: '1x5'
+      - series: 'wikipulse_drift_report_period_end_timestamp_seconds{model_name="news-classifier", model_version="3", run_id="old"}'
+        values: '-1000000x5'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: WikiPulseDriftDetected
+        exp_alerts:
+          - exp_labels:
+              severity: info
+              model_name: news-classifier
+              model_version: "3"
+              run_id: recent
+            exp_annotations:
+              summary: "Drift: news-classifier v3 on run recent"
+              description: >-
+                The weekly drift check found the model's inputs or scores shifted. Read the
+                report (`uv run python -m wikipulse.ml.drift ...`) and the Model health
+                dashboard; the retraining DAG compares a challenger on fresh data.
