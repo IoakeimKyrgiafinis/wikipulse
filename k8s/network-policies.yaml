@@ -144,9 +144,11 @@ spec:
         - {protocol: TCP, port: 11434}
         - {protocol: TCP, port: 443}  # the embedding model, downloaded once
 ---
-# The API is the only pod that accepts connections, on its HTTP port. No other pod of the
-# namespace connects to it; the kubelet's probes and `kubectl port-forward` come from the
-# node itself.
+# The API is the only pod that accepts connections, on its HTTP port, and only from pods
+# of this namespace (none connects today; no pod of another namespace ever may). That
+# doesn't block what we use: the kubelet's probes come from the node itself, which
+# NetworkPolicy always allows, and `kubectl port-forward` enters the pod's own network
+# namespace, so it never crosses the policy.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -157,7 +159,9 @@ spec:
     matchLabels: {app.kubernetes.io/name: api}
   policyTypes: [Ingress]
   ingress:
-    - ports:
+    - from:
+        - podSelector: {}  # any pod of this namespace (wikipulse), nothing outside it
+      ports:
         - {protocol: TCP, port: 8000}
 ---
 apiVersion: networking.k8s.io/v1

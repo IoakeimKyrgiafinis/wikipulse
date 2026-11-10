@@ -1,6 +1,7 @@
 # Knowledge graph (stage 4): extracts entities and relations of new events with the LLM
-# (Ollama on the host, through the `ollama` Service) and stores them in Neo4j. Events
-# that fail are retried later; a restart picks up the events not yet extracted.
+# (Ollama on the host, reached directly at host.docker.internal: OLLAMA_HOST in
+# configmap.yaml) and stores them in Neo4j. Events that fail are retried later; a
+# restart picks up the events not yet extracted.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

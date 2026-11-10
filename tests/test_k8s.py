@@ -140,6 +140,14 @@ def test_every_pod_has_an_egress_policy_and_everything_else_is_denied() -> None:
     assert [p["metadata"]["name"] for p in ingress] == ["api-ingress"]
 
 
+def test_only_pods_of_the_namespace_may_reach_the_api() -> None:
+    policies = [d for d in all_resources() if d["kind"] == "NetworkPolicy"]
+    api = next(p for p in policies if p["metadata"]["name"] == "api-ingress")
+    (rule,) = api["spec"]["ingress"]
+    assert rule["from"] == [{"podSelector": {}}]  # no namespaceSelector, no ipBlock
+    assert rule["ports"] == [{"protocol": "TCP", "port": 8000}]
+
+
 def test_the_config_map_holds_no_secrets() -> None:
     (config,) = documents("configmap.yaml")
     for key in config["data"]:
