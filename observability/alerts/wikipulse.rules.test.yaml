@@ -1,0 +1,239 @@
+# Unit tests for the alert rules: `promtool test rules wikipulse.rules.test.yaml`.
+# Each test feeds made-up series (one value per `interval`) and states which alerts must
+# be firing at a given time. `_x5` repeats a value 5 more times; `stale` ends a series,
+# as when a pod stops answering.
+rule_files:
+  - wikipulse.rules.yaml
+
+evaluation_interval: 15s
+
+tests:
+  # The writer runs, then stops at minute 5: its counter disappears. Two minutes later
+  # (the window) the alert fires, not before.
+  - interval: 15s
+    input_series:
+      - series: 'wikipulse_consumer_messages_total{outcome="kept", service="replay"}'
+        values: '0+15x20 stale'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 7m30s
+        alertname: WikiPulseNoEvents
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              outcome: kept
+            exp_annotations:
+              summary: No edits written to the stream for 2 minutes
+              description: >-
+                The consumer (or replay) wrote no English Wikipedia edit in the last 2 minutes.
+                Check the consumer pod (`kubectl -n wikipulse logs deploy/consumer`), its
+                reconnects, and whether Wikimedia's stream is up.
+
+  # The writer is alive (its counter is still scraped) but writes nothing after minute 3.
+  - interval: 15s
+    input_series:
+      - series: 'wikipulse_consumer_messages_total{outcome="kept", service="consumer"}'
+        values: '0+15x12 180x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: WikiPulseNoEvents
+        exp_alerts: []
+      - eval_time: 5m30s
+        alertname: WikiPulseNoEvents
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: No edits written to the stream for 2 minutes
+              description: >-
+                The consumer (or replay) wrote no English Wikipedia edit in the last 2 minutes.
+                Check the consumer pod (`kubectl -n wikipulse logs deploy/consumer`), its
+                reconnects, and whether Wikimedia's stream is up.
+
+  # Lag above 5 minutes must last 2 minutes before the alert fires. Every other process
+  # exports the lag gauge too, as NaN (unknown, wikipulse/metrics/catalog.py): max()
+  # skips NaN when another series has a value.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_consumer_lag_seconds{service="consumer"}'
+        values: '5 5 400 400 400 400'
+      - series: 'wikipulse_consumer_lag_seconds{service="api"}'
+        values: 'NaN NaN NaN NaN NaN NaN'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: WikiPulseConsumerLagHigh
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: WikiPulseConsumerLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Stream writer is 6m 40s behind
+              description: >-
+                The newest edit in the stream is more than 5 minutes old. The consumer is
+                reconnecting, throttled, or catching up after a restart.
+
+  # Half the extractions fail, with enough attempts: fires after 10 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_extractions_total{outcome="ok"}'
+        values: '0+1x60'
+      - series: 'wikipulse_extractions_total{outcome="failed"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: WikiPulseExtractionFailuresHigh
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: WikiPulseExtractionFailuresHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: 50% of graph extractions fail
+              description: >-
+                The graph runner's extractions fail. Look at its log and the table
+                graph_extractions (error column): the LLM (Ollama down, invalid JSON),
+                Wikimedia, or Neo4j.
+
+  # A recent drift report fires; an old one (period ended long ago) doesn't.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_drift_detected{model_name="news-classifier", model_version="3", run_id="recent"}'
+        values: '1x5'
+      - series: 'wikipulse_drift_report_period_end_timestamp_seconds{model_name="news-classifier", model_version="3", run_id="recent"}'
+        values: '0x5'
+      - series: 'wikipulse_drift_detected{model_name="news-classifier", model_version="3", run_id="old"}'
+        values: '1x5'
+      - series: 'wikipulse_drift_report_period_end_timestamp_seconds{model_name="news-classifier", model_version="3", run_id="old"}'
+        values: '-1000000x5'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: WikiPulseDriftDetected
+        exp_alerts:
+          - exp_labels:
+              severity: info
+              model_name: news-classifier
+              model_version: "3"
+              run_id: recent
+            exp_annotations:
+              summary: "Drift: news-classifier v3 on run recent"
+              description: >-
+                The weekly drift check found the model's inputs or scores shifted. Read the
+                report (`uv run python -m wikipulse.ml.drift ...`) and the Model health
+                dashboard; the retraining DAG compares a challenger on fresh data.
+
+  # No writer has written yet: every process exports the lag as NaN. max() of only NaN is
+  # NaN, and NaN > 300 is false, so nothing fires (a 0 default would also stay quiet here,
+  # but would hide the writer's absence on the dashboards; WikiPulseNoEvents covers it).
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_consumer_lag_seconds{service="api"}'
+        values: 'NaN NaN NaN NaN NaN NaN'
+      - series: 'wikipulse_consumer_lag_seconds{service="detector"}'
+        values: 'NaN NaN NaN NaN NaN NaN'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: WikiPulseConsumerLagHigh
+        exp_alerts: []
+
+  # The detector stops reading at minute 5 while the writer's event time keeps going
+  # (60 s per minute). From minute 11 it is more than 300 s behind; after the 5 minutes of
+  # `for` the alert fires. The API exports both gauges as NaN, which max() skips.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_consumer_last_event_timestamp_seconds{service="consumer"}'
+        values: '1000+60x20'
+      - series: 'wikipulse_detector_last_event_timestamp_seconds{service="detector"}'
+        values: '1000+60x5 1300x15'
+      - series: 'wikipulse_consumer_last_event_timestamp_seconds{service="api"}'
+        values: 'NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN'
+      - series: 'wikipulse_detector_last_event_timestamp_seconds{service="api"}'
+        values: 'NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: WikiPulseDetectorLagHigh
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: WikiPulseDetectorLagHigh
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: WikiPulseDetectorLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Detector is 11m 0s of event time behind the stream
+              description: >-
+                The detector reads more slowly than edits arrive, or is stuck. Its queue:
+                wikipulse_detector_stream_lag_entries.
+
+  # The detector hasn't read anything yet: its event time is NaN in every process. With
+  # the old default of 0, the difference was the writer's whole Unix time (about 1.7e9 s)
+  # and the alert went pending; with NaN the difference is NaN and nothing fires.
+  - interval: 1m
+    input_series:
+      - series: 'wikipulse_consumer_last_event_timestamp_seconds{service="consumer"}'
+        values: '1700000000+60x10'
+      - series: 'wikipulse_detector_last_event_timestamp_seconds{service="detector"}'
+        values: 'NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN'
+      - series: 'wikipulse_detector_last_event_timestamp_seconds{service="api"}'
+        values: 'NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: WikiPulseDetectorLagHigh
+        exp_alerts: []
+
+  # A WikiPulse pod stops answering at minute 2, a host target (a replay on the laptop)
+  # at minute 3: each fires after its 5 minutes of `for`, whatever namespace the pod is in.
+  # Prometheus' own target, without `system="wikipulse"`, never fires this alert.
+  - interval: 1m
+    input_series:
+      - series: 'up{system="wikipulse", service="detector", namespace="news", instance="10.244.0.7:9400"}'
+        values: '1 1 0 0 0 0 0 0 0 0'
+      - series: 'up{system="wikipulse", service="replay", instance="host.docker.internal:9464"}'
+        values: '1 1 1 0 0 0 0 0 0 0'
+      - series: 'up{job="prometheus", instance="localhost:9090"}'
+        values: '0 0 0 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: WikiPulseServiceDown
+        exp_alerts: []
+      - eval_time: 7m
+        alertname: WikiPulseServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              system: wikipulse
+              service: detector
+              namespace: news
+              instance: 10.244.0.7:9400
+            exp_annotations:
+              summary: detector is not answering
+              description: Prometheus could not scrape 10.244.0.7:9400 for 5 minutes.
+      - eval_time: 8m
+        alertname: WikiPulseServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              system: wikipulse
+              service: detector
+              namespace: news
+              instance: 10.244.0.7:9400
+            exp_annotations:
+              summary: detector is not answering
+              description: Prometheus could not scrape 10.244.0.7:9400 for 5 minutes.
+          - exp_labels:
+              severity: warning
+              system: wikipulse
+              service: replay
+              instance: host.docker.internal:9464
+            exp_annotations:
+              summary: replay is not answering
+              description: Prometheus could not scrape host.docker.internal:9464 for 5 minutes.

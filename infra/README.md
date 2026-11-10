@@ -5,7 +5,7 @@ Two Terraform stacks, each with its own state:
 | Stack | Creates | Lifetime |
 |-------|---------|----------|
 | `storage/` | the buckets `wikipulse-lake` and `wikipulse-mlflow` in the S3 store (RustFS in Compose) | long: the data. `prevent_destroy` refuses `terraform destroy` |
-| `cluster/` | the kind cluster, the namespace, the Secret, the image in the node, the Helm release | short: destroy and rebuild at will |
+| `cluster/` | the kind cluster, the namespace, the Secret, the image in the node, the Helm release, Prometheus and Grafana | short: destroy and rebuild at will |
 
 Docker Compose (`docker compose up -d`) must be running: the cluster's pods use its Redis,
 Postgres, Neo4j and RustFS, and the storage stack talks to RustFS on `localhost:9000`.
@@ -42,6 +42,31 @@ An `apply` also deploys what Terraform can't compare by itself: `scripts/infra.p
 a checksum of `charts/wikipulse`, so an edited template is upgraded without a chart
 version bump, and the release carries a checksum of the Secret's values, so a changed
 password restarts the pods (they read the Secret only at start).
+
+## Monitoring (spec 09a)
+
+The cluster stack also installs Prometheus and Grafana (`cluster/monitoring.tf`, the
+community chart kube-prometheus-stack, namespace `monitoring`), with WikiPulse's alert
+rules and dashboards from `observability/`. `-var monitoring=false` leaves them out.
+
+```
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80        # Grafana
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090   # Prometheus
+kubectl -n monitoring get secret kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}"   # base64
+```
+
+(`terraform output grafana` prints the same commands.) In Grafana, the folder
+**WikiPulse** holds the four dashboards; in Prometheus, **Alerts** shows the rules.
+
+A session without the live stream (the placeholder contact in `.env`): deploy the replay
+overlay, let Prometheus scrape a replay running on the laptop, then start the replay:
+
+```
+uv run python scripts/infra.py cluster apply -var offline=true -var replay=true -var 'host_metrics_targets={replay="host.docker.internal:9464"}'
+$env:METRICS_PORT=9464; uv run python -m wikipulse.stream.replay --file data/recordings/<recording>.jsonl --speed 2
+```
+
+Stopping the replay (Ctrl+C) fires `WikiPulseNoEvents` about two minutes later.
 
 ## Replacing the cluster
 

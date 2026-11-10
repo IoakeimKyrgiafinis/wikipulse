@@ -55,6 +55,8 @@ from wikipulse.graph.store import GraphCounts, GraphStore, build_graph_event
 from wikipulse.health import Heartbeat
 from wikipulse.llm import LLMError, get_client
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.catalog import EXTRACTION_DURATION, EXTRACTIONS, start_at_zero
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
 logger = logging.getLogger(__name__)
@@ -149,6 +151,7 @@ class GraphRunner:
         self.max_pages = max_pages
         self.max_chars = max_chars
         self.stats = RunStats()
+        start_at_zero(EXTRACTIONS, "ok", "failed")
 
     async def process(self, number: int) -> bool:
         """Extract one event into the graph. False if it failed (recorded, not raised)."""
@@ -163,10 +166,13 @@ class GraphRunner:
             message = f"{type(error).__name__}: {error}"
             logger.warning("Event %s (%s) failed, will retry: %s", event.key, event.title, message)
             await asyncio.to_thread(record_failure, self.conn, event, message, seconds)
+            EXTRACTIONS.labels("failed").inc()
             self.stats.failed += 1
             self.stats.failures.append(f"{event.key}: {message}")
             return False
         await asyncio.to_thread(record_success, self.conn, event, result)
+        EXTRACTIONS.labels("ok").inc()
+        EXTRACTION_DURATION.observe(result.seconds)
         self._count(result)
         logger.info(
             "Event %s: %d entities (%d linked), %d relations in %.1f s",
@@ -342,6 +348,7 @@ async def amain(argv: list[str] | None = None) -> int:
     setup_logging()
     logging.getLogger("httpx").setLevel(logging.WARNING)  # one INFO line per request
     logging.getLogger("neo4j").setLevel(logging.WARNING)
+    start_metrics_server(settings)
     stop = asyncio.Event()
     install_stop_handlers(stop)
     print(await run(args, settings, stop))

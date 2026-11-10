@@ -33,6 +33,8 @@ dependencies = [
     "mlflow>=3.18",
     "scikit-learn>=1.9",
     "matplotlib>=3.11",
+    # Stage 9 (spec 09a): every service exposes Prometheus metrics on /metrics.
+    "prometheus-client>=0.21",
 ]
 
 [project.optional-dependencies]

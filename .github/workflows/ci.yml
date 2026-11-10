@@ -100,12 +100,21 @@ jobs:
             helm template wikipulse charts/wikipulse --namespace wikipulse \
               -f charts/wikipulse/values-$env.yaml > /dev/null
           done
+          # The replay overlay (spec 09a) goes on top of dev and offline, as Terraform adds it.
+          helm lint charts/wikipulse --strict -f charts/wikipulse/values-dev.yaml \
+            -f charts/wikipulse/values-offline.yaml -f charts/wikipulse/values-replay.yaml
 
       - name: Lint
         run: uv run ruff check .
 
       - name: Check formatting
         run: uv run ruff format --check .
+
+      # promtool for the alert rules' unit tests (spec 09a): tests/test_observability.py
+      # runs `promtool check rules` and `promtool test rules` in this image, and fails in
+      # CI if it is missing. Same version as PROMETHEUS_IMAGE there.
+      - name: Pull the Prometheus image (promtool)
+        run: docker pull quay.io/prometheus/prometheus:v3.12.0
 
       - name: Run unit tests
         run: uv run pytest

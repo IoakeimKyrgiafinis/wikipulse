@@ -118,6 +118,16 @@ class Settings(BaseSettings):
     # Workers touch this file as their main loop goes round; `python -m wikipulse.health`
     # (the Kubernetes probe, spec 08a) checks it is fresh. Unset: no heartbeat.
     health_file: Path | None = None
+    # Prometheus metrics (spec 09a): every service serves /metrics on this port, from a
+    # small HTTP server thread of its own. Unset: no metrics server (the default on the
+    # laptop, where several services would otherwise fight over one port).
+    metrics_port: int | None = Field(default=None, ge=1, le=65535)
+    # The address the metrics server listens on. Loopback by default; the cluster sets
+    # 0.0.0.0 so Prometheus can reach the pods (a network policy decides who may).
+    metrics_host: str = "127.0.0.1"
+    # How long the API's model-health collector waits for Postgres at a scrape (whole
+    # seconds: libpq's connect_timeout). Short: a scrape must answer well within its 15 s.
+    metrics_db_connect_timeout_s: int = Field(default=5, ge=1, le=10)
 
     # --- Stage 1: live stream consumer ---
     # Wikimedia EventStreams endpoint for all recent changes (Server-Sent Events).

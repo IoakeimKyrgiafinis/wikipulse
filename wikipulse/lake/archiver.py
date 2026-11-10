@@ -41,6 +41,7 @@ from wikipulse.lake.lock import LockLostError, WriterLock, writer_lock_key
 from wikipulse.lake.partitions import hour_of
 from wikipulse.lake.store import LakeStore
 from wikipulse.lake.table import events_to_table
+from wikipulse.metrics.catalog import ARCHIVER_EDITS, ARCHIVER_FAILURES
 from wikipulse.stream.models import EditEvent
 
 logger = logging.getLogger(__name__)
@@ -308,6 +309,7 @@ class Archiver:
             self.flush()
             self._retry_delay_s = RETRY_MIN_S
         except OSError as exc:  # pyarrow reports S3 errors as OSError
+            ARCHIVER_FAILURES.inc()
             logger.error(
                 "Writing to the lake failed (%s); %d edits stay buffered and unacknowledged, "
                 "retrying in %.0f s",
@@ -325,6 +327,7 @@ class Archiver:
             self._hold_lock()  # never write an hour without owning the lake
             rows = self.store.merge_hour(hour, events_to_table(buffer.events))
             self._ack(buffer.entry_ids)  # only now: the hour's file is safely written
+            ARCHIVER_EDITS.inc(len(buffer.entry_ids))
             del self.buffers[hour]
             self.stats.hour_writes += 1
             logger.info(

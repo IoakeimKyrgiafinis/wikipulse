@@ -1,6 +1,6 @@
 # Spec 09a: Metrics, dashboards and alerts
 
-Status: ready
+Status: done
 Stage: 9. Observability and CI/CD
 Owner: agent
 Depends on: 08b

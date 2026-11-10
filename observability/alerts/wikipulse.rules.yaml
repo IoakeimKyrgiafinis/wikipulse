@@ -1,0 +1,111 @@
+# WikiPulse's alert rules, in Prometheus' rule-file format. Terraform loads this file into
+# the cluster as a PrometheusRule (infra/cluster/monitoring.tf); `promtool check rules`
+# and `promtool test rules wikipulse.rules.test.yaml` check it (tests/test_observability.py).
+#
+# Alert on symptoms someone would feel, not on every blip: "no news is coming in",
+# "the news is late", "the graph isn't being built", "the model sees a different world".
+# Each rule says how long the symptom must last (`for`, or the window in the
+# expression) before anyone is bothered, and what to look at (`annotations`).
+groups:
+  - name: wikipulse-pipeline
+    rules:
+      # The stream writer (the live consumer, or a replay) wrote no edit for 2 minutes.
+      # English Wikipedia gets about one article edit per second, so 2 minutes of nothing
+      # is never normal. The 2-minute window is the debounce: one missed scrape doesn't
+      # fire it. Two cases: the writer runs but writes nothing (no increase), or it is
+      # gone and its metrics with it (absent).
+      - alert: WikiPulseNoEvents
+        expr: |
+          sum(increase(wikipulse_consumer_messages_total{outcome="kept"}[2m])) == 0
+          or absent_over_time(wikipulse_consumer_messages_total{outcome="kept"}[2m])
+        labels:
+          severity: critical
+        annotations:
+          summary: No edits written to the stream for 2 minutes
+          description: >-
+            The consumer (or replay) wrote no English Wikipedia edit in the last 2 minutes.
+            Check the consumer pod (`kubectl -n wikipulse logs deploy/consumer`), its
+            reconnects, and whether Wikimedia's stream is up.
+
+      # The newest written edit is more than 5 minutes old (live: by the wall clock; a
+      # replay: by its own event-time clock). Users see stale news.
+      - alert: WikiPulseConsumerLagHigh
+        expr: max(wikipulse_consumer_lag_seconds) > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stream writer is {{ $value | humanizeDuration }} behind"
+          description: >-
+            The newest edit in the stream is more than 5 minutes old. The consumer is
+            reconnecting, throttled, or catching up after a restart.
+
+      # The detector (the stream's reading side, a Redis consumer group) is more than 5
+      # minutes of event time behind what the writer wrote: spikes are found late.
+      - alert: WikiPulseDetectorLagHigh
+        expr: |
+          max(wikipulse_consumer_last_event_timestamp_seconds)
+            - max(wikipulse_detector_last_event_timestamp_seconds) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Detector is {{ $value | humanizeDuration }} of event time behind the stream"
+          description: >-
+            The detector reads more slowly than edits arrive, or is stuck. Its queue:
+            wikipulse_detector_stream_lag_entries.
+
+      # A WikiPulse process's /metrics didn't answer for 5 minutes: crashed, stuck, or OOM.
+      # `system="wikipulse"` is set by every WikiPulse scrape target (the pods' PodMonitor
+      # and the host targets, infra/cluster/monitoring.tf), whatever namespace the pods
+      # run in; Prometheus' and Grafana's own targets don't have it.
+      - alert: WikiPulseServiceDown
+        expr: up{system="wikipulse"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} is not answering"
+          description: "Prometheus could not scrape {{ $labels.instance }} for 5 minutes."
+
+  - name: wikipulse-graph
+    rules:
+      # More than a quarter of the graph extractions failed over 30 minutes, with at
+      # least 4 attempts (two failures out of three is not yet a trend). Failed events are
+      # retried, so a short burst (Ollama restarting) heals itself and stays quiet.
+      - alert: WikiPulseExtractionFailuresHigh
+        expr: |
+          (
+            sum(increase(wikipulse_extractions_total{outcome="failed"}[30m]))
+              / sum(increase(wikipulse_extractions_total[30m]))
+          ) > 0.25
+          and sum(increase(wikipulse_extractions_total[30m])) >= 4
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of graph extractions fail"
+          description: >-
+            The graph runner's extractions fail. Look at its log and the table
+            graph_extractions (error column): the LLM (Ollama down, invalid JSON),
+            Wikimedia, or Neo4j.
+
+  - name: wikipulse-model
+    rules:
+      # The newest drift report of a model and detector run says "drift", and it is
+      # recent (period ended within 8 days; the drift check runs weekly). Information
+      # for the human: the retraining DAG decides on its own whether to promote a model.
+      - alert: WikiPulseDriftDetected
+        expr: |
+          max by (model_name, model_version, run_id) (wikipulse_drift_detected) == 1
+          and on (model_name, model_version, run_id)
+            (time() - max by (model_name, model_version, run_id)
+              (wikipulse_drift_report_period_end_timestamp_seconds)) < 8 * 86400
+        labels:
+          severity: info
+        annotations:
+          summary: "Drift: {{ $labels.model_name }} v{{ $labels.model_version }} on run {{ $labels.run_id }}"
+          description: >-
+            The weekly drift check found the model's inputs or scores shifted. Read the
+            report (`uv run python -m wikipulse.ml.drift ...`) and the Model health
+            dashboard; the retraining DAG compares a challenger on fresh data.

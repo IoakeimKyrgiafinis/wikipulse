@@ -46,6 +46,8 @@ from mlflow import MlflowClient
 from wikipulse.config import Settings, get_settings
 from wikipulse.db.scores import SpikeScore, SpikeToScore, spikes_to_score, upsert_scores
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.catalog import MODEL_SCORED, MODEL_SCORES
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.ml.dataset import revision_at
 from wikipulse.ml.features import HISTORY, PageEdit, PageSnapshot, SpikeWindow, check_no_leakage
 from wikipulse.ml.models import INPUT_COLUMNS, RULE_COLUMN, TEXT_COLUMN
@@ -482,6 +484,7 @@ class LiveScorer:
         )
         upsert_scores(self.conn, scores)
         log_scores(scores, {s.id: s.title for s in spikes})
+        record_score_metrics(scores)
         self.scored += len(scores)
         return len(scores)
 
@@ -511,6 +514,13 @@ class LiveScorer:
                 break
         logger.info("Scored %d spikes of run %s", self.scored, self.run_id)
         return self.scored
+
+
+def record_score_metrics(scores: Sequence[SpikeScore]) -> None:
+    """The live scores as metrics: their distribution and the news share per version."""
+    for score in scores:
+        MODEL_SCORES.labels(score.model_version).observe(score.score)
+        MODEL_SCORED.labels(score.model_version, str(score.is_news).lower()).inc()
 
 
 # --- backfill: edits from the lake ----------------------------------------------------
@@ -610,6 +620,7 @@ def main(argv: list[str] | None = None) -> int:
             news = sum(s.is_news for s in scores)
             print(f"Scored {len(scores)} spikes of run {args.run_id}: {news} flagged as news")
             return 0
+        start_metrics_server(settings)
         client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
         scorer = LiveScorer(
             client,

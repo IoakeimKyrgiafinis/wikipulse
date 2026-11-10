@@ -34,6 +34,15 @@ import redis
 from pydantic import ValidationError
 
 from wikipulse.detect.detector import SpikeDetector, SpikeRecord
+from wikipulse.metrics.catalog import (
+    DETECTOR_ENTRIES,
+    DETECTOR_LAST_EVENT,
+    DETECTOR_PENDING,
+    DETECTOR_STREAM_LAG,
+    SPIKES_ACTIVE,
+    SPIKES_STARTED,
+    start_at_zero,
+)
 from wikipulse.stream.models import EditEvent
 
 logger = logging.getLogger(__name__)
@@ -106,6 +115,7 @@ class DetectionRunner:
         self._unacked: list[str] = []
         self._last_snapshot = monotonic()
         self.processed = 0  # entries applied in this process (not counting skipped ones)
+        start_at_zero(SPIKES_STARTED, "short", "long")
 
     # --- setup ---
 
@@ -205,9 +215,14 @@ class DetectionRunner:
                 continue  # already in the restored state
             self.last_id = entry_id
             self.processed += 1
+            DETECTOR_ENTRIES.inc()
             event = self._parse(entry_id, fields)
             if event is not None:
                 self.detector.process(event)
+                newest = self.detector.now
+                if newest is not None:  # the watermark: the newest event time seen
+                    DETECTOR_LAST_EVENT.set(newest)
+        SPIKES_ACTIVE.set(len(self.detector.active))
 
     @staticmethod
     def _parse(entry_id: str, fields: dict[str, str] | None) -> EditEvent | None:
@@ -257,6 +272,21 @@ class DetectionRunner:
         baselines.removed.clear()
         self._unacked.clear()
         self._last_snapshot = self._monotonic()
+        self.update_queue_metrics()
+
+    def update_queue_metrics(self) -> None:
+        """The queue in front of the detector, from Redis: entries not yet delivered to the
+        group (`lag`) and delivered but not acknowledged (`pending`). Once per snapshot."""
+        try:
+            groups = self.client.xinfo_groups(self.stream)
+        except redis.RedisError as exc:  # metrics must never stop detection
+            logger.debug("Could not read the group's lag: %s", exc)
+            return
+        for group in groups:
+            if group.get("name") == self.keys.group:
+                if group.get("lag") is not None:  # unknown after deletions in the stream
+                    DETECTOR_STREAM_LAG.set(group["lag"])
+                DETECTOR_PENDING.set(group.get("pending", 0))
 
 
 def reset_run(client: redis.Redis, stream: str, keys: DetectKeys) -> None:

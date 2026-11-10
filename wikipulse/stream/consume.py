@@ -20,6 +20,7 @@ import redis.asyncio as aioredis
 from wikipulse.config import Settings, get_settings
 from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.consumer import LIVE_NAMESPACE, Consumer, RedisKeys
 from wikipulse.stream.lease import StreamLease
 from wikipulse.stream.resilience import Backoff, install_stop_handlers
@@ -107,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     setup_logging()
     warn_if_placeholder_user_agent(settings)
+    start_metrics_server(settings)
     return 0 if asyncio.run(run(args, settings)) else 1
 
 

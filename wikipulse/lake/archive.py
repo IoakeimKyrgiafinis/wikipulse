@@ -29,6 +29,7 @@ from wikipulse.lake.archiver import DEFAULT_CONSUMER, Archiver, ArchiveStats, re
 from wikipulse.lake.lock import LockLostError
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.server import start_metrics_server
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     settings = get_settings()
     setup_logging()
+    start_metrics_server(settings)
     stop = StopFlag()
     stop.install()
     try:

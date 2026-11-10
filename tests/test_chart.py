@@ -30,6 +30,7 @@ ENVIRONMENTS = {
     "prod": ("values-prod.yaml",),
     "dev-offline": ("values-dev.yaml", "values-offline.yaml"),
     "prod-offline": ("values-prod.yaml", "values-offline.yaml"),
+    "dev-offline-replay": ("values-dev.yaml", "values-offline.yaml", "values-replay.yaml"),
 }
 
 if shutil.which("helm") is None and not os.environ.get("CI"):
@@ -177,10 +178,16 @@ def test_every_pod_has_an_egress_policy_and_everything_else_is_denied(env: str) 
         if "Egress" in p["spec"]["policyTypes"] and p["spec"]["podSelector"]
     }
     assert selected == set(DEPLOYMENTS) | {"migrate"}
-    assert [name for name, p in policies.items() if p["spec"].get("ingress")] == ["api-ingress"]
+    ingress = [name for name, p in policies.items() if p["spec"].get("ingress")]
+    assert sorted(ingress) == ["api-ingress", "metrics-ingress"]
     (rule,) = policies["api-ingress"]["spec"]["ingress"]
     assert rule["from"] == [{"podSelector": {}}]  # no namespaceSelector, no ipBlock
     assert rule["ports"] == [{"protocol": "TCP", "port": 8000}]
+    # Prometheus' namespace may reach the metrics port of every pod, and nothing else.
+    (rule,) = policies["metrics-ingress"]["spec"]["ingress"]
+    namespace = {"kubernetes.io/metadata.name": "monitoring"}
+    assert rule["from"] == [{"namespaceSelector": {"matchLabels": namespace}}]
+    assert rule["ports"] == [{"protocol": "TCP", "port": 9400}]
 
 
 def test_egress_ports_are_the_ones_each_service_needs() -> None:
@@ -352,3 +359,41 @@ def test_offline_runs_nothing_that_calls_wikimedia(env: str) -> None:
     counts = replicas(render(ENVIRONMENTS[env]))
     assert {name: counts[name] for name in CALLS_WIKIMEDIA} == dict.fromkeys(CALLS_WIKIMEDIA, 0)
     assert all(counts[name] >= 1 for name in DEPLOYMENTS if name not in CALLS_WIKIMEDIA)
+
+
+# --- metrics (spec 09a) ---
+
+
+def container(deployment: dict) -> dict:
+    (only,) = pod_spec(deployment)["containers"]
+    return only
+
+
+@pytest.mark.parametrize("env", ENVIRONMENTS)
+def test_every_service_serves_metrics_on_its_named_port(env: str) -> None:
+    for name, deployment in of_kind(render(ENVIRONMENTS[env]), "Deployment").items():
+        main = container(deployment)
+        env_vars = {item["name"]: item["value"] for item in main["env"]}
+        assert env_vars["METRICS_PORT"] == "9400", name
+        assert env_vars["METRICS_HOST"] == "0.0.0.0", name
+        assert {"name": "metrics", "containerPort": 9400} in main["ports"], name
+
+
+def test_metrics_can_be_turned_off() -> None:
+    docs = render(sets=("metrics.enabled=false",))
+    for name, deployment in of_kind(docs, "Deployment").items():
+        main = container(deployment)
+        assert "METRICS_PORT" not in {item["name"] for item in main.get("env", [])}, name
+        assert all(port["name"] != "metrics" for port in main.get("ports", [])), name
+    assert "metrics-ingress" not in of_kind(docs, "NetworkPolicy")
+
+
+def test_the_replay_overlay_reads_the_replay_stream_as_its_own_run() -> None:
+    docs = render(ENVIRONMENTS["dev-offline-replay"])
+    deployments = of_kind(docs, "Deployment")
+    detector = container(deployments["detector"])["command"]
+    assert detector[-4:] == ["--stream-key", "wiki:replay:edits", "--run-id", "replay"]
+    assert container(deployments["grouper"])["command"][-2:] == ["--spike-run", "replay"]
+    assert of_kind(docs, "ConfigMap")["wikipulse-config"]["data"]["API_RUN_ID"] == "replay"
+    # The archiver still reads the live stream: replayed edits never reach the lake.
+    assert "--stream-key" not in container(deployments["archiver"])["command"]

@@ -32,3 +32,20 @@ output "api_port_forward" {
   description = "Run this to reach the API from the host."
   value       = "kubectl --context ${kind_cluster.this.context_name} -n ${kubernetes_namespace_v1.wikipulse.metadata[0].name} port-forward svc/api 8000:8000"
 }
+
+output "grafana" {
+  description = "Grafana: the port-forward command, the address, and how to read the admin password."
+  value = var.monitoring ? {
+    port_forward  = "kubectl --context ${kind_cluster.this.context_name} -n ${var.monitoring_namespace} port-forward svc/kube-prometheus-stack-grafana 3000:80"
+    url           = "http://localhost:3000 (user admin)"
+    read_admin_pw = "kubectl --context ${kind_cluster.this.context_name} -n ${var.monitoring_namespace} get secret kube-prometheus-stack-grafana -o jsonpath={.data.admin-password} | base64 -d"
+  } : null
+}
+
+output "prometheus" {
+  description = "Prometheus: the port-forward command and the address (Alerts, Graph, Targets)."
+  value = var.monitoring ? {
+    port_forward = "kubectl --context ${kind_cluster.this.context_name} -n ${var.monitoring_namespace} port-forward svc/kube-prometheus-stack-prometheus 9090:9090"
+    url          = "http://localhost:9090"
+  } : null
+}

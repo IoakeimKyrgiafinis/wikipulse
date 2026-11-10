@@ -21,6 +21,7 @@ from typing import Any, Self
 from wikipulse.llm.errors import StructuredOutputError
 from wikipulse.llm.schema import schema_errors
 from wikipulse.llm.types import LLMResponse, Message, ToolSpec, Usage
+from wikipulse.metrics.catalog import LLM_LATENCY, LLM_REQUESTS, LLM_TOKENS
 
 logger = logging.getLogger(__name__)
 
@@ -144,10 +145,19 @@ class LLMClient(ABC):
         return second
 
     def _ask(self, request: ChatRequest) -> LLMResponse:
-        """One request: send it, time it, separate the thinking, record the usage."""
+        """One request: send it, time it, separate the thinking, record the usage.
+
+        Every request also lands in the LLM metrics (latency, tokens, errors), so all
+        callers, extraction, questions, the agent, are measured in one place.
+        """
         started = time.perf_counter()
-        response = self._send(request)
+        try:
+            response = self._send(request)
+        except Exception:
+            LLM_REQUESTS.labels(self.backend, self.model, "error").inc()
+            raise
         response.usage.latency_s = time.perf_counter() - started
+        self._record_metrics(response.usage)
         response.usage.calls = 1
         text, thinking = split_thinking(response.text)
         parts = [part for part in (response.thinking, thinking) if part]
@@ -165,6 +175,13 @@ class LLMClient(ABC):
             response.stop_reason,
         )
         return response
+
+    def _record_metrics(self, usage: Usage) -> None:
+        labels = (self.backend, self.model)
+        LLM_REQUESTS.labels(*labels, "ok").inc()
+        LLM_LATENCY.labels(*labels).observe(usage.latency_s)
+        LLM_TOKENS.labels(*labels, "input").inc(usage.input_tokens)
+        LLM_TOKENS.labels(*labels, "output").inc(usage.output_tokens)
 
     @abstractmethod
     def _send(self, request: ChatRequest) -> LLMResponse:

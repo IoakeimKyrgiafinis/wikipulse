@@ -47,6 +47,43 @@ variable "offline" {
   default     = false
 }
 
+variable "replay" {
+  description = <<-EOT
+    true: add values-replay.yaml, so the detector, grouper and API work on the replay
+    stream (run "replay") fed from the laptop by `wikipulse.stream.replay`.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "monitoring" {
+  description = "Install Prometheus and Grafana (kube-prometheus-stack) with WikiPulse's alerts and dashboards (monitoring.tf)."
+  type        = bool
+  default     = true
+}
+
+variable "monitoring_namespace" {
+  description = "Namespace of Prometheus and Grafana. The WikiPulse pods accept scrapes from this namespace only."
+  type        = string
+  default     = "monitoring"
+}
+
+variable "kube_prometheus_stack_version" {
+  description = "Version of the kube-prometheus-stack chart (prometheus-community)."
+  type        = string
+  default     = "93.1.2"
+}
+
+variable "host_metrics_targets" {
+  description = <<-EOT
+    WikiPulse processes on the host for Prometheus to scrape too, service name =>
+    host:port. Example, a replay started with METRICS_PORT=9464 on the laptop:
+    -var 'host_metrics_targets={replay="host.docker.internal:9464"}'
+  EOT
+  type        = map(string)
+  default     = {}
+}
+
 variable "image_tag" {
   description = "Tag of the wikipulse image to load and deploy, built first by `scripts/cluster.py build`."
   type        = string

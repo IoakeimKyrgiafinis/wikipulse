@@ -67,6 +67,25 @@ spec:
         - podSelector: {}  # any pod of this namespace, nothing outside it
       ports:
         - {protocol: TCP, port: {{ .Values.api.port }}}
+{{- if .Values.metrics.enabled }}
+---
+# Prometheus, in its own namespace, may scrape every pod's metrics port, and only that.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: metrics-ingress
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ .Values.metrics.scraperNamespace }}}
+      ports:
+        - {protocol: TCP, port: {{ .Values.metrics.port }}}
+{{- end }}
 ---
 # The migration Job (a hook, see migrate-job.yaml) only needs Postgres.
 apiVersion: networking.k8s.io/v1

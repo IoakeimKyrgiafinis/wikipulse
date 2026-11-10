@@ -5,6 +5,7 @@ locals {
   values_files = concat(
     ["${local.chart}/values-${var.environment}.yaml"],
     var.offline ? ["${local.chart}/values-offline.yaml"] : [],
+    var.replay ? ["${local.chart}/values-replay.yaml"] : [],
   )
   labels = { "app.kubernetes.io/part-of" = "wikipulse" }
   # The Secret's values, also hashed into the release below (see there).
@@ -105,7 +106,7 @@ resource "kubernetes_secret_v1" "wikipulse" {
 # --- the release ---
 
 # The same as `helm upgrade --install wikipulse charts/wikipulse -f values-<env>.yaml
-# [-f values-offline.yaml] --set image.tag=<tag> --wait`. Helm runs the migration hook
+# [-f values-offline.yaml] [-f values-replay.yaml] --set image.tag=<tag> --wait`. Helm runs the migration hook
 # first and waits for the pods.
 #
 # The provider only compares the release's *inputs* (chart version, values), not the
@@ -123,6 +124,8 @@ resource "helm_release" "wikipulse" {
   set = [
     { name = "image.tag", value = var.image_tag },
     { name = "checksums.chart", value = var.chart_checksum },
+    # The pods accept metric scrapes from Prometheus' namespace only (monitoring.tf).
+    { name = "metrics.scraperNamespace", value = var.monitoring_namespace },
   ]
   # A hash of secrets is still kept out of the plan output.
   set_sensitive = [
