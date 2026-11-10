@@ -44,6 +44,7 @@ from typing import Any
 from wikipulse.config import DetectorConfig
 from wikipulse.detect.baseline import Baselines
 from wikipulse.detect.windows import PageWindows, WindowCounts
+from wikipulse.metrics.catalog import SPIKES_STARTED
 from wikipulse.stream.models import EditEvent
 
 logger = logging.getLogger(__name__)
@@ -285,6 +286,7 @@ class SpikeDetector:
         )
         self.active[title] = spike
         self._changed[spike.key] = spike
+        SPIKES_STARTED.labels(window).inc()
         logger.info(
             "Spike started (%s window): %s (%d edits, %d editors, expected %.2f, score %.1f)",
             window,

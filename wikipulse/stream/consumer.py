@@ -19,6 +19,10 @@ we resume from the checkpoint; anything the server sends again is skipped by ste
 The live consumer also holds the stream's writer lease (`wikipulse.stream.lease`), and
 both scripts first check that it still does (step 0). A consumer that lost the lease
 gets `LeaseLost` and writes nothing, so two consumers never write the stream at once.
+
+Metrics (spec 09a): every handled message counts in `wikipulse_consumer_messages_total`
+by outcome, and every written edit moves the lag clock (`wikipulse.stream.lag`). The
+replay uses this same class, so a replay exports the same metrics as the live consumer.
 """
 
 import asyncio
@@ -34,7 +38,14 @@ import redis.asyncio as aioredis
 from pydantic import ValidationError
 from redis.exceptions import ResponseError
 
+from wikipulse.metrics.catalog import (
+    CONSUMER_LAG,
+    CONSUMER_LAST_EVENT,
+    CONSUMER_MESSAGES,
+    CONSUMER_RECONNECTS,
+)
 from wikipulse.stream.filters import is_wanted, normalize
+from wikipulse.stream.lag import WallClockLag
 from wikipulse.stream.lease import LeaseLost, StreamLease
 from wikipulse.stream.models import EditEvent
 from wikipulse.stream.resilience import Backoff, run_with_reconnect, until_stop
@@ -138,11 +149,15 @@ class Consumer:
         maxlen: int,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         lease: StreamLease | None = None,
+        lag: WallClockLag | None = None,
     ) -> None:
         self.redis = redis
         self.keys = keys
         self.maxlen = maxlen
         self.lease = lease  # None: no lease check (replay, tests)
+        # The lag metric: wall clock by default, the replay's own clock in a replay.
+        self.lag = lag or WallClockLag()
+        CONSUMER_LAG.set_function(self.lag.seconds)
         self._clock = clock  # only for the `received_at` metadata, never for processing logic
         self._write_script = redis.register_script(_WRITE_SCRIPT)
         self._skip_script = redis.register_script(_SKIP_SCRIPT)
@@ -179,12 +194,19 @@ class Consumer:
             "1" if event.is_bot else "0",
         ]
         entry_id = await self._run(self._write_script, event.event_id, args)
-        return Outcome.KEPT if entry_id is not None else Outcome.DUPLICATE
+        if entry_id is None:
+            CONSUMER_MESSAGES.labels(Outcome.DUPLICATE.value).inc()
+            return Outcome.DUPLICATE
+        CONSUMER_MESSAGES.labels(Outcome.KEPT.value).inc()
+        CONSUMER_LAST_EVENT.set(event.event_time.timestamp())
+        self.lag.observe(event.event_time)
+        return Outcome.KEPT
 
     async def _skip(self, sse_id: str | None, outcome: Outcome) -> Outcome:
         """Count a message we don't write, and still move the checkpoint past it."""
         args = [sse_id or "", outcome.value, "", "", "", "", ""]
         await self._run(self._skip_script, "", args)
+        CONSUMER_MESSAGES.labels(outcome.value).inc()
         return outcome
 
     async def _run(self, script: Any, event_id: str, args: list[Any]) -> Any:
@@ -207,6 +229,7 @@ class Consumer:
     async def count_reconnect(self) -> None:
         """Add one to the `reconnects` counter."""
         await self.redis.hincrby(self.keys.stats, "reconnects", 1)
+        CONSUMER_RECONNECTS.inc()
 
     async def consume(
         self, source: Source, stop: asyncio.Event, last_event_id: str | None = None

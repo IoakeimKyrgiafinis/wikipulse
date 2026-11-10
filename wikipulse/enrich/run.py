@@ -32,6 +32,7 @@ from wikipulse.enrich.client import ClientStats, WikiApiError, WikimediaClient
 from wikipulse.enrich.pages import Enricher, PageStatus
 from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,7 @@ async def amain(argv: list[str] | None = None) -> int:
     settings = get_settings()
     setup_logging()
     logging.getLogger("httpx").setLevel(logging.WARNING)  # one INFO line per request
+    start_metrics_server(settings)
     stop = asyncio.Event()
     install_stop_handlers(stop)
     report = await run(args, settings, stop)

@@ -15,6 +15,8 @@ from wikipulse.api.app import build_app
 from wikipulse.config import Settings, get_settings
 from wikipulse.logging_setup import setup_logging
 from wikipulse.mcp_server.server import check_host
+from wikipulse.metrics.models import register_model_health
+from wikipulse.metrics.server import start_metrics_server
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     host = listen_host(args.host or settings.api_host, settings.api_listen_all)
     port = args.port or settings.api_port
     logger.info("WikiPulse at http://%s:%d (run %s)", host, port, settings.api_run_id)
+    if start_metrics_server(settings) is not None:
+        register_model_health(settings.postgres_dsn)
     uvicorn.run(
         build_app(settings),
         host=host,

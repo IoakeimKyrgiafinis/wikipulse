@@ -39,6 +39,7 @@ from wikipulse.api.models import AskRequest, AskResult, EventDetailOut, EventLis
 from wikipulse.config import Settings
 from wikipulse.llm.errors import LLMError
 from wikipulse.mcp_server.explore import UNREACHABLE, Explorer, ToolInputError
+from wikipulse.metrics.catalog import QUESTION_DURATION, QUESTIONS, WEBSOCKET_CLIENTS
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,7 @@ def create_app(
     app.state.reader = reader
     app.state.watcher = watcher
     app.state.broadcaster = broadcaster
+    WEBSOCKET_CLIENTS.set_function(lambda: broadcaster.count)
     app.state.gate = gate
     # Only requests addressed to this machine: a web page elsewhere can't reach the API by
     # pointing a domain name at 127.0.0.1 (DNS rebinding).
@@ -216,18 +218,27 @@ def _add_routes(app: FastAPI, reader: EventReader, explorer: Explorer, gate: Que
         """Answer a question from the knowledge graph (GraphRAG) with numbered citations.
         Slow: 5 to 60 seconds. Questions run one at a time."""
         if not gate.try_enter():
+            QUESTIONS.labels("busy").inc()
             raise HTTPException(429, "Too many questions waiting. Try again in a minute.")
+        outcome = "error"  # anything not caught below
         try:
-            return await anyio.to_thread.run_sync(explorer.ask, body.question)
+            with QUESTION_DURATION.time():
+                answer = await anyio.to_thread.run_sync(explorer.ask, body.question)
+            outcome = "ok"
+            return answer
         except ToolInputError as error:
+            outcome = "invalid"
             raise HTTPException(422, str(error)) from error
         except UNREACHABLE as error:
+            outcome = "unavailable"
             logger.warning("Neo4j is not reachable: %s", error)
             raise HTTPException(503, GRAPH_DOWN) from error
         except LLMError as error:
+            outcome = "unavailable"
             logger.warning("The answering model failed: %s", error)
             raise HTTPException(503, f"The answering model failed: {error}") from error
         finally:
+            QUESTIONS.labels(outcome).inc()
             gate.leave()
 
     @app.get("/health", tags=["service"])

@@ -42,6 +42,8 @@ from wikipulse.events.grouper import Event, Grouper, Member
 from wikipulse.events.similarity import SpikePage
 from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.catalog import GROUPER_ACTIVE_EVENTS, GROUPER_SPIKES
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
 logger = logging.getLogger(__name__)
@@ -167,6 +169,7 @@ class GroupingRunner:
             self.stats.spikes += 1
             self.stats.not_enriched += not row.enriched
             self.stats.created += assignment.created
+            GROUPER_SPIKES.labels("created" if assignment.created else "joined").inc()
             self.stats.joined += not assignment.created
             self.stats.merges += len(assignment.merged)
         watermark = latest_edit_time(self.conn, self.spike_run_id)
@@ -175,6 +178,7 @@ class GroupingRunner:
         if watermark is not None:
             self.grouper.advance(watermark)
         save_events(self.conn, self.run_id, self.spike_run_id, self.grouper.take_changes())
+        GROUPER_ACTIVE_EVENTS.set(len(self.grouper.active))
         return len(rows)
 
 
@@ -223,6 +227,7 @@ async def run(args: argparse.Namespace, stop: asyncio.Event) -> RunStats:
 async def amain(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     setup_logging()
+    start_metrics_server(get_settings())
     stop = asyncio.Event()
     install_stop_handlers(stop)
     stats = await run(args, stop)

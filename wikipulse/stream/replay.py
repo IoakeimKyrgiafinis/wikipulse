@@ -11,6 +11,9 @@ the live stream or the live consumer's checkpoint. Each run deduplicates on its 
 (fresh dedup keys), so replaying the same file twice writes the same events twice.
 `--stream-key` picks another stream; pointing it at the live `STREAM_KEY` logs a loud
 warning, because events the live consumer already wrote would then appear twice.
+
+With `METRICS_PORT` set, the replay serves the consumer's metrics (spec 09a), with the lag
+measured against the replay's own event-time clock (`wikipulse.stream.lag.ReplayLag`).
 """
 
 import argparse
@@ -24,7 +27,9 @@ import redis.asyncio as aioredis
 
 from wikipulse.config import Settings, get_settings
 from wikipulse.logging_setup import setup_logging
+from wikipulse.metrics.server import start_metrics_server
 from wikipulse.stream.consumer import Consumer, RedisKeys
+from wikipulse.stream.lag import ReplayLag
 from wikipulse.stream.resilience import install_stop_handlers
 from wikipulse.stream.sources import FileSource
 
@@ -92,7 +97,7 @@ async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
     redis = aioredis.Redis.from_url(settings.redis_url, decode_responses=True)
     try:
         await redis.delete(keys.stats)  # stats describe this replay only
-        consumer = Consumer(redis, keys, settings.stream_maxlen)
+        consumer = Consumer(redis, keys, settings.stream_maxlen, lag=ReplayLag(args.speed))
         speed = "max" if args.speed is None else f"{args.speed:g}x"
         logger.info("Replaying %s into %s at speed %s", args.file, keys.stream, speed)
         await consumer.consume(FileSource(args.file, speed=args.speed), stop)
@@ -108,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     settings = get_settings()
     setup_logging()
+    start_metrics_server(settings)
     stats = asyncio.run(run(args, settings))
     print("Replay finished: " + ", ".join(f"{k}={v}" for k, v in sorted(stats.items())))
     return 0

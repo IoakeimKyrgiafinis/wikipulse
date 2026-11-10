@@ -29,6 +29,7 @@ import httpx
 
 from wikipulse.enrich.cache import ResponseCache
 from wikipulse.eval.wiki_client import RETRY_STATUSES
+from wikipulse.metrics.catalog import WIKI_API_REQUESTS
 from wikipulse.stream.resilience import Backoff
 
 logger = logging.getLogger(__name__)
@@ -157,6 +158,7 @@ class WikimediaClient:
         cached = await self.cache.get(key, self.ttl)
         if cached is not None:
             self.stats.cache_hits += 1
+            WIKI_API_REQUESTS.labels("cache").inc()
             return ApiResponse(cached.status, cached.body, from_cache=True)
         self.stats.cache_misses += 1
         status, body = await self._fetch(url, params)
@@ -183,9 +185,11 @@ class WikimediaClient:
         try:
             response = await self._send(url, params)
         except httpx.TransportError as error:
+            WIKI_API_REQUESTS.labels("error").inc()
             return Retry(f"{type(error).__name__}: {error}")
         status = response.status_code
         self.stats.by_status[status] = self.stats.by_status.get(status, 0) + 1
+        WIKI_API_REQUESTS.labels(str(status)).inc()
         if status in RETRY_STATUSES:
             return Retry(f"HTTP {status}", retry_after_s(response))
         if status not in CACHEABLE_STATUSES:
