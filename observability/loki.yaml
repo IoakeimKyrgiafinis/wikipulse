@@ -1,0 +1,65 @@
+# Values for the community chart grafana/loki, installed by Terraform
+# (infra/cluster/logging.tf) into the monitoring namespace (spec 09b).
+#
+# Lean for a laptop: Loki as one process ("single binary": ingester, querier, compactor
+# in one pod), chunks and index on a local volume, no caches, no gateway, no canary. The
+# chart's defaults are a scalable install with object storage and memcached caches of
+# several GB; WikiPulse writes a few lines a second.
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false  # one tenant ("fake"); nobody outside the cluster reaches Loki
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2026-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13  # needed for structured metadata (correlation_id, see alloy/)
+        index:
+          prefix: loki_index_
+          period: 24h
+  limits_config:
+    allow_structured_metadata: true
+    retention_period: 72h  # the same 3 days as Prometheus
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+  ui:
+    enabled: false
+
+singleBinary:
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  persistence:
+    enabled: true
+    size: 2Gi
+
+# --- off: the scalable install and its helpers ---
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+gateway:
+  enabled: false
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+minio:
+  enabled: false
+sidecar:
+  rules:
+    enabled: false

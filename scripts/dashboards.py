@@ -25,6 +25,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "observability" / "dashboards"
 DATASOURCE = {"type": "prometheus", "uid": "prometheus"}  # the uid kube-prometheus-stack sets
+LOKI = {"type": "loki", "uid": "loki"}  # the uid of the Loki data source (monitoring.tf)
 WIDTH = 24  # Grafana's grid is 24 columns wide
 
 GREEN, YELLOW, RED = "green", "yellow", "red"
@@ -57,6 +58,7 @@ class Panel:
     mappings: list[dict[str, Any]] = field(default_factory=list)
     options: dict[str, Any] = field(default_factory=dict)
     decimals: int | None = None
+    datasource: dict[str, str] = field(default_factory=lambda: DATASOURCE)
 
     def to_json(self, panel_id: int, x: int, y: int) -> dict[str, Any]:
         defaults: dict[str, Any] = {"unit": self.unit, "mappings": self.mappings}
@@ -70,14 +72,14 @@ class Panel:
             "type": self.kind,
             "title": self.title,
             "description": self.description,
-            "datasource": DATASOURCE,
+            "datasource": self.datasource,
             "gridPos": {"x": x, "y": y, "w": self.width, "h": self.height},
             "fieldConfig": {"defaults": defaults, "overrides": []},
             "options": self.options,
             "targets": [
                 {
                     "refId": chr(ord("A") + i),
-                    "datasource": DATASOURCE,
+                    "datasource": self.datasource,
                     "expr": q.expr,
                     "legendFormat": q.legend,
                     "range": True,
@@ -115,6 +117,23 @@ def bars(title: str, queries: list[Query], description: str, **kw: Any) -> Panel
         "showUnfilled": True,
     }
     return Panel(title, "bargauge", queries, description, options=options, **kw)
+
+
+def logs(title: str, expr: str, description: str, **kw: Any) -> Panel:
+    """A Loki logs panel: the lines themselves, oldest first."""
+    options = {
+        "showTime": True,
+        "showLabels": False,
+        "showCommonLabels": False,
+        "wrapLogMessage": True,
+        "prettifyLogMessage": False,
+        "enableLogDetails": True,
+        "sortOrder": "Ascending",
+        "dedupStrategy": "none",
+    }
+    kw.setdefault("width", WIDTH)
+    kw.setdefault("height", 16)
+    return Panel(title, "logs", [Query(expr)], description, options=options, datasource=LOKI, **kw)
 
 
 def layout(panels: list[Panel]) -> list[dict[str, Any]]:
@@ -568,11 +587,66 @@ def model_health() -> dict[str, Any]:
     )
 
 
+# Spec 09b: one story's trail through every service, by its correlation id.
+TRAIL = '{system="wikipulse"} | correlation_id="$correlation_id"'
+
+
+def event_trail() -> dict[str, Any]:
+    panels = [
+        Panel(
+            "Lines per service",
+            "bargauge",
+            [Query(f"sum by (service) (count_over_time({TRAIL} [$__range]))", "{{service}}")],
+            "How many log lines each service wrote about this story in the time range: "
+            "replay or consumer (the edit), detector (the spike), grouper (the event), "
+            "graph and agent (extraction and briefing, with their LLM calls).",
+            width=WIDTH,
+            height=6,
+            options={
+                "reduceOptions": {"calcs": ["sum"], "fields": "", "values": False},
+                "orientation": "horizontal",
+                "displayMode": "basic",
+                "showUnfilled": True,
+            },
+            datasource=LOKI,
+        ),
+        logs(
+            "The trail",
+            f"{TRAIL} | json",
+            "Every line carrying the correlation id, oldest first. The id is the event_id "
+            "of the edit that started the spike; the spike, its event and its briefing keep "
+            "it. Open a line for its fields (service, event_key, trace_id: the Langfuse "
+            "trace of the LLM calls).",
+        ),
+    ]
+    board = dashboard(
+        "wikipulse-trail",
+        "WikiPulse: Event trail",
+        "One story from its first edit to its briefing, across services (Loki).",
+        panels,
+    )
+    board["refresh"] = ""
+    board["time"] = {"from": "now-6h", "to": "now"}
+    board["templating"]["list"] = [
+        {
+            "name": "correlation_id",
+            "label": "Correlation id",
+            "type": "textbox",
+            "query": "",
+            "current": {"text": "", "value": ""},
+            "description": "Paste an id from a spike, an event (Postgres: correlation_id) "
+            "or any log line.",
+        }
+    ]
+    return board
+
+
 DASHBOARDS = {
     "pipeline-health.json": pipeline_health,
     "detection.json": detection,
     "llm-usage.json": llm_usage,
     "model-health.json": model_health,
+    "event-trail.json": event_trail,
 }
 
 
