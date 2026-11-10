@@ -1,0 +1,4 @@
+# Knowledge graph (stage 4): entities and relations of new events with the LLM (Ollama
+# on the host), stored in Neo4j.
+# Settings: .Values.graph in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "graph") }}

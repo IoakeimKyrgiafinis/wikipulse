@@ -1,0 +1,15 @@
+# An overlay that keeps every pod away from Wikimedia: add it after the environment file,
+#   helm upgrade --install ... -f values-dev.yaml -f values-offline.yaml
+# The services that call Wikimedia don't run: the consumer (the live stream), the
+# enricher (page summaries and links) and the graph runner (links names through
+# Wikipedia and Wikidata). The rest of the pipeline is deployed as usual.
+#
+# For CI, a cluster without a real contact address in USER_AGENT (Wikimedia's policy
+# requires one), or trying out the chart. scripts/cluster.py adds this file by itself
+# when it runs with --allow-placeholder-contact.
+consumer:
+  replicas: 0
+enricher:
+  replicas: 0
+graph:
+  replicas: 0

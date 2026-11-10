@@ -24,10 +24,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-dev --no-install-project --no-editable
 # Then WikiPulse itself, installed as a regular (non-editable) package.
+# --reinstall-package: always build it from the copied source. uv's cache (the mount)
+# keeps the built wheel of wikipulse 0.1.0 and only invalidates it when pyproject.toml
+# changes, so without this a code change could install the old code (found in 08b).
 COPY pyproject.toml uv.lock README.md ./
 COPY wikipulse ./wikipulse
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable
+    uv sync --locked --no-dev --no-editable --reinstall-package wikipulse
 
 # --- runtime: Python, the virtual environment, and an unprivileged user ---
 FROM ${PYTHON_IMAGE} AS runtime

@@ -1,6 +1,6 @@
 # Spec 08b: Helm chart
 
-Status: ready
+Status: done
 Stage: 8. Kubernetes, Helm, Terraform
 Owner: agent
 Depends on: 08a

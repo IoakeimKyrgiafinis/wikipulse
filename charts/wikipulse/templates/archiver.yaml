@@ -1,0 +1,4 @@
+# Data lake archiver (stage 6): wiki:edits -> hourly Parquet files in S3. A Redis lock
+# allows one archiver per lake.
+# Settings: .Values.archiver in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "archiver") }}

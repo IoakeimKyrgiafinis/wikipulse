@@ -1,0 +1,180 @@
+# Default values of the WikiPulse chart. The environment files override parts of them:
+#   values-dev.yaml      the local kind cluster (what scripts/cluster.py uses)
+#   values-prod.yaml     "production": more API replicas, stricter resource limits
+#   values-offline.yaml  an overlay that keeps every pod away from Wikimedia
+# Helm merges them in order: values.yaml, then each -f file, then --set.
+#
+# Fixed names, one release per namespace: the settings name the Services `redis`,
+# `postgres`, ... and the ConfigMap `wikipulse-config`; and only one consumer may ever
+# write the stream. So resource names don't carry the release name.
+
+image:
+  repository: wikipulse
+  # cluster.py sets the tag of the image it just built (--set image.tag=<commit>).
+  tag: dev
+  # kind has no registry: the image is loaded into the node, never pulled.
+  pullPolicy: IfNotPresent
+
+# The Secret with passwords, the Postgres DSN and the User-Agent. The chart never
+# contains secret values: create it first (`scripts/cluster.py secret`, or by hand
+# from secret.example.yaml).
+existingSecret: wikipulse-secrets
+
+# Settings every container reads as environment variables (wikipulse/config.py), in the
+# ConfigMap `wikipulse-config`. Only what differs from config.py's defaults; nothing secret.
+config:
+  # The stateful services stay in Docker Compose on the host; inside the cluster each
+  # has a Service name (externalServices below) that points at the host.
+  REDIS_URL: redis://redis:6379/0
+  NEO4J_URI: bolt://neo4j:7687
+  S3_ENDPOINT: http://s3:9000
+  # Ollama is called by the host's own name: it refuses requests whose Host header isn't
+  # a local name (localhost, *.local, *.internal), so an `ollama` alias got HTTP 403.
+  OLLAMA_HOST: http://host.docker.internal:11434
+  # Workers touch this file as they work; their probes run `python -m wikipulse.health`.
+  HEALTH_FILE: /tmp/heartbeat
+  LOG_LEVEL: INFO
+  # Scratch space only: the services keep their state in Redis, Postgres, Neo4j and S3.
+  DATA_DIR: /tmp/data
+  # Where the embedding model is cached (the model-cache volume).
+  HF_HOME: /models/huggingface
+  HF_HUB_DISABLE_TELEMETRY: "1"
+
+# ExternalName Services: DNS aliases. Inside the cluster `redis` resolves to the host,
+# where Compose publishes the port. Moving Redis into the cluster later replaces the
+# Service, not the settings.
+externalServices:
+  host: host.docker.internal
+  names: [redis, postgres, neo4j, s3]
+
+# The embedding model (about 130 MB), downloaded once and shared by the grouper and the
+# API. Kept when the release is uninstalled (helm.sh/resource-policy: keep).
+modelCache:
+  size: 1Gi
+  storageClass: ""  # "" = the cluster's default (kind: local-path)
+
+# Applies the Postgres migrations as a Job before every install and upgrade (a Helm
+# hook): the new services never start against an old schema.
+migrations:
+  enabled: true
+  # The hook runs before the release's own objects exist, the Service `postgres` (a DNS
+  # alias) included, so it connects to the database host directly (migrate --host).
+  databaseHost: host.docker.internal
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+
+# Deny everything, then allow each service its ports (egressPorts below). Ports, not
+# addresses: everything behind host.docker.internal shares Docker Desktop's address,
+# and Wikimedia's and Hugging Face's addresses change.
+#   53 DNS (everyone), 6379 Redis, 5432 Postgres, 7687 Neo4j, 9000 S3, 11434 Ollama,
+#   443 HTTPS (Wikimedia, Hugging Face)
+networkPolicies:
+  enabled: true
+
+# --- the services ---
+# Every service runs the same image with its own command. The workers (all but the API)
+# are singletons: replicas 0 or 1, replaced with Recreate (the old pod stops before the
+# new one starts). values.schema.json refuses more. Why: see docs/learning/08a-kubernetes.md.
+#
+# heartbeat: the workers' probes check the age of their heartbeat file, in seconds
+#   (readiness and startup: readyMaxAge; liveness: liveMaxAge).
+# startup: how long a slow start may take (periodSeconds x failureThreshold).
+
+# Wikimedia's recentchange stream -> Redis Stream wiki:edits. One connection, ever.
+consumer:
+  replicas: 1
+  # Its own checkpoint namespace: the cluster starts from "now" instead of resuming a
+  # laptop consumer's old checkpoint. The writer lease guards the shared stream.
+  command: [python, -m, wikipulse.stream.consume, --namespace, "wiki:k8s:consumer"]
+  # SIGTERM: it finishes the message in hand and stops cleanly.
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests: {cpu: 100m, memory: 96Mi}
+    limits: {cpu: "1", memory: 256Mi}
+  # Liveness allows for the longest reconnect backoff (60 s).
+  heartbeat: {readyMaxAge: 120, liveMaxAge: 300}
+  startup: {periodSeconds: 5, failureThreshold: 24}
+  egressPorts: [6379, 443]
+
+# Spike detection: reads wiki:edits (group detect:live), writes spikes to Postgres.
+detector:
+  replicas: 1
+  command: [python, -m, wikipulse.detect.run]
+  # SIGTERM: it takes a final snapshot of its state.
+  terminationGracePeriodSeconds: 60
+  resources:
+    requests: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  heartbeat: {readyMaxAge: 120, liveMaxAge: 300}
+  startup: {periodSeconds: 10, failureThreshold: 30}
+  egressPorts: [6379, 5432]
+
+# Data lake: hourly Parquet files in S3. A Redis lock allows one archiver per lake.
+archiver:
+  replicas: 1
+  command: [python, -m, wikipulse.lake.archive]
+  # SIGTERM: it writes what it has buffered.
+  terminationGracePeriodSeconds: 90
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  heartbeat: {readyMaxAge: 120, liveMaxAge: 300}
+  startup: {periodSeconds: 10, failureThreshold: 30}
+  egressPorts: [6379, 9000]
+
+# Page enrichment: summaries, links and Wikidata ids from the Wikimedia APIs.
+enricher:
+  replicas: 1
+  command: [python, -m, wikipulse.enrich.run]
+  terminationGracePeriodSeconds: 60
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  heartbeat: {readyMaxAge: 120, liveMaxAge: 600}
+  startup: {periodSeconds: 10, failureThreshold: 30}
+  egressPorts: [5432, 443]
+
+# Event grouping, with the embedding model (first start downloads it: long startup).
+grouper:
+  replicas: 1
+  command: [python, -m, wikipulse.events.run]
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1536Mi}
+  heartbeat: {readyMaxAge: 120, liveMaxAge: 600}
+  startup: {periodSeconds: 10, failureThreshold: 60}
+  egressPorts: [5432, 443]  # 443: the embedding model, downloaded once
+  modelCache: true
+
+# Knowledge graph: entities and relations with the LLM (Ollama), links names through
+# Wikipedia and Wikidata. One event can take several LLM calls of up to 120 s.
+graph:
+  replicas: 1
+  command: [python, -m, wikipulse.graph.run]
+  terminationGracePeriodSeconds: 150
+  resources:
+    requests: {cpu: 50m, memory: 192Mi}
+    limits: {cpu: "1", memory: 768Mi}
+  heartbeat: {readyMaxAge: 300, liveMaxAge: 900}
+  startup: {periodSeconds: 10, failureThreshold: 30}
+  egressPorts: [5432, 7687, 11434, 443]
+
+# The web API and live page. Stateless, so it may run several replicas (each loads its
+# own embedding model) and is updated with a rolling update. Reach it with
+#   kubectl -n wikipulse port-forward svc/api 8000:8000
+api:
+  replicas: 1
+  command: [python, -m, wikipulse.api]
+  terminationGracePeriodSeconds: 30
+  port: 8000
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1536Mi}
+  egressPorts: [5432, 7687, 11434, 443]  # 443: the embedding model, downloaded once
+  modelCache: true
+  # Only useful with two replicas or more (values-prod.yaml).
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1

@@ -51,7 +51,7 @@ logger = logging.getLogger("k8s_crash_test")
 CONTEXT = "kind-wikipulse"
 NAMESPACE = "wikipulse"
 SELECTOR = "app.kubernetes.io/name=consumer"
-CONSUMER_NAMESPACE = "wiki:k8s:consumer"  # --namespace of the consumer in k8s/consumer.yaml
+CONSUMER_NAMESPACE = "wiki:k8s:consumer"  # consumer.command in the chart
 HARD_KILL_AT_MIN, SOFT_KILL_AT_MIN, STOP_AT_MIN = 2.0, 4.0, 6.0
 BEFORE_START = 2000  # Redis entries before the start excluded from the reference
 REFERENCE_MARGIN = timedelta(seconds=60)  # read this far past the consumer's last edit

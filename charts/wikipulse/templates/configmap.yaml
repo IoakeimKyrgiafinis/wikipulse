@@ -1,0 +1,12 @@
+# Settings every WikiPulse container reads as environment variables (wikipulse/config.py).
+# The values come from .Values.config; nothing secret belongs here (that is the Secret).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wikipulse-config
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}

@@ -1,0 +1,4 @@
+# Page enrichment (stage 3): summaries, links and Wikidata ids of spiking pages from the
+# Wikimedia APIs (politely: the User-Agent from the Secret, rate limited, cached).
+# Settings: .Values.enricher in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "enricher") }}

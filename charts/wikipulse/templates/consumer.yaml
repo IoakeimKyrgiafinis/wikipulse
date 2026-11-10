@@ -1,0 +1,5 @@
+# The live stream consumer (stage 1): Wikimedia's recentchange stream -> Redis Stream
+# wiki:edits. Never more than one replica: Wikimedia asks for one stream connection per
+# client, and the writer lease (wiki:edits:writer) lets only one consumer write.
+# Settings: .Values.consumer in values.yaml; the Deployment itself: _deployment.tpl.
+{{ include "wikipulse.deployment" (dict "root" $ "name" "consumer") }}

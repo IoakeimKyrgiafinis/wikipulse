@@ -1,0 +1,18 @@
+{{- with .Values.api.podDisruptionBudget }}
+{{- if .enabled }}
+# Voluntary disruptions (draining a node for maintenance, a cluster upgrade) may stop API
+# pods only while at least minAvailable others keep serving. Useful with 2+ replicas;
+# it doesn't protect against crashes, and it doesn't slow down rolling updates.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $ "name" "api") | nindent 4 }}
+spec:
+  minAvailable: {{ .minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "wikipulse.selectorLabels" (dict "root" $ "name" "api") | nindent 6 }}
+{{- end }}
+{{- end }}

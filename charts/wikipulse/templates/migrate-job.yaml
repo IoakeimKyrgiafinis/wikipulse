@@ -1,0 +1,53 @@
+{{- if .Values.migrations.enabled }}
+# Applies the Postgres migrations (wikipulse/db/migrations) before every install and
+# upgrade. It is a Helm *hook*: Helm runs it before applying the rest of the release,
+# waits for it to complete, and stops the install or upgrade if it fails. So new
+# services never run against an old schema. A rollback runs no migration (they only go
+# forward, and each one keeps the schema usable for the code before it).
+#
+# A hook runs before the release's own objects exist on the first install. So the Job
+# gets its settings as plain env entries (from the same .Values.config) instead of the
+# ConfigMap, and connects to the database host directly instead of through the Service
+# `postgres` (--host .Values.migrations.databaseHost; same user, password, database).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $ "name" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    # Delete the previous Job before creating the new one (a finished Job can't be
+    # changed); keep the latest, so `kubectl logs job/migrate` works after a deploy.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "wikipulse.labels" (dict "root" $ "name" "migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- include "wikipulse.podSecurity" . | nindent 6 }}
+      containers:
+        - name: migrate
+          image: {{ include "wikipulse.image" $ }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - wikipulse.db.migrate
+            {{- with .Values.migrations.databaseHost }}
+            - --host
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            {{- range $key, $value := .Values.config }}
+            - {name: {{ $key }}, value: {{ $value | toString | quote }}}
+            {{- end }}
+          envFrom:
+            - secretRef: {name: {{ .Values.existingSecret }}}
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          {{- include "wikipulse.containerSecurity" . | nindent 10 }}
+{{- end }}
