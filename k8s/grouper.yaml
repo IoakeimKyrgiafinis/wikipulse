@@ -1,0 +1,78 @@
+# Event grouping (stage 3): groups spikes of run `live` into events, using links, start
+# times and summary embeddings. The embedding model runs on the CPU (torch) and is
+# cached on the `model-cache` volume. Restarts rebuild the active events from Postgres.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grouper
+  namespace: wikipulse
+  labels:
+    app.kubernetes.io/name: grouper
+    app.kubernetes.io/part-of: wikipulse
+spec:
+  replicas: 1
+  # One replica, replaced with Recreate (the old pod stops before the new one starts):
+  # two at once would process the same work twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grouper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grouper
+        app.kubernetes.io/part-of: wikipulse
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: grouper
+          image: wikipulse:dev
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "wikipulse.events.run"]
+          envFrom:
+            - configMapRef: {name: wikipulse-config}
+            - secretRef: {name: wikipulse-secrets}
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1536Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # It beats once per poll (EVENTS_POLL_INTERVAL_S). The first start downloads the
+          # embedding model, hence the long startup allowance (60 x 10 s).
+          startupProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "120"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "wikipulse.health", "--max-age", "600"]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: model-cache, mountPath: /models}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
+        - name: model-cache
+          persistentVolumeClaim: {claimName: model-cache}

@@ -1,0 +1,20 @@
+# Only pyproject.toml, uv.lock, README.md and wikipulse/ go into the image (see Dockerfile).
+# Everything else stays out of the build context: it would slow every build down, and
+# some of it is private.
+.env
+.env.*
+data/
+.venv/
+.git/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+mlruns/
+tests/
+evals/
+docs/
+dags/
+docker/
+k8s/
+scripts/

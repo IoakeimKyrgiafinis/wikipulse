@@ -1,0 +1,57 @@
+# Redis, Postgres, Neo4j, the S3 store (RustFS) and Ollama run outside the cluster: the
+# first four in Docker Compose, Ollama on the host. Docker Desktop gives every container,
+# kind's node included, the name `host.docker.internal` for the host, where Compose
+# publishes their ports.
+#
+# An ExternalName Service is a DNS alias: inside the cluster, `redis` resolves to
+# host.docker.internal. The applications only know the names `redis`, `postgres`, ...;
+# moving Redis into the cluster later means replacing this Service, not the settings.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: wikipulse
+  labels: {app.kubernetes.io/part-of: wikipulse}
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: wikipulse
+  labels: {app.kubernetes.io/part-of: wikipulse}
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: wikipulse
+  labels: {app.kubernetes.io/part-of: wikipulse}
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3
+  namespace: wikipulse
+  labels: {app.kubernetes.io/part-of: wikipulse}
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: wikipulse
+  labels: {app.kubernetes.io/part-of: wikipulse}
+spec:
+  type: ExternalName
+  externalName: host.docker.internal

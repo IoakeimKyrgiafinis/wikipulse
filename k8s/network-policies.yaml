@@ -1,0 +1,174 @@
+# Who may talk to whom. The first policy denies all traffic, in and out, for every pod
+# of the namespace; the others then allow exactly what each service needs. kind's
+# network plugin (kindnet) enforces them.
+#
+# Outgoing rules name ports, not addresses: Redis, Postgres, Neo4j, S3 and Ollama all sit
+# behind host.docker.internal, whose address belongs to Docker Desktop, and Wikimedia's
+# and Hugging Face's addresses change. So "the detector may reach port 6379 and 5432" is
+# the rule; it can't open an HTTPS connection or reach the graph.
+#
+#   port  service                      used by
+#   53    cluster DNS (kube-system)    everyone
+#   6379  Redis                        consumer, detector, archiver
+#   5432  Postgres                     detector, enricher, grouper, graph, api, migrate
+#   7687  Neo4j                        graph, api
+#   9000  S3 (RustFS)                  archiver
+#   11434 Ollama                       graph, api
+#   443   Wikimedia, Hugging Face      consumer, enricher, graph, grouper, api
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: wikipulse
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: wikipulse
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: consumer-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: consumer}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 6379}
+        - {protocol: TCP, port: 443}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: detector-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: detector}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 6379}
+        - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: archiver-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: archiver}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 6379}
+        - {protocol: TCP, port: 9000}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: enricher-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: enricher}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+        - {protocol: TCP, port: 443}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grouper-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: grouper}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+        - {protocol: TCP, port: 443}  # the embedding model, downloaded once
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: graph-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: graph}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+        - {protocol: TCP, port: 7687}
+        - {protocol: TCP, port: 11434}
+        - {protocol: TCP, port: 443}  # Wikipedia and Wikidata, for linking names
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: api}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+        - {protocol: TCP, port: 7687}
+        - {protocol: TCP, port: 11434}
+        - {protocol: TCP, port: 443}  # the embedding model, downloaded once
+---
+# The API is the only pod that accepts connections, on its HTTP port. No other pod of the
+# namespace connects to it; the kubelet's probes and `kubectl port-forward` come from the
+# node itself.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-ingress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: api}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - {protocol: TCP, port: 8000}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: migrate-egress
+  namespace: wikipulse
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: migrate}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - {protocol: TCP, port: 5432}
