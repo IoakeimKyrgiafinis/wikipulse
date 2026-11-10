@@ -107,6 +107,19 @@ class PageGroup:
     first_started_at: datetime
     last_ended_at: datetime | None
     score: float
+    news_score: float | None = None
+
+
+def best_news_score(pages: Sequence[FeedPage]) -> float | None:
+    """The news classifier's highest score among these spikes (None: none scored)."""
+    scores = [p.news_score for p in pages if p.news_score is not None]
+    return round(max(scores), 3) if scores else None
+
+
+def flagged_news(pages: Sequence[FeedPage]) -> bool | None:
+    """Did the classifier flag any of these spikes as news (None: none scored)?"""
+    flags = [p.is_news for p in pages if p.is_news is not None]
+    return any(flags) if flags else None
 
 
 def group_pages(pages: Sequence[FeedPage]) -> list[PageGroup]:
@@ -124,6 +137,7 @@ def group_pages(pages: Sequence[FeedPage]) -> list[PageGroup]:
                 first_started_at=min(s.started_at for s in spikes),
                 last_ended_at=max(ends) if len(ends) == len(spikes) else None,
                 score=max(s.score for s in spikes),
+                news_score=best_news_score(spikes),
             )
         )
     return sorted(groups, key=lambda g: (-g.score, g.first_started_at, g.title))
@@ -163,6 +177,8 @@ def make_card(run_id: str, row: FeedEvent, overview: EventOverview | None) -> Ev
         page_count=len(pages),
         spike_count=len(row.pages),
         spike_score=round(row.score, 2),
+        news_score=best_news_score(row.pages),
+        is_news=flagged_news(row.pages),
         top_pages=[page.title for page in pages[:TOP_PAGES]],
         merged_into=event_key(run_id, row.merged_into) if row.merged_into else None,
         extracted=overview is not None,
@@ -259,6 +275,7 @@ class EventReader:
                     first_started_at=group.first_started_at,
                     last_ended_at=group.last_ended_at,
                     spike_score=round(group.score, 2),
+                    news_score=group.news_score,
                     url=source.url if source else page_url(group.title),
                     revision=source.revision if source else None,
                 )

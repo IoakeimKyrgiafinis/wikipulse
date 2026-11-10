@@ -4,6 +4,10 @@ Prints the active events of a grouping run with their pages, biggest first, and 
 summary line (events, pages per event). A page that spiked more than once in an event is
 one page, listed once with its number of spikes. `--all` includes ended events (a replayed day
 has mostly ended events); `--min-pages 2` hides single-page events.
+
+Each page shows the news classifier's highest score for its spikes (`news 0.87`, spec
+07c), or `news  -  ` until `wikipulse.ml.serve` has scored them; the event's header shows
+the highest score of all its pages.
 """
 
 import argparse
@@ -70,13 +74,26 @@ def stats_line(events: list[FeedEvent]) -> str:
     )
 
 
+def news_score(pages: list[FeedPage]) -> float | None:
+    """The highest news classifier score among these spikes (None: none scored yet)."""
+    scores = [p.news_score for p in pages if p.news_score is not None]
+    return max(scores) if scores else None
+
+
+def news_text(score: float | None) -> str:
+    """'news 0.87' for a scored spike, 'news  -  ' while it isn't scored (spec 07c)."""
+    return "news  -  " if score is None else f"news {score:.2f}"
+
+
 def render_event(event: FeedEvent, max_pages: int) -> list[str]:
     end = f"{event.ended_at.astimezone(UTC):%m-%d %H:%M}" if event.ended_at else "now"
     pages = distinct_pages(event)
     spikes = f", {len(event.pages)} spikes" if len(event.pages) != len(pages) else ""
+    best = news_score(list(event.pages))
     lines = [
         f"#{event.number} {event.title}  [{len(pages)} page(s){spikes}, "
-        f"{event.started_at.astimezone(UTC):%m-%d %H:%M} to {end}, {event.status}]"
+        f"{event.started_at.astimezone(UTC):%m-%d %H:%M} to {end}, {event.status}"
+        f"{', ' + news_text(best) if best is not None else ''}]"
     ]
     for page, count in pages[:max_pages]:
         name = page.canonical_title
@@ -84,9 +101,10 @@ def render_event(event: FeedEvent, max_pages: int) -> list[str]:
             name += f" (spike title: {page.title})"
         if count > 1:
             name += f" ({count} spikes)"
+        same_page = [p for p in event.pages if p.canonical_title == page.canonical_title]
         lines.append(
             f"    {page.score:6.1f}  {page.started_at.astimezone(UTC):%m-%d %H:%M}"
-            f"  joined {page.joined_score:.2f}  {name}"
+            f"  joined {page.joined_score:.2f}  {news_text(news_score(same_page))}  {name}"
         )
     if len(pages) > max_pages:
         lines.append(f"    ... and {len(pages) - max_pages} more")

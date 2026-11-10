@@ -46,6 +46,16 @@ class EventCard(BaseModel):
     page_count: int = Field(description="Distinct Wikipedia pages that spiked together.")
     spike_count: int
     spike_score: float = Field(description="Best spike score of its pages (bigger = stronger).")
+    news_score: float | None = Field(
+        None,
+        description="The news classifier's highest score of its spikes (0 to 1, how likely "
+        "it is real news); None until a spike is scored, ten minutes after it starts.",
+    )
+    is_news: bool | None = Field(
+        None,
+        description="True when the classifier flags at least one of its spikes as news (score "
+        "at or above the model's threshold); None until a spike is scored.",
+    )
     top_pages: list[str] = Field(description="Up to five page titles, strongest first.")
     merged_into: str | None = Field(
         None, description="For a merged event: the event_id that absorbed it."
@@ -71,6 +81,9 @@ class EventPage(BaseModel):
     first_started_at: datetime
     last_ended_at: datetime | None = Field(None, description="None while a spike is active.")
     spike_score: float
+    news_score: float | None = Field(
+        None, description="The news classifier's highest score of its spikes on this page."
+    )
     url: str = Field(
         description="The revision the knowledge graph read, once extracted; else the page."
     )
