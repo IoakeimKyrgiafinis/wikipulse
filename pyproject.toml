@@ -28,6 +28,11 @@ dependencies = [
     # S3 filesystem, so no boto3); DuckDB runs SQL over the archive.
     "pyarrow>=26",
     "duckdb>=2.0",
+    # Stage 7 (spec 07b): experiment tracking and the model registry (the client; the
+    # server runs in Docker Compose), the classic models and the plots of the evaluation.
+    "mlflow>=3.18",
+    "scikit-learn>=1.9",
+    "matplotlib>=3.11",
 ]
 
 [project.optional-dependencies]
