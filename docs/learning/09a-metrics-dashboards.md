@@ -152,7 +152,7 @@ has a duration that rides out blips, a severity, and an annotation saying what t
 | `WikiPulseNoEvents` | `increase(kept[2m]) == 0` or `absent_over_time(kept[2m])` | 2 min without an edit (the window is the debounce) | critical |
 | `WikiPulseConsumerLagHigh` | `max(wikipulse_consumer_lag_seconds) > 300` | `for: 2m` | warning |
 | `WikiPulseDetectorLagHigh` | writer's event time - detector's > 300 s | `for: 5m` | warning |
-| `WikiPulseServiceDown` | `up{namespace="wikipulse"} == 0` | `for: 5m` | warning |
+| `WikiPulseServiceDown` | `up{system="wikipulse"} == 0` | `for: 5m` | warning |
 | `WikiPulseExtractionFailuresHigh` | failed / all extractions over 30 min > 25 %, with at least 4 | `for: 10m` | warning |
 | `WikiPulseDriftDetected` | newest drift report says drift, period ended within 8 days | at once | info |
 
@@ -165,7 +165,10 @@ no result, no alert. That is the most common mistake with "no data" alerts.
 `observability/alerts/wikipulse.rules.test.yaml` is a unit test for the rules: made-up
 series ("a counter that grows for 5 minutes, then goes stale") and the alerts expected at
 given times. `promtool test rules` runs it (in `tests/test_observability.py` when promtool
-or the Prometheus image is available).
+or the Prometheus image is available; CI pulls the image, and there a missing promtool
+fails the test instead of skipping it). Every rule has at least one test
+(`test_every_rule_has_a_promtool_test`), and the series other processes export are fed as
+`NaN`, as they really are (see "Event-time gauges start as NaN" below).
 
 ## Design decisions and deviations
 
@@ -230,6 +233,29 @@ or the Prometheus image is available).
   checks it against `uv.lock` asked for it).
 - **Tools**: nothing installed. Helm 4.3.1, Terraform 1.17.0 and kind were there; promtool
   runs from the Prometheus image (`quay.io/prometheus/prometheus:v3.12.0`).
+
+- **Review fixes** (after `docs/reviews/09a-metrics-dashboards.md`):
+  - `WikiPulseServiceDown` selects `up{system="wikipulse"}` instead of
+    `up{namespace="wikipulse"}`. The namespace is a Terraform variable, and host targets
+    (the replay) have no namespace at all; the `system` label is on every WikiPulse
+    target. Rendering the namespace from Terraform would have worked for the pods only.
+  - New promtool tests: `WikiPulseDetectorLagHigh` (a stuck detector fires after 5 min of
+    `for`; a detector that hasn't read anything yet, NaN everywhere, never fires, while
+    the same test with `0` instead of `NaN` fails, which is the bug the NaN fix removed),
+    `WikiPulseConsumerLagHigh` with only NaN series, and `WikiPulseServiceDown` (a pod in
+    another namespace and a host target fire; Prometheus' own target doesn't).
+  - CI pulls `quay.io/prometheus/prometheus:v3.12.0` before the unit tests, so the
+    promtool test runs there (`test_ci_pulls_the_same_prometheus_image` keeps the two
+    versions equal). The Helm lint in CI also lints dev + offline + `values-replay.yaml`.
+  - `ModelHealthCollector`: a malformed drift report or score row (a feature without a
+    name, a PSI that isn't a number) is logged and skipped; the other rows and
+    `wikipulse_model_health_up 1` are still exported. Each row's values are computed
+    before any is added (`_drift_values`), so a bad row adds nothing half-way. Before,
+    one bad row failed the API's whole `/metrics` scrape.
+  - The collector's Postgres connect timeout is the setting
+    `METRICS_DB_CONNECT_TIMEOUT_S` (default 5 s, whole seconds as libpq wants).
+  - Not changed (not asked): the extraction alert counting retries (review problem 6),
+    the counters without unit tests (7), `exported_names()` using private attributes (9).
 
 ## Results
 
@@ -312,9 +338,9 @@ out of order).
 **Cluster afterwards**: `terraform destroy`, 11 resources in 38 s; `kind get clusters`
 lists none.
 
-**Tests**: `uv run pytest` 1167 passed, 1 skipped (Airflow is only in its image); new:
-`tests/metrics/` (17, one of them `integration`, which passes with `-m integration`),
-`tests/test_observability.py` (9, including `promtool check rules` and `promtool test
+**Tests**: `uv run pytest` 1171 passed, 1 skipped (Airflow is only in its image) after
+the review fixes; new: `tests/metrics/` (18, one of them `integration`, which passes with
+`-m integration`), `tests/test_observability.py` (12, including `promtool check rules` and `promtool test
 rules`, run through the local Prometheus image), 4 more in `tests/test_chart.py`.
 `ruff check`, `ruff format --check`, `terraform fmt -check` and `terraform validate` pass.
 
