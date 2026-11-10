@@ -116,6 +116,31 @@ jobs:
       - name: Run integration tests
         run: uv run pytest -m integration
 
+  # Terraform (spec 08c): formatting and validation of both stacks in infra/. `init
+  # -backend=false` only downloads the providers (pinned by .terraform.lock.hcl); nothing
+  # is planned or applied, so no cluster, S3 store or secret is needed.
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.17.0"
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive -diff infra
+
+      - name: Validate every stack
+        run: |
+          for stack in storage cluster; do
+            terraform -chdir=infra/$stack init -backend=false -input=false -lockfile=readonly
+            terraform -chdir=infra/$stack validate
+          done
+
   # DAG import tests (spec 06c): load dags/ with Airflow itself, inside the same image
   # Docker Compose builds. No Airflow server or database is started.
   dags:

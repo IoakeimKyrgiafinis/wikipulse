@@ -57,7 +57,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 07c | Serving, monitoring and retraining | done |
 | 08a | Kubernetes deployment | done |
 | 08b | Helm chart | done |
-| 08c | Terraform | ready |
+| 08c | Terraform | done |
 | 09a | Metrics, dashboards and alerts | ready |
 | 09b | Logging and LLM tracing | ready |
 | 09c | Full CI/CD pipeline | ready |

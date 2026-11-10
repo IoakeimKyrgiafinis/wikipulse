@@ -6,3 +6,16 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 mlruns/
+# Terraform (spec 08c): provider downloads, local state (it holds the secrets in plain
+# text) and variable files with real values. The lock file .terraform.lock.hcl is committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+*.tfplan
+# A kubeconfig the kind provider writes when kubeconfig_path is not set (client key).
+infra/cluster/*-config

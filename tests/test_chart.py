@@ -279,6 +279,19 @@ def test_a_config_change_rolls_the_pods() -> None:
     assert before != after
 
 
+def test_a_secret_checksum_rolls_the_pods_and_the_chart_checksum_does_not() -> None:
+    """Terraform passes both (spec 08c): the Secret's on every pod, the chart's on none."""
+
+    def annotations(sets: tuple[str, ...]) -> list[dict]:
+        deployments = of_kind(render(sets=sets), "Deployment").values()
+        return [d["spec"]["template"]["metadata"]["annotations"] for d in deployments]
+
+    assert all("checksum/secret" not in a for a in annotations(()))
+    rolled = annotations(("checksums.secret=abc123",))
+    assert all(a["checksum/secret"] == "abc123" for a in rolled)
+    assert annotations(("checksums.chart=def456",)) == annotations(())
+
+
 def test_the_model_cache_survives_uninstall_and_is_mounted_where_needed() -> None:
     docs = render()
     (claim,) = of_kind(docs, "PersistentVolumeClaim").values()
