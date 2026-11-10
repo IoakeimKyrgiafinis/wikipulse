@@ -83,6 +83,24 @@ jobs:
       - name: Install Python and dependencies
         run: uv sync --locked
 
+      # Helm for the chart's lint and template tests (spec 08b): tests/test_chart.py runs
+      # `helm template` and `helm lint`, locally, without a cluster.
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v4.3.1
+
+      - name: Lint the Helm chart (every environment)
+        run: |
+          helm lint charts/wikipulse --strict
+          for env in dev prod; do
+            helm lint charts/wikipulse --strict -f charts/wikipulse/values-$env.yaml
+            helm lint charts/wikipulse --strict -f charts/wikipulse/values-$env.yaml \
+              -f charts/wikipulse/values-offline.yaml
+            helm template wikipulse charts/wikipulse --namespace wikipulse \
+              -f charts/wikipulse/values-$env.yaml > /dev/null
+          done
+
       - name: Lint
         run: uv run ruff check .
 
