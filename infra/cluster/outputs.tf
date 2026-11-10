@@ -42,6 +42,14 @@ output "grafana" {
   } : null
 }
 
+output "loki" {
+  description = "Loki: query it in Grafana (Explore, data source Loki, or the dashboard WikiPulse: Event trail), or port-forward it."
+  value = var.monitoring && var.logging ? {
+    port_forward = "kubectl --context ${kind_cluster.this.context_name} -n ${var.monitoring_namespace} port-forward svc/loki 3100:3100"
+    example      = "{system=\"wikipulse\"} | correlation_id=\"<id>\""
+  } : null
+}
+
 output "prometheus" {
   description = "Prometheus: the port-forward command and the address (Alerts, Graph, Targets)."
   value = var.monitoring ? {

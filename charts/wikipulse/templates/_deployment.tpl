@@ -48,8 +48,9 @@ spec:
           image: {{ include "wikipulse.image" $root }}
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           command: {{ toJson $values.command }}
-          {{- if or .http $root.Values.metrics.enabled }}
           env:
+            # The `service` field of every log line (spec 09b).
+            - {name: LOG_SERVICE, value: {{ .name | quote }}}
             {{- if .http }}
             # Listen on the pod's address, so the Service and the probes reach it.
             - {name: API_HOST, value: "0.0.0.0"}
@@ -61,7 +62,6 @@ spec:
             - {name: METRICS_PORT, value: {{ $root.Values.metrics.port | quote }}}
             - {name: METRICS_HOST, value: "0.0.0.0"}
             {{- end }}
-          {{- end }}
           envFrom:
             - configMapRef: {name: wikipulse-config}
             - secretRef: {name: {{ $root.Values.existingSecret }}}

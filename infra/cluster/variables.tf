@@ -74,6 +74,24 @@ variable "kube_prometheus_stack_version" {
   default     = "93.1.2"
 }
 
+variable "logging" {
+  description = "Install Loki and the Alloy collector, and Grafana's Loki data source (logging.tf). Needs monitoring."
+  type        = bool
+  default     = true
+}
+
+variable "loki_chart_version" {
+  description = "Version of the loki chart (grafana/helm-charts)."
+  type        = string
+  default     = "7.6.0"
+}
+
+variable "alloy_chart_version" {
+  description = "Version of the alloy chart (grafana/helm-charts)."
+  type        = string
+  default     = "1.15.0"
+}
+
 variable "host_metrics_targets" {
   description = <<-EOT
     WikiPulse processes on the host for Prometheus to scrape too, service name =>
@@ -140,4 +158,18 @@ variable "user_agent" {
     ])
     error_message = "user_agent still holds the placeholder contact. Set USER_AGENT in .env to your own address, or deploy with offline = true (no pod then calls Wikimedia)."
   }
+}
+
+# --- LLM tracing (spec 09b) ---
+
+variable "langfuse_public_key" {
+  description = "Langfuse public key (LANGFUSE_PUBLIC_KEY); empty: no tracing."
+  type        = string
+  sensitive   = true
+}
+
+variable "langfuse_secret_key" {
+  description = "Langfuse secret key (LANGFUSE_SECRET_KEY); empty: no tracing."
+  type        = string
+  sensitive   = true
 }

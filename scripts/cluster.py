@@ -11,6 +11,13 @@ Commands:
   status    show the pods
   history   show the release's revisions (`helm history`)
   rollback  go back to the previous revision, or to `--revision N`
+  run       start a one-off pod with the deployed image (spec 09b), wait for it to end:
+            `run --name replay --stdin data/recordings/x.jsonl -- python -m
+            wikipulse.stream.replay --file /dev/stdin --speed 4`. It gets the ConfigMap,
+            the Secret, LOG_SERVICE=<name> and `--env K=V`; `--model-cache` mounts the
+            embedding model. Needs values-replay.yaml (sessionPods): its network policy
+            allows the ports listed there and never 443. The pod stays (for its logs);
+            `kubectl delete pod <name>` removes it.
   down      delete the cluster (the data in Redis, Postgres, Neo4j and S3 stays in Compose)
 
 `deploy` uses charts/wikipulse/values-dev.yaml unless `--values` names other files
@@ -39,6 +46,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
+
+from pydantic import SecretStr
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # so `wikipulse` imports when run as a script
@@ -139,8 +148,15 @@ def secret_manifest(settings: Settings) -> dict:
             "S3_ACCESS_KEY": settings.s3_access_key.get_secret_value(),
             "S3_SECRET_KEY": settings.s3_secret_key.get_secret_value(),
             "USER_AGENT": settings.user_agent,
+            # Spec 09b: empty when unset, and an empty key means "don't trace".
+            "LANGFUSE_PUBLIC_KEY": secret_or_empty(settings.langfuse_public_key),
+            "LANGFUSE_SECRET_KEY": secret_or_empty(settings.langfuse_secret_key),
         },
     }
+
+
+def secret_or_empty(value: SecretStr | None) -> str:
+    return value.get_secret_value() if value is not None else ""
 
 
 # --- commands ---
@@ -274,6 +290,110 @@ def rollback(revision: int | None = None) -> None:
     history()
 
 
+# --- one-off pods (spec 09b) ---
+
+
+def deployed_image() -> str:
+    """The image the release runs (the detector's)."""
+    path = "jsonpath={.spec.template.spec.containers[0].image}"
+    return run(kubectl("-n", NAMESPACE, "get", "deploy", "detector", "-o", path), capture=True)
+
+
+def session_pod(
+    name: str, image: str, command: list[str], env: dict[str, str], model_cache: bool = False
+) -> dict:
+    """A pod like the chart's (same settings, same security), labeled as a session pod."""
+    mounts = [{"name": "tmp", "mountPath": "/tmp"}]
+    volumes: list[dict] = [{"name": "tmp", "emptyDir": {"sizeLimit": "256Mi"}}]
+    if model_cache:
+        mounts.append({"name": "model-cache", "mountPath": "/models"})
+        volumes.append(
+            {"name": "model-cache", "persistentVolumeClaim": {"claimName": "model-cache"}}
+        )
+    container = {
+        "name": name,
+        "image": image,
+        "imagePullPolicy": "IfNotPresent",
+        "command": command,
+        "stdin": True,
+        "stdinOnce": True,
+        "env": [
+            {"name": key, "value": value} for key, value in {"LOG_SERVICE": name, **env}.items()
+        ],
+        "envFrom": [
+            {"configMapRef": {"name": "wikipulse-config"}},
+            {"secretRef": {"name": SECRET_NAME}},
+        ],
+        "resources": {
+            "requests": {"cpu": "100m", "memory": "256Mi"},
+            "limits": {"cpu": "1", "memory": "1536Mi"},
+        },
+        "securityContext": {
+            "allowPrivilegeEscalation": False,
+            "readOnlyRootFilesystem": True,
+            "capabilities": {"drop": ["ALL"]},
+        },
+        "volumeMounts": mounts,
+    }
+    return {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": name,
+            "labels": {
+                "app.kubernetes.io/name": name,
+                "app.kubernetes.io/part-of": "wikipulse",
+                "wikipulse.io/session": "true",
+            },
+        },
+        "spec": {
+            "restartPolicy": "Never",
+            "automountServiceAccountToken": False,
+            "enableServiceLinks": False,
+            "securityContext": {
+                "runAsNonRoot": True,
+                "runAsUser": 10001,
+                "runAsGroup": 10001,
+                "fsGroup": 10001,
+                "seccompProfile": {"type": "RuntimeDefault"},
+            },
+            "containers": [container],
+            "volumes": volumes,
+        },
+    }
+
+
+def parse_env(pairs: list[str]) -> dict[str, str]:
+    env = {}
+    for pair in pairs:
+        key, sep, value = pair.partition("=")
+        if not sep or not key:
+            raise SystemExit(f"--env wants KEY=VALUE, not {pair!r}")
+        env[key] = value
+    return env
+
+
+def run_pod(args: argparse.Namespace) -> None:
+    """`kubectl run` the session pod, attached; stdin comes from `--stdin` if given."""
+    if not args.pod_command or not args.name:
+        raise SystemExit("run needs --name and a command after `--`")
+    image = deployed_image()
+    pod = session_pod(args.name, image, args.pod_command, parse_env(args.env), args.model_cache)
+    command = kubectl(
+        "-n", NAMESPACE, "run", args.name, f"--image={image}", "--restart=Never",
+        "--attach", "-i", f"--overrides={json.dumps(pod)}",
+    )  # fmt: skip
+    logger.info("$ kubectl run %s (%s)", args.name, " ".join(args.pod_command))
+    stdin = open(args.stdin, "rb") if args.stdin else subprocess.DEVNULL  # noqa: SIM115
+    try:
+        result = subprocess.run(command, stdin=stdin, check=False)
+    finally:
+        if args.stdin:
+            stdin.close()
+    if result.returncode != 0:
+        raise SystemExit(f"Pod {args.name} failed ({result.returncode})")
+
+
 def status() -> None:
     print(run(kubectl("-n", NAMESPACE, "get", "pods", "-o", "wide"), capture=True))
 
@@ -283,7 +403,8 @@ def down() -> None:
 
 
 COMMANDS = (
-    "up", "create", "build", "load", "secret", "deploy", "status", "history", "rollback", "down",
+    "up", "create", "build", "load", "secret", "deploy", "status", "history", "rollback", "run",
+    "down",
 )  # fmt: skip
 
 
@@ -311,6 +432,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="OFFLINE/CI USE ONLY: go on although USER_AGENT still has the placeholder "
         "contact; implies --offline",
     )
+    parser.add_argument("--name", help="run: the pod's name and its service label")
+    parser.add_argument("--stdin", type=Path, help="run: a file to feed to the pod's stdin")
+    parser.add_argument("--env", action="append", default=[], help="run: KEY=VALUE, repeatable")
+    parser.add_argument("--model-cache", action="store_true", help="run: mount the model cache")
+    parser.add_argument("pod_command", nargs="*", help="run: the command, after `--`")
     return parser.parse_args(argv)
 
 
@@ -344,6 +470,8 @@ def main(argv: list[str] | None = None) -> int:
         history()
     elif args.command == "rollback":
         rollback(args.revision)
+    elif args.command == "run":
+        run_pod(args)
     elif args.command == "down":
         down()
     return 0

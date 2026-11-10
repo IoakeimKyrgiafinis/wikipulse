@@ -163,3 +163,13 @@ def test_terraform_files_are_formatted() -> None:
         check=False,
     )
     assert result.returncode == 0, f"terraform fmt would change: {result.stdout}"
+
+
+def test_langfuse_keys_reach_the_cluster_secret_only_when_set() -> None:
+    unset = infra.stack_variables("cluster", settings())
+    assert unset["langfuse_public_key"] == "" and unset["langfuse_secret_key"] == ""
+    keyed = settings().model_copy(
+        update={"langfuse_public_key": SecretStr("pk"), "langfuse_secret_key": SecretStr("sk")}
+    )
+    variables = infra.stack_variables("cluster", keyed)
+    assert (variables["langfuse_public_key"], variables["langfuse_secret_key"]) == ("pk", "sk")

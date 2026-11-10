@@ -15,6 +15,9 @@ locals {
     S3_ACCESS_KEY  = var.s3_access_key
     S3_SECRET_KEY  = var.s3_secret_key
     USER_AGENT     = var.user_agent
+    # Spec 09b: LLM tracing; empty keys mean the pods trace nothing.
+    LANGFUSE_PUBLIC_KEY = var.langfuse_public_key
+    LANGFUSE_SECRET_KEY = var.langfuse_secret_key
   }
 }
 
