@@ -17,6 +17,7 @@ from wikipulse.ml.train import (
     TrainConfig,
     TrainReport,
     known_rows,
+    local_artifact_location,
     markdown_table,
     register,
     select_model,
@@ -214,3 +215,9 @@ def test_hyperparameter_candidates_are_nested_runs_of_the_same_experiment(report
 
 def test_the_rule_keeps_its_own_threshold(report):
     assert report.results["rule"]["threshold"] == 0.5
+
+
+def test_local_stores_keep_artifacts_under_the_data_folder(tmp_path):
+    assert local_artifact_location("http://localhost:5000", tmp_path) is None
+    location = local_artifact_location("sqlite:///x.db", tmp_path)
+    assert location == (tmp_path.resolve() / "mlruns").as_uri()

@@ -113,7 +113,7 @@ the tag `role = model`, and press *Compare*: parameters and metrics line up in c
 The registry then holds *which* model is in use, apart from all the runs that produced
 candidates: `register()` calls `mlflow.register_model()` on the chosen run's model and
 tags the new version with the dataset version and fingerprint, so `news-classifier`
-version 2 can always be traced to `datasets/v2` (fingerprint `fb6b5a57...`), which itself
+version 3 can always be traced to `datasets/v2` (fingerprint `fb6b5a57...`), which itself
 records the git commit it was built from (`c498214`, clean).
 
 ### PyTorch basics
@@ -255,9 +255,12 @@ summary embedding as one block (`summary_embedding`).
   version used a fixed margin (0.02) instead; on v2 the gap between trees and logistic
   regression was 0.0201, so the choice hung on the fourth decimal. The paired interval
   asks the better question: can 132 test spikes tell these two apart at all? That first
-  session registered the trees as `news-classifier` version 1; the final session
-  registered logistic regression as version 2. Both stay in the registry (versions are
-  history); spec 07c decides which one gets the `champion` alias.
+  session registered the trees as `news-classifier` version 1; the next session
+  registered logistic regression as version 2 (with the old threshold tie-break, 0.438);
+  the final session, after the review fixes, registered logistic regression as version 3
+  (threshold 0.553). All stay in the registry (versions are history), versions 1 and 2
+  tagged `status=superseded`, `superseded_by=3`; spec 07c decides which one gets the
+  `champion` alias.
 - **Caveat: the selection rule was changed after seeing test results.** This is the
   weakest point of the method, and it should be read as such. The fixed-margin rule had
   already picked the trees on the test split when I replaced it; the new rule picks
@@ -270,8 +273,8 @@ summary embedding as one block (`summary_embedding`).
   as a parameter and tag of the parent run before any model is trained and as a tag of
   the registered version; and `register()` now tags older versions `status=superseded`
   and `superseded_by=<new version>` (with a note in their description), and the new one
-  `status=latest` (`supersede_older_versions()`), so version 1 no longer looks like a
-  live choice. An honest settlement of logistic regression against the trees needs
+  `status=latest` (`supersede_older_versions()`), so versions 1 and 2 no longer look
+  like live choices. An honest settlement of logistic regression against the trees needs
   *fresh* labeled days that neither rule has seen.
 - **Choosing on the test set.** The spec says to choose by test-set performance, so the
   test split is also the selection set: its numbers for the *chosen* model are slightly
@@ -306,7 +309,7 @@ summary embedding as one block (`summary_embedding`).
 - **Speed.** Latency is measured per spike in one batch (`latency_ms()`): all three
   learned models score a spike in well under 0.1 ms, so speed doesn't separate them. What
   costs time is the network's input: the summary needs the page's wikitext (one API
-  request) and an embedding (`embed_ms_per_spike`, 84 ms per spike in this run,
+  request) and an embedding (`embed_ms_per_spike`, 128 ms per spike in the final run,
   including loading the model once). That counts against the network for live use.
 - **Experiment hygiene.** Nested runs inherit the *active* experiment, not the parent's:
   a first version passed the experiment only to the parent, and the children landed in
@@ -339,7 +342,8 @@ summary embedding as one block (`summary_embedding`).
 
 Measured on 10 November 2026 on the human's Windows machine (CPU only), MLflow server in
 Docker, dataset `v2` (built from the clean commit `c498214`, fingerprint `fb6b5a57...`).
-The final session is the parent run `train v2` with id `01d64af9...` in the experiment
+The final session (after the review fixes, from commit `76cd05a`) is the parent run
+`train v2` with id `e722767a...` in the experiment
 `news-classifier` (http://localhost:5000, experiment 2). `uv run python -m
 wikipulse.ml.train --dataset v2` took about 2 minutes with the summaries cached: 15 s
 loading the dataset, 25 s loading the embedding model and embedding 453 summaries, and
@@ -365,15 +369,16 @@ metrics, plots and model (`comparison.md` of the parent run; test split unless n
 | model | test AP | AP 95% interval | gap to best (95%) | ROC AUC | Brier | ECE | threshold | precision | recall | F1 | valid AP | train AP | train s | ms/spike |
 |---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | rule (live default detector) | 0.614 | 0.516 to 0.707 | 0.344 (0.258 to 0.432) | 0.530 | 0.477 | 0.477 | 0.5 (fixed) | 0.629 | 0.494 | 0.553 | 0.616 | 0.584 | 0 | 0.000 |
-| logistic regression (C = 0.1) | 0.938 | 0.898 to 0.970 | 0.020 (-0.001 to 0.046) | 0.903 | 0.122 | 0.091 | 0.553 | 0.872 | 0.861 | 0.866 | 0.974 | 0.992 | 1.4 | 0.005 |
-| gradient-boosted trees (depth 3, 150 trees) | **0.958** | 0.925 to 0.982 | best | 0.929 | 0.109 | 0.088 | 0.167 | 0.818 | 0.911 | 0.862 | 0.994 | 1.000 | 2.3 | 0.016 |
-| neural network + summary embedding (epoch 22) | 0.948 | 0.911 to 0.977 | 0.009 (-0.012 to 0.033) | 0.920 | 0.112 | 0.075 | 0.506 | 0.873 | 0.873 | 0.873 | 0.978 | 0.994 | 0.5 | 0.009 |
+| logistic regression (C = 0.1) | 0.938 | 0.898 to 0.970 | 0.020 (-0.001 to 0.046) | 0.903 | 0.122 | 0.091 | 0.553 | 0.872 | 0.861 | 0.866 | 0.974 | 0.992 | 1.2 | 0.009 |
+| gradient-boosted trees (depth 3, 150 trees) | **0.958** | 0.925 to 0.982 | best | 0.929 | 0.109 | 0.088 | 0.167 | 0.818 | 0.911 | 0.862 | 0.994 | 1.000 | 1.7 | 0.014 |
+| neural network + summary embedding (epoch 22) | 0.948 | 0.911 to 0.977 | 0.009 (-0.012 to 0.033) | 0.920 | 0.112 | 0.075 | 0.797 | 0.897 | 0.772 | 0.830 | 0.978 | 0.994 | 0.6 | 0.009 |
 | *(ablation) network, features only* | 0.906 | | | 0.872 | 0.141 | 0.095 | | | | | 0.970 | | | |
 
 A random ranking scores 0.598 average precision on this test split (the share of news).
 The training times include the hyperparameter search (six fits each for logistic
 regression and the trees); "ms/spike" is scoring only, without the network's embedding
-(84 ms per spike including the one-off model load).
+(128 ms per spike including the one-off model load). The network's threshold also
+moved with the tie-break fix: 0.797 instead of 0.506, more precision, less recall.
 
 What the table says:
 
@@ -421,21 +426,17 @@ models learn the labeler's view of news, including its shortcuts, and an AP of 0
 the test days (`uv run python -m wikipulse.eval.label --run-id 07a-candidates --from
 2026-11-08 --to 2026-11-09 --manual`) would show how much of it is real.
 
-### The model chosen: logistic regression (`news-classifier` version 2)
+### The model chosen: logistic regression (`news-classifier` version 3)
 
-> The numbers in this note use the corrected threshold rule (a run on v2 into a scratch
-> store; the threshold-free metrics and the choice are identical to the registered run).
-> Version 2 was registered with the old tie-break (threshold 0.4381); a retraining from
-> the fixed commit registers a new version with threshold 0.553, which supersedes 1 and
-> 2.
-
-`select_model()` registered **logistic regression** as `news-classifier` version 2
+`select_model()` registered **logistic regression** as `news-classifier` version 3
 (tags `dataset_version=v2`, `dataset_fingerprint=fb6b5a57...`, `dataset_commit=c498214...`,
-`model_type=logreg`, `threshold=0.4381`, `training_run=01d64af9...`). Its reason, as
-logged: "test average precision 0.938 vs. 0.958 for gbt: the gap's 95% interval [-0.001,
-0.046] reaches 0, so not clearly worse, and simpler". Loading
-`models:/news-classifier/2` from the server and scoring the 132 test spikes reproduces
-AP 0.938 and flags 81 of them.
+`model_type=logreg`, `threshold=0.5532`, `selection_rule=simplest_not_worse`,
+`select_margin=0`, `status=latest`, `training_run=e722767a...`). Its reason, as logged:
+"test average precision 0.938 vs. 0.958 for gbt: the gap's 95% interval [-0.001, 0.046]
+reaches 0, so not clearly worse, and simpler". Loading `models:/news-classifier/3` from
+the server and scoring the 132 test spikes reproduces AP 0.938 and flags 78 of them
+(precision 0.872, recall 0.861). Versions 1 (trees, threshold 0.136) and 2 (logistic
+regression, threshold 0.438) are tagged `status=superseded`, `superseded_by=3`.
 
 Why I agree with the rule's choice here, weighing accuracy, simplicity and speed:
 
@@ -454,7 +455,7 @@ Why I agree with the rule's choice here, weighing accuracy, simplicity and speed
 
 The honest caveat: this was decided at the edge. The gap's interval reaches -0.001; a
 slightly different test set could have tipped it to the trees, which is what the first
-session's fixed-margin rule did (version 1). With more labeled test days the choice
+session's fixed-margin rule did (version 1, now superseded). With more labeled test days the choice
 should be revisited, and the trees are the natural challenger for 07c.
 
 ### Tests and checks (acceptance criterion 1)

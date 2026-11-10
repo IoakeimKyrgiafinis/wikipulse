@@ -654,6 +654,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def local_artifact_location(tracking_uri: str, data_dir: Path) -> str | None:
+    """Where a local store (`sqlite:` or a folder) keeps new experiments' artifacts:
+    `<data_dir>/mlruns`, not MLflow's default `./mlruns` in the working directory (which
+    would land in the repository). None for a tracking server, which stores them itself."""
+    if tracking_uri.startswith(("http://", "https://", "databricks")):
+        return None
+    return (Path(data_dir).resolve() / "mlruns").as_uri()
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     # MLflow prints run links with an emoji; a Windows console or a redirected stdout
@@ -667,7 +676,8 @@ def main(argv: list[str] | None = None) -> int:
     unknown = [m for m in models if m not in MODELS]
     if unknown:
         raise SystemExit(f"Unknown models: {unknown} (choose from {MODELS})")
-    mlflow.set_tracking_uri(args.tracking_uri or settings.mlflow_tracking_uri)
+    tracking_uri = args.tracking_uri or settings.mlflow_tracking_uri
+    mlflow.set_tracking_uri(tracking_uri)
     frames, dataset = load_dataset(settings, args.dataset)
     embedder = None
     if "torch" in models:
@@ -691,6 +701,7 @@ def main(argv: list[str] | None = None) -> int:
         args.experiment or settings.ml_experiment,
         args.model_name or settings.ml_model_name,
         register_best=not args.no_register,
+        artifact_location=local_artifact_location(tracking_uri, settings.data_dir),
     )
     print(f"Dataset {dataset.version} (fingerprint {dataset.fingerprint[:12]})")
     print(f"Left out, unknown label: {report.excluded}")
