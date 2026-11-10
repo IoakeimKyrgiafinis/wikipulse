@@ -115,6 +115,9 @@ class Settings(BaseSettings):
     user_agent: str = DEFAULT_USER_AGENT
     log_level: LogLevel = "INFO"
     data_dir: Path = Path("data")
+    # Workers touch this file as their main loop goes round; `python -m wikipulse.health`
+    # (the Kubernetes probe, spec 08a) checks it is fresh. Unset: no heartbeat.
+    health_file: Path | None = None
 
     # --- Stage 1: live stream consumer ---
     # Wikimedia EventStreams endpoint for all recent changes (Server-Sent Events).
@@ -294,6 +297,11 @@ class Settings(BaseSettings):
     # Address of the API and the page. Only loopback addresses are accepted: there is no
     # authentication.
     api_host: str = "127.0.0.1"
+    # Inside a container (Kubernetes, spec 08a) the API must listen on every interface
+    # (API_HOST=0.0.0.0) so the Service and the probes reach it; this switch allows that.
+    # Who may connect is then decided by the network policy, and requests must still name
+    # a loopback host (as `kubectl port-forward` does), so DNS rebinding stays blocked.
+    api_listen_all: bool = False
     api_port: int = Field(default=8000, ge=1, le=65535)
     # The grouping run whose events the page shows ("live" for the live pipeline).
     api_run_id: str = "live"

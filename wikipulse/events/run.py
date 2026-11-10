@@ -40,6 +40,7 @@ from wikipulse.enrich.run import parse_day_or_time
 from wikipulse.events.embed import Embedder, page_text
 from wikipulse.events.grouper import Event, Grouper, Member
 from wikipulse.events.similarity import SpikePage
+from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
 from wikipulse.stream.resilience import install_stop_handlers, wait_or_stop
 
@@ -206,7 +207,9 @@ async def run(args: argparse.Namespace, stop: asyncio.Event) -> RunStats:
             enrich_wait_s=None if args.once else settings.events_enrich_wait_s,
         )
         started = time.monotonic()
+        heartbeat = Heartbeat.from_settings(settings)
         while not stop.is_set():
+            heartbeat.beat()
             grouped = await asyncio.to_thread(runner.step)
             if grouped:
                 active = len(runner.grouper.active)

@@ -182,18 +182,27 @@ class Consumer:
             count += 1
         return count
 
-    async def run_live(self, source: Source, stop: asyncio.Event, backoff: Backoff) -> None:
+    async def run_live(
+        self,
+        source: Source,
+        stop: asyncio.Event,
+        backoff: Backoff,
+        heartbeat: Callable[[], None] = lambda: None,
+    ) -> None:
         """Consume until `stop`: resume from the checkpoint, reconnect with backoff on failure.
 
         Each attempt reloads the checkpoint from Redis, so a message whose write failed
         (e.g. Redis was briefly down) is simply read again from the source.
+        `heartbeat` is called at every connection attempt and after every message.
         """
 
         async def attempt() -> None:
+            heartbeat()
             last_id = await self.load_checkpoint()
             logger.info("Connecting, resuming from checkpoint: %s", last_id or "none")
             async for sse_id, raw_json in until_stop(source.messages(last_id), stop):
                 await self.process(sse_id, raw_json)
                 backoff.reset()
+                heartbeat()
 
         await run_with_reconnect(attempt, stop, backoff, self.count_reconnect, name="stream")

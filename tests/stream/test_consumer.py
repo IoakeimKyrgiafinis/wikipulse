@@ -192,3 +192,18 @@ async def test_graceful_shutdown_finishes_the_current_write(consumer, redis_clie
     assert await consumer.load_checkpoint() == stop_at  # that message was completed and saved
     counters = await stats(redis_client, keys)
     assert counters["received"] == 11  # and nothing after it
+
+
+async def test_live_consumer_beats_its_heartbeat(consumer) -> None:
+    messages = with_unique_ids(fixture_messages())[:5]
+    source = FakeSource(messages, block_at_end=True)
+    stop = asyncio.Event()
+    beats: list[int] = []
+    task = asyncio.create_task(
+        consumer.run_live(source, stop, fast_backoff(), heartbeat=lambda: beats.append(1))
+    )
+    while await consumer.load_checkpoint() != messages[-1][0]:
+        await asyncio.sleep(0.01)
+    stop.set()
+    await asyncio.wait_for(task, timeout=2)
+    assert len(beats) == 1 + len(messages)  # one per connection attempt, one per message

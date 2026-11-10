@@ -13,6 +13,7 @@ import sys
 import redis.asyncio as aioredis
 
 from wikipulse.config import Settings, get_settings
+from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
 from wikipulse.stream.consumer import LIVE_NAMESPACE, Consumer, RedisKeys
 from wikipulse.stream.resilience import Backoff, install_stop_handlers
@@ -54,7 +55,8 @@ async def run(args: argparse.Namespace, settings: Settings) -> None:
     try:
         consumer = Consumer(redis, keys, settings.stream_maxlen)
         logger.info("Consuming %s into Redis Stream %s", settings.stream_url, keys.stream)
-        await consumer.run_live(source, stop, Backoff(max_s=settings.reconnect_max_s))
+        backoff = Backoff(max_s=settings.reconnect_max_s)
+        await consumer.run_live(source, stop, backoff, Heartbeat.from_settings(settings))
     finally:
         await redis.aclose()
     logger.info("Stopped cleanly; checkpoint saved in %s", keys.checkpoint)

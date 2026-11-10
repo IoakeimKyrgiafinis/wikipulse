@@ -25,6 +25,7 @@ from wikipulse.config import Settings, get_settings
 from wikipulse.db.spikes import delete_run, upsert_spikes
 from wikipulse.detect.detector import SpikeDetector, SpikeRecord
 from wikipulse.detect.runner import DEFAULT_CONSUMER, DetectionRunner, DetectKeys, reset_run
+from wikipulse.health import Heartbeat, beat_while
 from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging()
     stop = StopFlag()
     stop.install()
-    run(args, settings, stop)
+    run(args, settings, beat_while(stop, Heartbeat.from_settings(settings)))
     return 0
 
 
