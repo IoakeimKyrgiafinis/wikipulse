@@ -94,3 +94,15 @@ def test_describe_lists_versions_with_aliases(client):
     text = describe(client, name)
     assert f"v{v2}" in text and "@challenger" in text and "@champion" in text
     assert mlflow.get_tracking_uri().startswith("sqlite:")
+
+
+def test_an_unreachable_registry_is_an_error_not_a_missing_champion():
+    from types import SimpleNamespace
+
+    from mlflow.exceptions import MlflowException
+
+    def refuse(name, alias):
+        raise MlflowException("Invalid Host header", error_code="BAD_REQUEST")
+
+    with pytest.raises(MlflowException):
+        alias_version(SimpleNamespace(get_model_version_by_alias=refuse), "m", CHAMPION)

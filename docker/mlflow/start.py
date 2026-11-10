@@ -56,6 +56,9 @@ def create_bucket(bucket: str) -> None:
     raise SystemExit("S3 store not reachable")
 
 
+DEFAULT_ALLOWED_HOSTS = "localhost:5000,127.0.0.1:5000,mlflow:5000"
+
+
 def main() -> None:
     database = os.environ.get("MLFLOW_DB", "mlflow")
     bucket = os.environ.get("MLFLOW_BUCKET", "wikipulse-mlflow")
@@ -72,6 +75,10 @@ def main() -> None:
         f"--backend-store-uri={backend}",
         f"--artifacts-destination=s3://{bucket}",
         "--serve-artifacts",
+        # Host headers the server answers (MLflow 3 refuses others, against DNS
+        # rebinding): the published port on this machine, and the service name for other
+        # containers (the Airflow tasks of spec 07c reach it as http://mlflow:5000).
+        f"--allowed-hosts={os.environ.get('MLFLOW_ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS)}",
     ]
     print(f"Starting MLflow: metadata in database {database}, artifacts in s3://{bucket}")
     sys.stdout.flush()

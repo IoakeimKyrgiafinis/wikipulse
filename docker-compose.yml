@@ -181,6 +181,9 @@ services:
       # Lean: no background job runner. It serves GenAI features WikiPulse doesn't use
       # (online trace scoring, trace archival) and starts ~9 processes of ~250 MB each.
       MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+      # Host headers it answers: this machine's published port, and the service name for
+      # other containers (Airflow's retraining tasks, spec 07c).
+      MLFLOW_ALLOWED_HOSTS: localhost:${MLFLOW_PORT:-5000},127.0.0.1:${MLFLOW_PORT:-5000},mlflow:5000
     ports:
       - "127.0.0.1:${MLFLOW_PORT:-5000}:5000"
     depends_on:

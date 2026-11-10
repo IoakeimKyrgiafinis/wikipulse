@@ -50,11 +50,17 @@ class RegistryError(RuntimeError):
 
 
 def alias_version(client: MlflowClient, name: str, alias: str) -> str | None:
-    """The version an alias points at, or None if the alias isn't set."""
+    """The version an alias points at, or None if the alias (or the model) doesn't exist.
+
+    Any other error (the server unreachable, a request refused) is raised: "the registry
+    can't be asked" must never look like "there is no champion"."""
     try:
         return str(client.get_model_version_by_alias(name, alias).version)
-    except MlflowException:
-        return None
+    except MlflowException as error:
+        missing = error.error_code in ("RESOURCE_DOES_NOT_EXIST", "INVALID_PARAMETER_VALUE")
+        if missing and "not found" in str(error):
+            return None
+        raise
 
 
 def set_status(client: MlflowClient, name: str, version: str, status: str, **tags: str) -> None:
