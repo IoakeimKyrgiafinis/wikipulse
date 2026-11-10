@@ -1,5 +1,6 @@
 """The event feed counts distinct pages, not spikes."""
 
+from dataclasses import replace
 from datetime import timedelta
 
 from tests.events.helpers import T0
@@ -58,3 +59,17 @@ def test_stats_and_order_use_distinct_pages() -> None:
     assert [e.number for e in events] == [2, 1]  # 3 pages beat 2 pages (5 spikes)
     line = stats_line(events)
     assert "5 pages (8 spikes)" in line and "mean 2.50" in line and "max 3" in line
+
+
+def test_pages_and_events_show_the_news_score_once_scored() -> None:
+    scored = event(
+        3,
+        replace(spike("Storm", 0, 6.0), news_score=0.4, is_news=False),
+        replace(spike("Storm", 90, 5.0), news_score=0.83, is_news=True),
+        spike("Coast", 10, 2.0),  # not scored yet
+    )
+    lines = render_event(scored, max_pages=10)
+    assert lines[0].endswith(", news 0.83]")  # the event: its highest score
+    assert "news 0.83" in lines[1] and "Storm" in lines[1]  # the page: its best spike
+    assert "news  -  " in lines[2] and "Coast" in lines[2]
+    assert "news" not in render_event(ELECTION, max_pages=10)[0]  # nothing scored

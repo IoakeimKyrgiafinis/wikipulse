@@ -135,10 +135,15 @@ services:
       # The tasks' WikiPulse settings: like .env, but with the services' names in Docker.
       WIKIPULSE_HOME: /opt/wikipulse
       WIKIPULSE_PYTHON: /opt/wikipulse-venv/bin/python
+      WIKIPULSE_ML_PYTHON: /opt/wikipulse-ml-venv/bin/python
       POSTGRES_DSN: postgresql://${POSTGRES_USER:-wikipulse}:${POSTGRES_PASSWORD:-wikipulse}@postgres:5432/${POSTGRES_DB:-wikipulse}
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT: http://rustfs:9000
       DATA_DIR: /opt/wikipulse/data
+      # The retraining DAG (spec 07c): the MLflow service by its name, and the embedding
+      # model downloaded once into data/ (not into the container, where it would be lost).
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      HF_HOME: /opt/wikipulse/data/cache/huggingface
     ports:
       - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
     volumes:
@@ -176,6 +181,9 @@ services:
       # Lean: no background job runner. It serves GenAI features WikiPulse doesn't use
       # (online trace scoring, trace archival) and starts ~9 processes of ~250 MB each.
       MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+      # Host headers it answers: this machine's published port, and the service name for
+      # other containers (Airflow's retraining tasks, spec 07c).
+      MLFLOW_ALLOWED_HOSTS: localhost:${MLFLOW_PORT:-5000},127.0.0.1:${MLFLOW_PORT:-5000},mlflow:5000
     ports:
       - "127.0.0.1:${MLFLOW_PORT:-5000}:5000"
     depends_on:

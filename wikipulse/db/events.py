@@ -208,6 +208,8 @@ class FeedPage:
     ended_at: datetime | None
     score: float
     joined_score: float
+    news_score: float | None = None  # the news classifier's score (spec 07c), once scored
+    is_news: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -253,10 +255,12 @@ def feed_events(
             """
             SELECT ep.event_number, s.title,
                    coalesce(p.canonical_title, s.title) AS canonical_title,
-                   s.started_at, s.ended_at, s.score, ep.joined_score
+                   s.started_at, s.ended_at, s.score, ep.joined_score,
+                   sc.score AS news_score, sc.is_news
             FROM event_pages ep
             JOIN spikes s ON s.id = ep.spike_id
             LEFT JOIN pages p ON p.title = s.title
+            LEFT JOIN spike_scores sc ON sc.spike_id = s.id
             WHERE ep.run_id = %s
             ORDER BY s.score DESC, s.started_at, s.title
             """,
@@ -284,10 +288,12 @@ LIMIT %(limit)s
 """
 EVENT_PAGES = """
 SELECT ep.event_number, s.title, coalesce(p.canonical_title, s.title) AS canonical_title,
-       s.started_at, s.ended_at, s.score, ep.joined_score
+       s.started_at, s.ended_at, s.score, ep.joined_score,
+       sc.score AS news_score, sc.is_news
 FROM event_pages ep
 JOIN spikes s ON s.id = ep.spike_id
 LEFT JOIN pages p ON p.title = s.title
+LEFT JOIN spike_scores sc ON sc.spike_id = s.id
 WHERE ep.run_id = %s AND ep.event_number = ANY(%s)
 ORDER BY s.score DESC, s.started_at, s.title
 """

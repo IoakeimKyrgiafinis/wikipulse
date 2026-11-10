@@ -279,6 +279,7 @@ class Evaluation:
     metrics: dict[str, float] = field(default_factory=dict)
     importance: list[dict[str, Any]] = field(default_factory=list)
     test_scores: np.ndarray | None = None
+    valid_scores: np.ndarray | None = None  # for choosing among models on valid
 
 
 def latency_ms(predict: Predict, x: ModelInput, repeats: int = 3) -> float:
@@ -310,7 +311,9 @@ def evaluate_model(
         threshold, how = fixed_threshold, "fixed"
     else:
         threshold, how = choose_threshold(labels["valid"], scores["valid"], target_precision)
-    result = Evaluation(name, threshold, how, test_scores=scores["test"])
+    result = Evaluation(
+        name, threshold, how, test_scores=scores["test"], valid_scores=scores.get("valid")
+    )
     for split in splits:
         y, score = labels[split], scores[split]
         values = {**ranking_metrics(y, score), **threshold_metrics(y, score, threshold)}

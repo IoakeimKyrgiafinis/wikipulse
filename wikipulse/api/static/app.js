@@ -125,6 +125,9 @@ function cardNode(card) {
       {},
       card.status === "active" ? el("span", { class: "badge active" }, "active") : null,
       isNew(card.event_id) ? el("span", { class: "badge new" }, "new") : null,
+      card.is_news
+        ? el("span", { class: "badge news", title: "flagged as news by the classifier" }, "news")
+        : null,
       card.title,
     ),
     card.description ? el("p", { class: "description" }, card.description) : null,
@@ -132,6 +135,7 @@ function cardNode(card) {
       "p",
       { class: "meta" },
       `#${card.number} · ${pages}${spikes} · score ${card.spike_score} · ${when}`,
+      card.news_score === null ? "" : ` · news ${card.news_score.toFixed(2)}`,
       card.extracted ? ` · ${card.entity_count} entities` : " · not in the graph yet",
       card.has_briefing ? " · briefing" : "",
     ),
@@ -266,7 +270,8 @@ function detailNodes(detail) {
           el(
             "span",
             { class: "muted" },
-            ` score ${p.spike_score}${p.spikes > 1 ? `, ${p.spikes} spikes` : ""}`,
+            ` score ${p.spike_score}${p.spikes > 1 ? `, ${p.spikes} spikes` : ""}` +
+              (p.news_score === null ? "" : `, news ${p.news_score.toFixed(2)}`),
           ),
         ),
       ),

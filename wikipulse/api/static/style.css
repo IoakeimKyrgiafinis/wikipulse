@@ -82,6 +82,7 @@ a { color: var(--accent); }
 }
 .badge.active { color: var(--active); border-color: var(--active); }
 .badge.new { color: #9a6700; border-color: #9a6700; }
+.badge.news { color: #0a7d32; border-color: #0a7d32; }
 
 .side { display: grid; gap: 1rem; }
 .ask, .detail {

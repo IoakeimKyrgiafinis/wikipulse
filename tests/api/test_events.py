@@ -1,11 +1,16 @@
 """Joining grouping rows with the graph: pages, ids, briefings."""
 
+from dataclasses import replace
+
 import pytest
 
 from tests.api.helpers import BRIEFING, crisis_row, make_parts, page
 from wikipulse.api.events import (
+    best_news_score,
     briefing_out,
+    flagged_news,
     group_pages,
+    make_card,
     page_url,
     parse_event_id,
 )
@@ -21,6 +26,23 @@ def test_group_pages_counts_distinct_pages_strongest_first() -> None:
     pena = groups[1]
     assert pena.first_started_at == crisis_row().pages[1].started_at
     assert pena.last_ended_at == crisis_row().pages[2].ended_at
+
+
+def test_the_news_score_reaches_pages_and_cards() -> None:
+    row = crisis_row()
+    scored = (
+        replace(row.pages[0], news_score=0.912, is_news=True),
+        replace(row.pages[1], news_score=0.3, is_news=False),
+        row.pages[2],  # not scored yet
+    )
+    row = replace(row, pages=scored)
+    groups = {g.title: g.news_score for g in group_pages(row.pages)}
+    assert groups == {"Ueno Bank": 0.912, "Santiago Peña": 0.3}
+    card = make_card("live", row, None)
+    assert card.news_score == 0.912 and card.is_news is True
+    assert best_news_score(crisis_row().pages) is None
+    assert flagged_news(crisis_row().pages) is None
+    assert make_card("live", crisis_row(), None).news_score is None
 
 
 def test_a_page_with_an_active_spike_has_not_ended() -> None:

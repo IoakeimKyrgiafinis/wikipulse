@@ -27,7 +27,9 @@ What one run does:
    tell from the best: the paired-bootstrap interval of its gap in test average precision
    reaches `ML_SELECT_MARGIN`. The new version is tagged with the dataset version, the
    fingerprint and the selection rule, and older versions are tagged as superseded by it
-   (`supersede_older_versions`).
+   (`supersede_older_versions`). Retraining (spec 07c) compares the models on the
+   *validation* split instead (`TrainConfig.select_split`), so the test split stays free
+   for the champion/challenger comparison.
 """
 
 import argparse
@@ -172,6 +174,7 @@ class TrainConfig:
     target_precision: float = 0.8
     select_rule: str = "simplest_not_worse"
     select_margin: float = 0.0
+    select_split: str = "test"  # `SELECT_SPLITS`; retraining chooses on "valid"
     embed_model: str = "BAAI/bge-small-en-v1.5"
     net: NetConfig = field(default_factory=NetConfig)
     logreg_c: tuple[float, ...] = LOGREG_C
@@ -287,20 +290,32 @@ TRAINERS: dict[str, Callable[[dict[str, Split], TrainConfig], Fitted]] = {
 # --- choice, logging, registration ------------------------------------------------------
 
 
-def add_gaps(evaluations: dict[str, Evaluation], y_test: np.ndarray, seed: int) -> str:
-    """Add each model's paired-bootstrap gap in test AP to the best model (`test_ap_gap`,
-    `test_ap_gap_low`, `test_ap_gap_high`) to its metrics; returns the best model's name."""
-    best = max(evaluations, key=lambda n: evaluations[n].metrics["test_average_precision"])
+SELECT_SPLITS = ("test", "valid")  # where `select_model` compares the models
+
+
+def add_gaps(
+    evaluations: dict[str, Evaluation], y: np.ndarray, seed: int, split: str = "test"
+) -> str:
+    """Add each model's paired-bootstrap gap in average precision on `split` to the best
+    model (`<split>_ap_gap`, `_low`, `_high`) to its metrics; returns the best model."""
+    key = f"{split}_average_precision"
+    best = max(evaluations, key=lambda n: evaluations[n].metrics[key])
+    best_scores = getattr(evaluations[best], f"{split}_scores")
     for evaluation in evaluations.values():
         gap, low, high = paired_gap_interval(
-            y_test, evaluations[best].test_scores, evaluation.test_scores, seed
+            y, best_scores, getattr(evaluation, f"{split}_scores"), seed
         )
-        evaluation.metrics.update(test_ap_gap=gap, test_ap_gap_low=low, test_ap_gap_high=high)
+        evaluation.metrics.update(
+            {f"{split}_ap_gap": gap, f"{split}_ap_gap_low": low, f"{split}_ap_gap_high": high}
+        )
     return best
 
 
 def select_model(
-    results: dict[str, dict[str, float]], margin: float, rule: str = "simplest_not_worse"
+    results: dict[str, dict[str, float]],
+    margin: float,
+    rule: str = "simplest_not_worse",
+    split: str = "test",
 ) -> tuple[str, str]:
     """The model to register, by `rule` (one of `SELECT_RULES`, fixed before training).
 
@@ -309,24 +324,33 @@ def select_model(
     precision to the best model reaches down to `margin` (0: "not significantly worse");
     names are tried in `MODELS` order, simplest first. `best_test_ap`: the best model.
     `results` maps model name -> metrics (with `test_ap_gap_low` from `add_gaps`).
+
+    `split` is where the models are compared: `test` (spec 07b's training sessions) or
+    `valid` (retraining, spec 07c). Choosing on `valid` keeps the test split untouched
+    by the choice, so the chosen model's test number is not inflated by being the best
+    of four, and the champion/challenger comparison on test is fair. The rule names
+    keep "test" for compatibility; with `valid` they apply to the validation numbers.
     Returns (name, reason)."""
     if rule not in SELECT_RULES:
         raise ValueError(f"unknown selection rule {rule!r} (choose from {list(SELECT_RULES)})")
-    ap = {name: m["test_average_precision"] for name, m in results.items()}
+    if split not in SELECT_SPLITS:
+        raise ValueError(f"unknown selection split {split!r} (choose from {SELECT_SPLITS})")
+    ap = {name: m[f"{split}_average_precision"] for name, m in results.items()}
     best = max(ap, key=lambda name: ap[name])
     if rule == "best_test_ap":
-        return best, f"highest test average precision ({ap[best]:.3f})"
+        return best, f"highest {split} average precision ({ap[best]:.3f})"
     for name in sorted(ap, key=MODELS.index):
         m = results[name]
         if name == best:
-            return name, f"highest test average precision ({ap[name]:.3f})"
-        if m["test_ap_gap_low"] <= margin:
+            return name, f"highest {split} average precision ({ap[name]:.3f})"
+        low, high = m[f"{split}_ap_gap_low"], m[f"{split}_ap_gap_high"]
+        if low <= margin:
             return name, (
-                f"test average precision {ap[name]:.3f} vs. {ap[best]:.3f} for {best}: the "
-                f"gap's 95% interval [{m['test_ap_gap_low']:.3f}, {m['test_ap_gap_high']:.3f}] "
+                f"{split} average precision {ap[name]:.3f} vs. {ap[best]:.3f} for {best}: the "
+                f"gap's 95% interval [{low:.3f}, {high:.3f}] "
                 f"reaches {margin:g}, so not clearly worse, and simpler"
             )
-    return best, "highest test average precision"  # unreachable: the best qualifies
+    return best, f"highest {split} average precision"  # unreachable: the best qualifies
 
 
 TABLE_COLUMNS = [
@@ -344,6 +368,8 @@ TABLE_COLUMNS = [
     ("test_recall", "recall"),
     ("test_f1", "F1"),
     ("valid_average_precision", "valid AP"),
+    ("valid_ap_gap", "valid gap to best"),
+    ("valid_ap_gap_low", "valid gap 95% low"),
     ("train_average_precision", "train AP"),
     ("train_seconds", "train s"),
     ("latency_ms_per_spike", "ms/spike"),
@@ -454,12 +480,22 @@ def train_one(
         return evaluation, run.info.run_id, uri
 
 
-def register(model_uri: str, model_name: str, tags: dict[str, str], description: str) -> str:
-    """Register the model as a new version of `model_name` and mark the older versions as
-    superseded by it; returns the version."""
+def register(
+    model_uri: str,
+    model_name: str,
+    tags: dict[str, str],
+    description: str,
+    supersede: bool = True,
+) -> str:
+    """Register the model as a new version of `model_name`; returns the version.
+
+    With `supersede` (a training session by hand), the older versions are marked as
+    superseded by it. Retraining (spec 07c) passes False: its new version is only a
+    challenger until it has beaten the champion (`wikipulse.ml.registry`)."""
     version = mlflow.register_model(model_uri, model_name, tags=tags)
     mlflow.MlflowClient().update_model_version(model_name, version.version, description)
-    supersede_older_versions(model_name, str(version.version))
+    if supersede:
+        supersede_older_versions(model_name, str(version.version))
     return str(version.version)
 
 
@@ -495,9 +531,14 @@ def train_all(
     model_name: str,
     register_best: bool = True,
     artifact_location: str | None = None,
+    supersede: bool = True,
+    extra_tags: dict[str, str] | None = None,
 ) -> TrainReport:
     """Everything from the dataset's tables to the registered model (see the module
-    docstring). Uses the tracking URI set with `mlflow.set_tracking_uri`."""
+    docstring). Uses the tracking URI set with `mlflow.set_tracking_uri`. `supersede` and
+    `extra_tags` (on the parent run and the registered version) are for retraining."""
+    if config.select_split not in SELECT_SPLITS:  # fail before hours of training
+        raise ValueError(f"unknown selection split {config.select_split!r}")
     needs_text = "torch" in config.models and embedder is not None
     embed_seconds = 0.0
 
@@ -531,6 +572,7 @@ def train_all(
                 "labels": "llm+portal",
                 "selection_rule": config.select_rule,
                 "selection_rule_text": SELECT_RULES[config.select_rule],
+                **(extra_tags or {}),
             }
         )
         mlflow.log_params(
@@ -540,6 +582,7 @@ def train_all(
                 "target_precision": config.target_precision,
                 "select_rule": config.select_rule,
                 "select_margin": config.select_margin,
+                "select_split": config.select_split,
                 "models": ",".join(config.models),
             }
         )
@@ -552,13 +595,17 @@ def train_all(
             evaluations[name], run_ids[name], uris[name] = train_one(
                 name, splits, config, dataset, work
             )
-        add_gaps(evaluations, splits["test"].y, config.seed)
+        gap_splits = sorted({"test", config.select_split})
+        for split in gap_splits:
+            add_gaps(evaluations, splits[split].y, config.seed, split)
         results = {name: e.metrics for name, e in evaluations.items()}
         for name, e in evaluations.items():
-            gaps = ("test_ap_gap", "test_ap_gap_low", "test_ap_gap_high")
+            gaps = [f"{s}_ap_gap{end}" for s in gap_splits for end in ("", "_low", "_high")]
             mlflow.log_metrics(finite({f"{name}_{k}": e.metrics[k] for k in gaps}))
         table = comparison_table(results)
-        chosen, reason = select_model(results, config.select_margin, config.select_rule)
+        chosen, reason = select_model(
+            results, config.select_margin, config.select_rule, config.select_split
+        )
         (work / "comparison.md").write_text(markdown_table(table), encoding="utf-8", newline="\n")
         table.to_csv(work / "comparison.csv", index=False, lineterminator="\n")
         y_test = splits["test"].y
@@ -579,10 +626,12 @@ def train_all(
                 "threshold": f"{m['threshold']:.4f}",
                 "selection_rule": config.select_rule,
                 "select_margin": f"{config.select_margin:g}",
+                "select_split": config.select_split,
                 "training_run": parent.info.run_id,
+                **(extra_tags or {}),
             }
             description = f"{MODEL_TITLES[chosen]}: {reason}. Trained on {dataset.version}."
-            version = register(uris[chosen], model_name, tags, description)
+            version = register(uris[chosen], model_name, tags, description, supersede)
             mlflow.set_tag("registered_version", f"{model_name}/{version}")
             logger.info("Registered %s as %s version %s (%s)", chosen, model_name, version, reason)
     return TrainReport(

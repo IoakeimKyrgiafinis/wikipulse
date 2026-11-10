@@ -189,6 +189,53 @@ def test_select_model_follows_the_configured_rule():
         select_model(results, 0.0, "whatever_wins")
 
 
+def test_select_model_can_choose_on_the_validation_split():
+    results = {
+        "logreg": {
+            "test_average_precision": 0.90,  # best on test ...
+            "test_ap_gap_low": 0.0,
+            "test_ap_gap_high": 0.0,
+            "valid_average_precision": 0.70,  # ... but clearly worse on valid
+            "valid_ap_gap_low": 0.05,
+            "valid_ap_gap_high": 0.15,
+        },
+        "gbt": {
+            "test_average_precision": 0.80,
+            "test_ap_gap_low": 0.02,
+            "test_ap_gap_high": 0.2,
+            "valid_average_precision": 0.80,
+            "valid_ap_gap_low": 0.0,
+            "valid_ap_gap_high": 0.0,
+        },
+    }
+    assert select_model(results, 0.0)[0] == "logreg"
+    name, reason = select_model(results, 0.0, split="valid")
+    assert name == "gbt" and "highest valid average precision" in reason
+    with pytest.raises(ValueError, match="unknown selection split"):
+        select_model(results, 0.0, split="train")
+
+
+def test_retraining_chooses_on_valid_and_still_reports_test_gaps(tracking):
+    config = TrainConfig(seed=3, models=("rule", "logreg"), select_split="valid")
+    result = train_all(
+        synthetic_frames(),
+        DATASET,
+        None,
+        config,
+        experiment="test-07b-valid",
+        model_name=MODEL_NAME,
+        register_best=False,
+        artifact_location=(tracking / "artifacts").as_uri(),
+    )
+    for metrics in result.results.values():
+        assert {"valid_ap_gap_low", "test_ap_gap_low"} <= set(metrics)
+    best_valid = max(result.results, key=lambda n: result.results[n]["valid_average_precision"])
+    assert result.results[best_valid]["valid_ap_gap"] == 0
+    assert "valid average precision" in result.reason
+    params = mlflow.MlflowClient().get_run(result.parent_run_id).data.params
+    assert params["select_split"] == "valid"
+
+
 def test_paired_gaps_are_logged_and_zero_for_the_best(report):
     best = max(report.results, key=lambda n: report.results[n]["test_average_precision"])
     assert report.results[best]["test_ap_gap"] == 0

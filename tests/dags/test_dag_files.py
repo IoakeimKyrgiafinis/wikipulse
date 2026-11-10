@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DAGS = ROOT / "dags"
 DAG_FILES = sorted(DAGS.glob("*.py"))
 REQUIREMENTS = ROOT / "docker" / "airflow" / "requirements-jobs.txt"
+ML_REQUIREMENTS = ROOT / "docker" / "airflow" / "requirements-ml.txt"
 START_SCRIPT = ROOT / "docker" / "airflow" / "start.py"
 HELPER = DAGS / "wikipulse_jobs.py"
 # What a DAG file may import: Airflow, the standard library, and the shared helper.
@@ -33,8 +34,8 @@ def imports(path: Path) -> set[str]:
     return names
 
 
-def test_both_dags_exist() -> None:
-    assert {path.stem for path in DAG_FILES} >= {"daily_eval", "daily_stats"}
+def test_all_dags_exist() -> None:
+    assert {path.stem for path in DAG_FILES} >= {"daily_eval", "daily_stats", "retrain"}
 
 
 @pytest.mark.parametrize("path", DAG_FILES, ids=lambda p: p.name)
@@ -77,6 +78,33 @@ def test_image_requirements_match_the_lockfile() -> None:
     assert pins
     for name, version in pins:
         assert locked[name.split("[")[0]] == version, f"{name}: {version} vs uv.lock"
+
+
+def locked_versions() -> dict[str, set[str]]:
+    """Package -> its versions in uv.lock (torch has two: macOS and the CPU build)."""
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    versions: dict[str, set[str]] = {}
+    for package in lock["package"]:
+        versions.setdefault(package["name"], set()).add(package["version"])
+    return versions
+
+
+def test_ml_requirements_match_the_lockfile() -> None:
+    """The ML environment in the Airflow image (spec 07c) is the whole project at the
+    versions of uv.lock: every pin equals the lock, and every runtime dependency named in
+    pyproject.toml is there."""
+    locked = locked_versions()
+    pins = {}
+    for line in ML_REQUIREMENTS.read_text(encoding="utf-8").splitlines():
+        requirement = line.split(";")[0].strip()
+        if requirement and not requirement.startswith("#"):
+            name, version = requirement.split("==")
+            pins.setdefault(name, set()).add(version)
+            assert version in locked[name], f"{name}: {version} vs uv.lock {locked[name]}"
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    for dependency in project["project"]["dependencies"]:
+        name = dependency.split("[")[0].split(">")[0].split("=")[0].strip()
+        assert name in pins, f"{name} is missing from {ML_REQUIREMENTS.name}"
 
 
 def module_constants(path: Path) -> dict[str, object]:
