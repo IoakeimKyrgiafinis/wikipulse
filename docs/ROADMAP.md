@@ -63,6 +63,32 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 09c | Full CI/CD pipeline | ready |
 | 10 | Polish and presentation | ready |
 
+## Follow-ups
+
+Known problems that were too large for the spec that found them. Each needs its own spec
+(or a place in a later one) before it is fixed.
+
+- **Training/serving skew of the news classifier** (found in the 07c review). Training
+  rows are spikes of the looser *candidate* detector, with the feature window and cutoff
+  anchored at the candidate's start; serving scores spikes of the *default* detector,
+  which start later. Every window-based feature is measured at a different moment, and
+  values like `edits_before_start == 4` (46 of 152 default-rule training rows in dataset
+  v2) never occur when serving. *Impact:* the live news scores come from a distribution
+  the model wasn't trained on; drift monitoring flags `edits_before_start` every week.
+  *Proposed fix:* build training rows from the default detector's spikes (or score
+  candidate-detector spikes live), anchored and cut off exactly as `wikipulse.ml.serve`
+  does, as a new dataset version; retrain, compare with the champion, and re-check drift.
+  Labels for the new rows need the 02b labeler (`wikipulse.eval.label`) run on them.
+- **Weekly retraining needs fresh labels** (found while fixing 07c). The retraining DAG
+  now extends the history lake every week (`extend_history`), but the newest spikes have
+  no LLM labels and their portal days are not final yet, so most new rows have an unknown
+  label and the test split (the newest days) shrinks (dataset v4: 68 labeled and 105
+  unknown test rows). *Impact:* a weekly run can reject
+  for "too few labeled test rows" although the data is new. *Proposed fix:* a labeling
+  task in the DAG before `build_dataset` (`wikipulse.eval.label` on the new candidate
+  spikes, within an LLM budget), and a label delay: build the test split from days whose
+  portal is final.
+
 ## Milestones
 
 - **After stage 2:** a live breaking-news detector with a real evaluation. Already a solid portfolio piece.
