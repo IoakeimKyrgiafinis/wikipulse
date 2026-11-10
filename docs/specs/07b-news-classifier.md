@@ -1,6 +1,6 @@
 # Spec 07b: News classifier with experiment tracking
 
-Status: ready
+Status: done
 Stage: 7. Model lifecycle
 Owner: agent
 Depends on: 07a
