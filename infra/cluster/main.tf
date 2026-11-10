@@ -34,6 +34,10 @@ resource "kind_cluster" "this" {
 
 # The Kubernetes and Helm providers talk to the cluster created above, with the
 # certificates kind generated. Terraform creates the cluster first, then configures them.
+# The catch: a change that *replaces* the cluster (cluster_name, node_image,
+# kubeconfig_path, kind_config) leaves these values unknown at plan time, and the plan
+# fails reading the namespace from "localhost". Destroy first, then apply: the destroy
+# with `-refresh=false`, so it doesn't try to plan the replacement.
 provider "kubernetes" {
   host                   = kind_cluster.this.endpoint
   client_certificate     = kind_cluster.this.client_certificate
