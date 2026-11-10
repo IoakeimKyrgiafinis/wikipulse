@@ -242,7 +242,7 @@ def pipeline_health() -> dict[str, Any]:
         ),
         stat(
             "Services",
-            "max by (service) (up{service!=''})",
+            "max by (service) (up{system='wikipulse'})",
             "Whether Prometheus can scrape each WikiPulse process.",
             legend="{{service}}",
             width=12,
@@ -256,7 +256,12 @@ def pipeline_health() -> dict[str, Any]:
         ),
         timeseries(
             "Memory per service",
-            [Query("max by (service) (process_resident_memory_bytes{service!=''})", "{{service}}")],
+            [
+                Query(
+                    "max by (service) (process_resident_memory_bytes{system='wikipulse'})",
+                    "{{service}}",
+                )
+            ],
             "Resident memory of each process (compare with the pod's limit in values.yaml).",
             unit="bytes",
         ),
@@ -264,7 +269,7 @@ def pipeline_health() -> dict[str, Any]:
             "CPU per service",
             [
                 Query(
-                    "sum by (service) (rate(process_cpu_seconds_total{service!=''}[1m]))",
+                    "sum by (service) (rate(process_cpu_seconds_total{system='wikipulse'}[1m]))",
                     "{{service}}",
                 )
             ],

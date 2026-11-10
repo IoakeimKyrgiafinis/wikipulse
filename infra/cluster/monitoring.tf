@@ -23,11 +23,15 @@ locals {
         podMetricsEndpoints = [{
           port     = "metrics"
           interval = "15s"
-          # `service` = the pod's app.kubernetes.io/name (consumer, detector, api, ...).
-          relabelings = [{
-            sourceLabels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
-            targetLabel  = "service"
-          }]
+          relabelings = [
+            # `service` = the pod's app.kubernetes.io/name (consumer, detector, api, ...).
+            {
+              sourceLabels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+              targetLabel  = "service"
+            },
+            # `system="wikipulse"` tells WikiPulse's processes from Prometheus' and Grafana's own.
+            { targetLabel = "system", replacement = "wikipulse" },
+          ]
         }]
       }]
       prometheusSpec = {
@@ -35,7 +39,7 @@ locals {
           for name, target in var.host_metrics_targets : {
             job_name        = "wikipulse-host-${name}"
             scrape_interval = "15s"
-            static_configs  = [{ targets = [target], labels = { service = name } }]
+            static_configs  = [{ targets = [target], labels = { service = name, system = "wikipulse" } }]
           }
         ]
       }

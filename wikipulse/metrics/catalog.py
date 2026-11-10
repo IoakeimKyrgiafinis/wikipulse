@@ -23,6 +23,8 @@ metrics of the modules it imports, so most services show a few unused metrics at
 dashboards sum or take the maximum, which zeros don't disturb.
 """
 
+import math
+
 from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 
@@ -66,6 +68,7 @@ CONSUMER_LAG = Gauge(
 )
 
 # --- stage 2: spike detection ---
+
 
 DETECTOR_ENTRIES = Counter(
     "wikipulse_detector_entries",
@@ -182,3 +185,10 @@ MODEL_SCORED = Counter(
     "Spikes the live scorer scored, by whether they were classified as news.",
     ["model_version", "is_news"],
 )
+
+# Event times and lags are unknown until their owner sets them: NaN, not 0. Every process
+# that imports this module exports these gauges, and a 0 would read as "no lag" or
+# "1970", e.g. `max(wikipulse_consumer_lag_seconds)` showed 0 while no writer ran.
+# PromQL's max() skips NaN when another series has a value, and NaN > 300 is false.
+for _unknown in (CONSUMER_LAST_EVENT, CONSUMER_LAG, DETECTOR_LAST_EVENT):
+    _unknown.set(math.nan)

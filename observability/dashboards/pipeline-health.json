@@ -601,7 +601,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (service) (up{service!=''})",
+          "expr": "max by (service) (up{system='wikipulse'})",
           "legendFormat": "{{service}}",
           "range": true
         }
@@ -721,7 +721,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (service) (process_resident_memory_bytes{service!=''})",
+          "expr": "max by (service) (process_resident_memory_bytes{system='wikipulse'})",
           "legendFormat": "{{service}}",
           "range": true
         }
@@ -781,7 +781,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (service) (rate(process_cpu_seconds_total{service!=''}[1m]))",
+          "expr": "sum by (service) (rate(process_cpu_seconds_total{system='wikipulse'}[1m]))",
           "legendFormat": "{{service}}",
           "range": true
         }

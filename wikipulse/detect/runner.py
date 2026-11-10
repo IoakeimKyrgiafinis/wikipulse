@@ -219,7 +219,9 @@ class DetectionRunner:
             event = self._parse(entry_id, fields)
             if event is not None:
                 self.detector.process(event)
-                DETECTOR_LAST_EVENT.set(event.event_time.timestamp())
+                newest = self.detector.now
+                if newest is not None:  # the watermark: the newest event time seen
+                    DETECTOR_LAST_EVENT.set(newest)
         SPIKES_ACTIVE.set(len(self.detector.active))
 
     @staticmethod

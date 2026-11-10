@@ -200,8 +200,8 @@ class Consumer:
             CONSUMER_MESSAGES.labels(Outcome.DUPLICATE.value).inc()
             return Outcome.DUPLICATE
         CONSUMER_MESSAGES.labels(Outcome.KEPT.value).inc()
-        CONSUMER_LAST_EVENT.set(event.event_time.timestamp())
         self.lag.observe(event.event_time)
+        CONSUMER_LAST_EVENT.set(self.lag.last_event.timestamp())  # the newest, not the last
         return Outcome.KEPT
 
     async def _skip(self, sse_id: str | None, outcome: Outcome) -> Outcome:

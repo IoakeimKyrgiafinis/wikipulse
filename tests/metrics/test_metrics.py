@@ -200,3 +200,30 @@ def test_a_consumer_exports_every_outcome_from_the_start() -> None:
     text = generate_latest().decode()
     for outcome in ("kept", "duplicates", "discarded", "malformed"):
         assert f'wikipulse_consumer_messages_total{{outcome="{outcome}"}}' in text
+
+
+def test_event_time_gauges_are_unknown_until_set() -> None:
+    """In a fresh process (this one's gauges were set by other tests): NaN, not 0."""
+    import subprocess
+    import sys
+
+    code = (
+        "from prometheus_client import REGISTRY; import wikipulse.metrics.catalog; "
+        "print([REGISTRY.get_sample_value(n) for n in ('wikipulse_consumer_lag_seconds', "
+        "'wikipulse_consumer_last_event_timestamp_seconds', "
+        "'wikipulse_detector_last_event_timestamp_seconds')])"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "[nan, nan, nan]"
+
+
+async def test_the_last_event_gauge_keeps_the_newest_event_time() -> None:
+    from tests.detect.helpers import make_edit
+
+    redis = fakeredis.FakeAsyncRedis(decode_responses=True)
+    consumer = Consumer(redis, RedisKeys.for_namespace("n:edits", "n:consumer"), 10_000)
+    newer = make_edit("Page", 5, start=T0)
+    older = make_edit("Page", 1, start=T0, user="Other")
+    for event in (newer, older):  # out of order, as the stream sometimes is
+        await consumer._write("", event)
+    assert value("wikipulse_consumer_last_event_timestamp_seconds") == newer.event_time.timestamp()
