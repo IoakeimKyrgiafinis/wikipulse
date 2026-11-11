@@ -155,6 +155,15 @@ versioned the same way: `scripts/release.py package-chart` sets the chart's `ver
 equal `version` in `pyproject.toml` (`release.py version`); a release is cut by bumping
 that, merging, and tagging the merge commit.
 
+**Pre-releases** (added after the first review, for the approved first tag
+`v0.1.0-rc.1`): a tag may add a pre-release part to the project version. Its *release
+part* (before the first `-`) must still equal `pyproject.toml`'s version, while the full
+`0.1.0-rc.1` names the images, the chart (`version: 0.1.0-rc.1` is valid SemVer for Helm)
+and the GitHub Release. `release.py version --prerelease` prints `true`, and the workflow
+then (a) leaves out the floating `0.1` image tag (`enable=` on that metadata-action line):
+a release candidate must never become "the newest 0.1", and (b) marks the GitHub Release
+as a pre-release. The `0.1.0-rc.1` and `sha-...` tags are still pushed.
+
 ### Testing infrastructure in CI: a throwaway cluster
 
 The `smoke` job builds the image and runs `scripts/smoke_test.py`: it creates a kind
@@ -377,8 +386,8 @@ Nothing was deleted or rolled back (that would have meant more unrequested write
 data). The lesson: when a deploy must stay offline, pass `--offline`;
 `--allow-placeholder-contact` only forces it while the contact really is the placeholder.
 
-**Tests**: `uv run pytest`: 1264 passed, 1 skipped (Airflow is only in its image); new:
-`tests/eval/test_gate.py` (18) and `tests/test_cicd.py` (22). `ruff check` and
+**Tests**: `uv run pytest`: 1269 passed, 1 skipped (Airflow is only in its image); new:
+`tests/eval/test_gate.py` (18) and `tests/test_cicd.py` (27). `ruff check` and
 `ruff format --check` are clean.
 
 ## Still to do on GitHub (acceptance steps that can only run there)
@@ -400,19 +409,20 @@ Nothing was pushed, tagged or published. To finish the three acceptance criteria
    Branches) -> a rule for `main` that requires the status checks `test`, `terraform`,
    `dags`, `eval-gate` and `smoke`. Without it, a red gate is visible but doesn't block a
    merge.
-4. **Merge, then cut the first release**: `pyproject.toml` says 0.1.0, so on the merged
-   `main`: `git tag v0.1.0` and `git push origin v0.1.0`. Watch the `Release` workflow:
+4. **Merge, then cut the first (pre-)release**: `pyproject.toml` says 0.1.0, and the
+   approved tag is `v0.1.0-rc.1`, so on the merged `main`: `git tag v0.1.0-rc.1` and
+   `git push origin v0.1.0-rc.1`. Watch the `Release` workflow:
    - *"Pushing a tag produces images, a chart and a release"*: three packages on the
      repository's Packages page (`wikipulse`, `wikipulse-airflow`, `wikipulse-mlflow`,
-     each tagged `0.1.0`, `0.1` and `sha-...`), the chart package `charts/wikipulse`
-     version 0.1.0, and the GitHub Release `v0.1.0` with the image digests, the chart file
-     and the generated notes.
+     each tagged `0.1.0-rc.1` and `sha-...`, and *no* `0.1`), the chart package
+     `charts/wikipulse` version 0.1.0-rc.1, and the GitHub Release `v0.1.0-rc.1`, marked
+     as a pre-release, with the image digests, the chart file and the generated notes.
    - If the image push is refused: a package that already exists must grant this
      repository write access (the package's settings -> Manage Actions access). The
      repository's default workflow permissions can stay read-only; each job asks for its own.
 5. **Deploy it on the laptop** (optional): `docker login ghcr.io` with a token that has
    `read:packages` (new packages are private), `uv run python scripts/cluster.py create`,
-   then `uv run python scripts/deploy.py 0.1.0` (add `--offline` to keep the cluster away
+   then `uv run python scripts/deploy.py 0.1.0-rc.1` (add `--offline` to keep the cluster away
    from Wikimedia).
 6. **Dependabot** starts once `dependabot.yml` is on `main`: Insights -> Dependency graph ->
    Dependabot shows its runs. Turning on "Dependabot security updates" in Settings -> Code

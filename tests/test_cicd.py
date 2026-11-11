@@ -233,13 +233,45 @@ def test_the_smoke_install_is_offline_on_its_own_cluster() -> None:
 
 def test_a_release_tag_must_match_the_project_version() -> None:
     assert release.version_from_tag("v0.2.0", "0.2.0") == "0.2.0"
-    assert release.version_from_tag("v1.0.0-rc.1", "1.0.0-rc.1") == "1.0.0-rc.1"
-    for tag in ("0.2.0", "v0.2", "vfoo", "v0.2.0+x"):
+    for tag in ("0.2.0", "v0.2", "vfoo", "v0.2.0+x", "v0.2.0-"):
         with pytest.raises(SystemExit):
             release.version_from_tag(tag, "0.2.0")
     with pytest.raises(SystemExit, match="pyproject"):
         release.version_from_tag("v0.3.0", "0.2.0")
     assert release.project_version()  # reads pyproject.toml
+
+
+def test_a_pre_release_tag_of_the_project_version_is_accepted() -> None:
+    # The release part must match pyproject; the full version names everything.
+    assert release.version_from_tag("v0.1.0-rc.1", "0.1.0") == "0.1.0-rc.1"
+    assert release.version_from_tag("v1.0.0-beta.2", "1.0.0") == "1.0.0-beta.2"
+    with pytest.raises(SystemExit, match="pyproject"):
+        release.version_from_tag("v0.2.0-rc.1", "0.1.0")
+    assert release.is_prerelease("0.1.0-rc.1")
+    assert not release.is_prerelease("0.1.0")
+
+
+def test_the_version_command_prints_the_version_and_the_prerelease_flag(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(release, "project_version", lambda: "0.1.0")
+    release.main(["version", "--tag", "v0.1.0-rc.1"])
+    release.main(["version", "--tag", "v0.1.0-rc.1", "--prerelease"])
+    release.main(["version", "--tag", "v0.1.0", "--prerelease"])
+    assert capsys.readouterr().out.split() == ["0.1.0-rc.1", "true", "false"]
+
+
+def test_a_pre_release_gets_no_floating_tag_and_is_marked() -> None:
+    jobs = workflow("release.yml")["jobs"]
+    assert jobs["version"]["outputs"]["prerelease"] == "${{ steps.version.outputs.prerelease }}"
+    meta = next(s for s in jobs["images"]["steps"] if s["name"] == "Image tags and labels")
+    tags = meta["with"]["tags"].splitlines()
+    floating = next(t for t in tags if "{{major}}.{{minor}}" in t)
+    assert "enable=${{ needs.version.outputs.prerelease == 'false' }}" in floating
+    assert "type=semver,pattern={{version}}" in tags  # 0.1.0-rc.1 itself
+    create = next(s for s in jobs["release"]["steps"] if s["name"] == "Create the GitHub Release")
+    assert create["env"]["PRERELEASE"] == "${{ needs.version.outputs.prerelease }}"
+    assert "--prerelease" in create["run"]
 
 
 def test_the_packaged_chart_carries_the_release_version_and_image() -> None:
@@ -259,18 +291,26 @@ def test_the_packaged_chart_carries_the_release_version_and_image() -> None:
 
 
 @pytest.mark.skipif(shutil.which("helm") is None, reason="needs helm")
-def test_package_chart_writes_a_lintable_versioned_chart(tmp_path: Path) -> None:
-    package = release.package_chart("0.2.0", "ghcr.io/owner/wikipulse", tmp_path)
-    assert package.name == "wikipulse-0.2.0.tgz"
+@pytest.mark.parametrize("version", ["0.2.0", "0.1.0-rc.1"])
+def test_package_chart_writes_a_lintable_versioned_chart(tmp_path: Path, version: str) -> None:
+    package = release.package_chart(version, "ghcr.io/owner/wikipulse", tmp_path)
+    assert package.name == f"wikipulse-{version}.tgz"
     with tarfile.open(package) as archive:
         names = archive.getnames()
         values = yaml.safe_load(archive.extractfile("wikipulse/values.yaml").read())
+        chart = yaml.safe_load(archive.extractfile("wikipulse/Chart.yaml").read())
+    assert (chart["version"], chart["appVersion"]) == (version, version)
     assert "wikipulse/values-offline.yaml" in names  # deploy.py needs the values files
     assert not any(name.endswith("secret.example.yaml") for name in names)
     assert values["image"]["repository"] == "ghcr.io/owner/wikipulse"
-    assert values["image"]["tag"] == "0.2.0"
+    assert values["image"]["tag"] == version
     # The chart folder in the repository is untouched.
     assert "tag: dev" in (ROOT / "charts" / "wikipulse" / "values.yaml").read_text("utf-8")
+
+
+def test_deploy_accepts_a_pre_release_version() -> None:
+    assert deploy.VERSION.match("0.1.0-rc.1")
+    assert deploy.image_ref("ghcr.io/owner", "0.1.0-rc.1") == "ghcr.io/owner/wikipulse:0.1.0-rc.1"
 
 
 # --- scripts/deploy.py ---

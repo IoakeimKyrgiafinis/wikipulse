@@ -1,6 +1,7 @@
 # The release pipeline (spec 09c). Pushing a version tag builds and publishes a release:
 #
-#   1. version   the tag must be v<version in pyproject.toml>, e.g. v0.2.0
+#   1. version   the tag must be v<version in pyproject.toml>, e.g. v0.2.0, or a
+#                pre-release of it, e.g. v0.2.0-rc.1 (no floating 0.2 tag, marked pre-release)
 #   2. ci        the whole CI workflow (tests, eval gate, smoke test) on the tagged commit
 #   3. images    wikipulse, wikipulse-airflow and wikipulse-mlflow: build, scan with
 #                Trivy (no fixable critical vulnerability allowed), then push to GHCR,
@@ -37,6 +38,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       owner: ${{ steps.version.outputs.owner }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -46,6 +48,8 @@ jobs:
         run: |
           version="$(python3 scripts/release.py version --tag "$GITHUB_REF_NAME")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          prerelease="$(python3 scripts/release.py version --tag "$GITHUB_REF_NAME" --prerelease)"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           # Image names in GHCR must be lowercase; GitHub user names may not be.
           echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
@@ -80,7 +84,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Tags: 0.2.0 and 0.2 from the version tag, sha-<commit> from the commit.
+      # Tags: the version (0.2.0, or 0.2.0-rc.1), the floating 0.2 for full releases only
+      # (a release candidate must never become "the newest 0.2"), and sha-<commit>.
       - name: Image tags and labels
         id: meta
         uses: docker/metadata-action@v5
@@ -88,7 +93,7 @@ jobs:
           images: ${{ env.IMAGE }}
           tags: |
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ needs.version.outputs.prerelease == 'false' }}
             type=sha,prefix=sha-
 
       # Build into the local Docker first, so the scan runs before anything is published.
@@ -229,9 +234,10 @@ jobs:
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
         run: |
           prerelease=()
-          if [[ "$VERSION" == *-* ]]; then prerelease=(--prerelease); fi
+          if [[ "$PRERELEASE" == "true" ]]; then prerelease=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" artifacts/*.tgz \
             --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "WikiPulse $VERSION" --notes-file notes.md --generate-notes \
