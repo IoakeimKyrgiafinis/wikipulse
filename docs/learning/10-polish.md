@@ -9,7 +9,7 @@ WikiPulse can now be tried by a stranger with one command and understood from on
 | Quickstart | `scripts/quickstart.py` | Starts Redis, Postgres and Neo4j with Compose, replays a bundled day through the real pipeline, opens the live page. Offline. |
 | The sample | `demo/sample/edits.jsonl.gz`, `pages.jsonl.gz`, `README.md` | 58,882 anonymous human edits (4 Nov 12:00 to 6 Nov 00:00 UTC) and the 134 enriched pages the day's spikes need; 1.2 MB |
 | Sample maker | `scripts/make_quickstart_sample.py` | Builds the sample once from the history lake and the `pages` table |
-| Tests | `tests/test_quickstart.py` | 8 tests: sample edits become messages the consumer keeps, the recording replays in order, every Wikimedia URL setting is overridden, existing pages are kept, the sample is small and anonymous, every spike of the day has its page |
+| Tests | `tests/test_quickstart.py` | 13 tests: sample edits become messages the consumer keeps, the recording replays in order, every Wikimedia URL setting is overridden, existing pages are kept, `--graph` settles despite a failed extraction, a service that ends is noticed, the sample is small and anonymous, every spike of the day has its page |
 | README | `README.md` | Pitch, GIF, quickstart, diagram, stack, results, decisions, "more resources", how it was built with agents |
 | Architecture | `docs/architecture.md` | Four Mermaid diagrams (pipeline, batch and ML, deployment, the quickstart) with a table of every step |
 | Command reference | `docs/usage.md` | The old README's stage-by-stage commands, plus stages 6b, 6c, 7, 8c and 9 |
@@ -55,6 +55,10 @@ What makes `scripts/quickstart.py` work on a clean machine:
   table are never replaced. Ports and the Compose project come from the usual settings.
 - **Failure is explained.** Docker missing or not running, a busy port, a child process
   dying: each stops with one sentence and the path of the log (`data/quickstart/logs/`).
+  `Children.check()` treats a *service* (detector, grouper, graph runner, API) that ends
+  as a failure even with exit code 0; only *jobs* (`may_finish=True`: the replays,
+  migrations) may end on their own. Otherwise a pipeline that had quietly stopped would
+  go on printing unchanged progress lines.
 
 ### Communicating technical work to different audiences
 
@@ -99,6 +103,18 @@ What makes `scripts/quickstart.py` work on a clean machine:
   `MemoryBriefingStore` in `agent/store.py`, referenced nowhere.
 - **CI on the final commit is not verified here**: the branch is not pushed. Locally the
   same checks pass (below).
+- **Review fixes (docs/reviews/10-polish.md).** The README, `architecture.md` and blog 03
+  (title included) no longer claim a replay equals the live run: the evidence is replay
+  against replay (`determinism_check.py`, 02a) and replay against a restarted replay
+  (03b); no live run was compared with a replay of its own recording. Statements that
+  "every number is in `evals/results/`" now say the classifier, gate and crash-test
+  numbers live in the learning notes (and MLflow). Blog 01 says the `min_edits=8`
+  result is a manual run and names the kept tests; blog 03 gives the replay's real
+  duration (about 2.5 minutes; 2 seconds was offline detection). The batch diagram now
+  shows `ml.serve` reading spikes from Postgres and revisions from the Wikipedia API, and
+  `extend_history` calling the backfill; the pipeline text says the answering side
+  (API, MCP, agent) uses direct calls. `make_quickstart_sample.py` writes under the
+  repository root from any working directory. The quickstart's helpers got docstrings.
 
 ## Results
 
@@ -108,8 +124,8 @@ The user's Compose stack (project `wikipulse`) was running and was left alone. E
 used a clone in the scratchpad with its own Compose project and ports:
 
 ```
-git clone -b spec-10-polish C:\Users\makis\wikipulse <scratchpad>\fresh
-cd <scratchpad>\fresh ; uv sync
+git clone -b spec-10-polish <path of your clone> <scratchpad>/fresh
+cd <scratchpad>/fresh ; uv sync
 set COMPOSE_PROJECT_NAME=wpquickstart, REDIS_PORT=16379, POSTGRES_PORT=15432,
     NEO4J_HTTP_PORT=17474, NEO4J_BOLT_PORT=17687, API_PORT=8010 and the matching
     REDIS_URL, POSTGRES_DSN, NEO4J_URI (no .env)
@@ -125,14 +141,31 @@ uv run python scripts/quickstart.py --no-browser --exit-when-done
 
 Between runs, `docker compose -p wpquickstart down -v` removed only the test project's
 containers and volumes; the user's seven containers stayed up throughout. After run 4,
-Docker Desktop stopped (not by this session), so the last cleanup could not run: the
-`wpquickstart` containers and volumes of run 4 are still there. Once Docker runs again:
-`docker compose -p wpquickstart down -v` (from any clone of the repository).
+Docker Desktop stopped (not by this session), so that cleanup waited until the `--graph`
+run below, which ended with `docker compose -p wpquickstart down -v`.
 
-**`--graph` is not verified end to end.** Its run (`--graph --speed max` in the fresh
-clone) stopped at the first check, "Docker is not running", for the same reason. Its
-parts are the ones spec 09b used offline (the graph runner against
-`scripts/fake_wikimedia.py`), but the combination in the quickstart has not run yet.
+**`--graph`, end to end (after the review).** The first version never settled if one
+extraction failed: it waited until the count of *successful* extractions reached the
+number of events, but a failed one is retried only after 10 minutes of wall clock, then
+20, 40, ... `wait_until_settled()` now asks the graph runner's own rule
+(`wikipulse.db.graph.pending_events`) which events still need extraction, with the
+retry delay set to a year (`NO_RETRY`): an event counts as finished once its current
+form is extracted **or** has failed. Failures are counted in the progress line and
+listed at the end with their error (`report_failed_extractions()`), so they are reported,
+not hidden. Then a fresh clone at the fix (own Compose project `wpquickstart`, the ports
+above, fresh volumes, the host's Ollama with `qwen3:4b`, the fake Wikimedia):
+
+```
+uv run python scripts/quickstart.py --graph --no-browser --exit-when-done
+```
+
+passed in 10 min 26 s: 74 spikes, 69 events (5 with 2+ pages), **69 of 69 in the
+graph, 0 failed extractions**; it printed the top events and exited 0. Extraction
+ran alongside the replay and finished 3 minutes after it. Afterwards
+`docker compose -p wpquickstart down -v` removed the test project; the user's
+`wikipulse` stack stayed up throughout. (The failure path itself is covered by the unit
+test `test_a_failed_extraction_does_not_keep_the_graph_run_from_settling`; this run had
+no failure to exercise it.)
 
 - **Spikes are exactly reproducible**: 74 in every run, the same 74 the detector raises
   offline on the same edits (`gate.detect`, checked by
@@ -146,7 +179,8 @@ parts are the ones spec 09b used offline (the graph runner against
 
 ### Checks
 
-- `uv run pytest`: 1,294 passed, 1 skipped after fixing the one failure the README move
+- After the review fixes: `uv run pytest` 1,299 passed, 1 skipped.
+- Before them: `uv run pytest`: 1,294 passed, 1 skipped after fixing the one failure the README move
   caused (`test_the_readme_config_snippet_is_valid_json`, now reading `docs/usage.md`).
 - `uv run ruff check .` and `uv run ruff format --check .`: clean.
 
