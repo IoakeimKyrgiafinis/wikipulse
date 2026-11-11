@@ -145,3 +145,24 @@ def test_correlation_ids_go_from_spikes_to_events_to_the_graph_runner(conn, tag)
     ).fetchall()
     assert stored == [(1, "edit-1")]  # the candidate joined the election's event
     assert load_event(conn, tag, 1).correlation_id == "edit-1"
+
+
+def test_an_events_id_survives_a_late_earlier_spike_and_a_restart(conn, tag) -> None:
+    election, candidate = f"{tag} Election", f"{tag} Candidate"
+    store_page(conn, candidate, "A candidate in the election.")
+    upsert_spikes(conn, tag, [replace(spike(candidate, 10, None), correlation_id="edit-2")])
+    runner(conn, tag).step()  # the candidate opens event 1
+    # The election spike started earlier but is only now enriched and grouped, by a
+    # restarted runner that rebuilds event 1 from Postgres.
+    store_page(conn, election, "An election was held.", links=(candidate,))
+    upsert_spikes(conn, tag, [replace(spike(election, 0, None), correlation_id="edit-1")])
+    restarted = runner(conn, tag)
+    assert restarted.grouper.active[1].correlation_id == "edit-2"
+    restarted.step()
+    stored = conn.execute(
+        "SELECT number, correlation_id, started_at FROM events WHERE run_id = %s", (tag,)
+    ).fetchall()
+    assert stored == [(1, "edit-2", T0)]  # it now starts with the election, same id
+    # Another restart: the members come back by start time (election first); the
+    # stored id still wins.
+    assert runner(conn, tag).grouper.active[1].correlation_id == "edit-2"

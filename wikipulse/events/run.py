@@ -28,6 +28,7 @@ import psycopg
 from wikipulse.config import EventsConfig, get_settings
 from wikipulse.db.events import (
     SpikeRow,
+    active_correlation_ids,
     active_members,
     delete_grouping_run,
     run_info,
@@ -144,9 +145,12 @@ class GroupingRunner:
             )
         rows = active_members(self.conn, self.run_id)
         pages = to_pages([row for _, _, row in rows], self.embedder)
+        # The stored id, not one recomputed from the members: it never changes.
+        ids = active_correlation_ids(self.conn, self.run_id)
         events: dict[int, Event] = {}
         for (number, joined, _), page in zip(rows, pages, strict=True):
-            events.setdefault(number, Event(number)).members.append(Member(page, joined))
+            event = events.setdefault(number, Event(number, correlation_id=ids.get(number)))
+            event.members.append(Member(page, joined))
         for event in events.values():
             event.refresh()
         if events:

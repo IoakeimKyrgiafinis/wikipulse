@@ -135,6 +135,15 @@ def active_members(conn: psycopg.Connection, run_id: str) -> list[tuple[int, flo
     return members
 
 
+def active_correlation_ids(conn: psycopg.Connection, run_id: str) -> dict[int, str | None]:
+    """The stored correlation id of each of the run's active events (set once, spec 09b)."""
+    rows = conn.execute(
+        "SELECT number, correlation_id FROM events WHERE run_id = %s AND status = 'active'",
+        (run_id,),
+    ).fetchall()
+    return {row[0]: row[1] for row in rows}
+
+
 def spike_ends(conn: psycopg.Connection, spike_ids: Sequence[int]) -> dict[int, datetime | None]:
     """The current `ended_at` of each spike (None while it is active)."""
     if not spike_ids:
