@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE = ROOT / "docs" / "claude_desktop_config.example.json"
-README = ROOT / "README.md"
+README = ROOT / "docs" / "usage.md"  # the command reference, moved out of README.md in spec 10
 
 
 def _check_config(config: dict) -> None:
