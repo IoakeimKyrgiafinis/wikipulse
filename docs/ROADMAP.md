@@ -61,7 +61,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 09a | Metrics, dashboards and alerts | done |
 | 09b | Logging and LLM tracing | done |
 | 09c | Full CI/CD pipeline | done |
-| 10 | Polish and presentation | ready |
+| 10 | Polish and presentation | done |
 
 ## Follow-ups
 
