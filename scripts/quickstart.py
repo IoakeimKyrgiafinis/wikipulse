@@ -173,6 +173,7 @@ def child_env(base: dict[str, str], wikimedia_url: str, hf_offline: bool) -> dic
             "API_POLL_INTERVAL_S": "2",
             "GRAPH_POLL_INTERVAL_S": "5",
             "PYTHONUTF8": "1",
+            "PYTHONUNBUFFERED": "1",  # log lines reach the log files at once
         }
     )
     env.pop("METRICS_PORT", None)  # one metrics port can't serve several processes
@@ -443,7 +444,7 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
         logger.info("The day is replayed; waiting for detection and grouping to finish")
         final = wait_until_settled(conn, children, info.evaluate_from, args.graph)
         for number, title, pages, started in conn.execute(TOP_EVENTS_SQL, (RUN_ID, 5)):
-            logger.info("  event %d: %s (%d pages, from %s)", number, title, pages,
+            logger.info("  event %d: %s (%d page(s), from %s)", number, title, pages,
                         f"{started:%H:%M} UTC")  # fmt: skip
     if not args.exit_when_done:
         logger.info("Done. The page stays at %s until Ctrl+C", url)
@@ -456,6 +457,7 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     setup_logging()
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # the health polls
     os.chdir(ROOT)  # Compose, the sample and DATA_DIR are relative to the repository
     check_tools()
     settings = get_settings()
