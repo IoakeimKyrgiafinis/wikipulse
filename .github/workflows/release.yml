@@ -1,0 +1,238 @@
+# The release pipeline (spec 09c). Pushing a version tag builds and publishes a release:
+#
+#   1. version   the tag must be v<version in pyproject.toml>, e.g. v0.2.0
+#   2. ci        the whole CI workflow (tests, eval gate, smoke test) on the tagged commit
+#   3. images    wikipulse, wikipulse-airflow and wikipulse-mlflow: build, scan with
+#                Trivy (no fixable critical vulnerability allowed), then push to GHCR,
+#                tagged with the version (0.2.0 and 0.2) and the commit (sha-1a2b3c4)
+#   4. chart     charts/wikipulse packaged as version 0.2.0, its default image set to
+#                ghcr.io/<owner>/wikipulse:0.2.0, pushed to oci://ghcr.io/<owner>/charts
+#   5. release   a GitHub Release with the image digests, the chart, how to deploy it
+#                (scripts/deploy.py 0.2.0) and the notes generated from merged pull requests
+#
+# To cut a release: bump `version` in pyproject.toml, merge, then tag that commit:
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# Permissions: the workflow's token starts with none, and each job gets only what it
+# needs (packages: write to push to GHCR, contents: write to create the release). The
+# token is the automatic GITHUB_TOKEN, valid for this run only; no stored secrets.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+# Never two releases of the same tag at once; a running release is not cancelled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      owner: ${{ steps.version.outputs.owner }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Check the tag against pyproject.toml
+        id: version
+        run: |
+          version="$(python3 scripts/release.py version --tag "$GITHUB_REF_NAME")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Image names in GHCR must be lowercase; GitHub user names may not be.
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+  ci:
+    needs: version
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  images:
+    needs: [version, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: wikipulse
+            context: .
+          - name: wikipulse-airflow
+            context: docker/airflow
+          - name: wikipulse-mlflow
+            context: docker/mlflow
+    env:
+      IMAGE: ghcr.io/${{ needs.version.outputs.owner }}/${{ matrix.name }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Tags: 0.2.0 and 0.2 from the version tag, sha-<commit> from the commit.
+      - name: Image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
+      # Build into the local Docker first, so the scan runs before anything is published.
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          load: true
+          tags: ${{ matrix.name }}:scan
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      # Fails on a CRITICAL vulnerability that has a fixed version available (update the
+      # base image or the package). The full table of HIGH and CRITICAL findings goes to
+      # the job summary either way.
+      - name: Scan with Trivy
+        run: |
+          trivy() {
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$HOME/.cache/trivy:/root/.cache/trivy" aquasec/trivy:0.76.2 "$@"
+          }
+          {
+            echo "### Trivy: ${{ matrix.name }}"
+            echo '```'
+            trivy image --quiet --scanners vuln --severity HIGH,CRITICAL --format table \
+              ${{ matrix.name }}:scan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          trivy image --quiet --scanners vuln --severity CRITICAL --ignore-unfixed \
+            --exit-code 1 ${{ matrix.name }}:scan
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Same build again, entirely from the cache: now with every tag, pushed.
+      - name: Push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+
+      - name: Record the digest for the release notes
+        run: |
+          mkdir -p digests
+          echo "${IMAGE}:${{ needs.version.outputs.version }}@${{ steps.push.outputs.digest }}" \
+            > "digests/${{ matrix.name }}.txt"
+
+      - name: Upload the digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.name }}
+          path: digests/${{ matrix.name }}.txt
+          retention-days: 7
+
+  chart:
+    needs: [version, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v4.3.1
+
+      - name: Package the chart
+        run: >-
+          python3 scripts/release.py package-chart --version "$VERSION"
+          --image-repository "$REGISTRY/wikipulse" --out dist
+
+      - name: Push the chart to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          helm push "dist/wikipulse-$VERSION.tgz" "oci://$REGISTRY/charts"
+
+      - name: Upload the chart
+        uses: actions/upload-artifact@v4
+        with:
+          name: chart
+          path: dist/wikipulse-${{ needs.version.outputs.version }}.tgz
+          retention-days: 7
+
+  release:
+    needs: [version, images, chart]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
+    steps:
+      - name: Download the digests and the chart
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Write the release notes
+        run: |
+          {
+            echo "## Images"
+            echo
+            for file in artifacts/*.txt; do echo "- \`$(cat "$file")\`"; done
+            echo
+            echo "## Helm chart"
+            echo
+            echo "\`oci://$REGISTRY/charts/wikipulse\` version \`$VERSION\` (also attached below)."
+            echo
+            echo "## Deploy to the local kind cluster"
+            echo
+            echo '```'
+            echo "uv run python scripts/deploy.py $VERSION"
+            echo '```'
+            echo
+          } > notes.md
+          cat notes.md
+
+      # --generate-notes appends GitHub's notes (merged pull requests, contributors).
+      # A version with a pre-release part (0.2.0-rc.1) becomes a pre-release.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          prerelease=()
+          if [[ "$VERSION" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" artifacts/*.tgz \
+            --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "WikiPulse $VERSION" --notes-file notes.md --generate-notes \
+            "${prerelease[@]}"
