@@ -458,6 +458,11 @@ class Settings(BaseSettings):
     ml_drift_max_features: int = Field(default=5, ge=1)
     ml_drift_min_rows: int = Field(default=30, ge=1)
 
+    # --- Releases (stage 9, spec 09c): uv run python scripts/deploy.py <version> ---
+    # Where scripts/deploy.py pulls a release's image and chart from, e.g.
+    # `ghcr.io/<owner>`. Unset: `ghcr.io/<owner>` of the git remote `origin`.
+    wikipulse_registry: str | None = None
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _uppercase_log_level(cls, value: Any) -> Any:

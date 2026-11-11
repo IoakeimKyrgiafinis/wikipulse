@@ -1,0 +1,45 @@
+{
+  "precision": 0.5263157894736842,
+  "recall": 0.21052631578947367,
+  "margin_spikes": 2,
+  "margin_bursts": 1,
+  "spikes": 19,
+  "counts": {
+    "news": 10,
+    "not news": 9,
+    "unsure": 0,
+    "unlabeled": 0
+  },
+  "news_bursts": 38,
+  "found": 8,
+  "found_bursts": [
+    "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+    "Haley Stevens (2026-11-07 02:29 UTC)",
+    "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+    "Bigg Boss (Tamil TV series) season 10 (2026-11-07 07:56 UTC)",
+    "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+    "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+    "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+    "Deaths in 2026 (2026-11-07 11:35 UTC)"
+  ],
+  "config": {
+    "short_window_min": 10.0,
+    "long_window_min": 60.0,
+    "min_edits": 5,
+    "min_editors": 3,
+    "min_ratio": 5.0,
+    "long_min_edits": 10,
+    "long_min_editors": 4,
+    "expected_floor": 0.5,
+    "continue_min_edits": 2,
+    "quiet_period_min": 30.0,
+    "baseline_tau_hours": 24.0,
+    "baseline_prune_per_day": 0.05,
+    "rhythm_tau_hours": 1.0,
+    "rhythm_min": 0.5,
+    "rhythm_max": 2.0,
+    "count_reverts": false
+  },
+  "fixture_sha256": "93b49d71338e3182673e78e88156fcac00b594d4295e1b53b2f34e75db0282c7",
+  "labels_sha256": "5a0591cac1f773d893efc4501f6274bab63026784c5cf08c0bd8f80faf4d002b"
+}

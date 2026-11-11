@@ -1,0 +1,273 @@
+# The release pipeline (spec 09c). Pushing a version tag builds and publishes a release:
+#
+#   1. version   the tag must be v<version in pyproject.toml>, e.g. v0.2.0, or a
+#                pre-release of it, e.g. v0.2.0-rc.1 (no floating 0.2 tag, marked
+#                pre-release), and the tagged commit must be on main (reviewed code only)
+#   2. ci        the whole CI workflow (tests, eval gate, smoke test) on the tagged commit
+#   3. images    wikipulse and wikipulse-mlflow: build once, scan that build with Trivy
+#                (no fixable critical vulnerability allowed), then push that same image
+#                to GHCR, tagged with the version (0.2.0 and 0.2) and the commit
+#                (sha-1a2b3c4). No `latest` tag: deploy a version, never "whatever is
+#                newest". wikipulse-airflow is not released (see the images job).
+#   4. chart     charts/wikipulse packaged as version 0.2.0, its default image set to
+#                ghcr.io/<owner>/wikipulse:0.2.0, pushed to oci://ghcr.io/<owner>/charts
+#   5. release   a GitHub Release with the image digests, the chart, how to deploy it
+#                (scripts/deploy.py 0.2.0) and the notes generated from merged pull requests
+#
+# To cut a release: bump `version` in pyproject.toml, merge, then tag that commit:
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# Permissions: the workflow's token starts with none, and each job gets only what it
+# needs (packages: write to push to GHCR, contents: write to create the release). The
+# token is the automatic GITHUB_TOKEN, valid for this run only; no stored secrets.
+#
+# Supply chain: every action is pinned to a full commit SHA (the comment names its
+# version; Dependabot's github-actions updates move SHA and comment together), Trivy is
+# pinned by image digest, and no checkout leaves the token in .git/config
+# (persist-credentials: false): nothing here pushes to git.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+# Never two releases of the same tag at once; a running release is not cancelled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      owner: ${{ steps.version.outputs.owner }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Check out the code (all history, to see main)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Anyone who can push a tag could otherwise release a commit no one reviewed.
+      - name: Check the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main: tag a merged commit"
+            exit 1
+          fi
+
+      - name: Check the tag against pyproject.toml
+        id: version
+        run: |
+          version="$(python3 scripts/release.py version --tag "$GITHUB_REF_NAME")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          prerelease="$(python3 scripts/release.py version --tag "$GITHUB_REF_NAME" --prerelease)"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          # Image names in GHCR must be lowercase; GitHub user names may not be.
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+  ci:
+    needs: version
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  # wikipulse-airflow is left out on purpose: no release consumer uses it (the chart and
+  # deploy.py run only `wikipulse`; Airflow runs from Docker Compose, which builds it
+  # locally), it only works with the repository mounted at /opt/wikipulse, so a
+  # published copy would not be a self-contained release, and at about 6 GB a build
+  # plus a scan on a standard runner risks running out of disk. CI still builds it on
+  # every run (the dags job), so a broken Dockerfile is caught.
+  images:
+    needs: [version, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: wikipulse
+            context: .
+          - name: wikipulse-mlflow
+            context: docker/mlflow
+    env:
+      IMAGE: ghcr.io/${{ needs.version.outputs.owner }}/${{ matrix.name }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      # Tags: the version (0.2.0, or 0.2.0-rc.1), the floating 0.2 for full releases only
+      # (a release candidate must never become "the newest 0.2"), and sha-<commit>.
+      # latest=false: metadata-action would otherwise add `latest` to full releases.
+      - name: Image tags and labels
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ needs.version.outputs.prerelease == 'false' }}
+            type=sha,prefix=sha-
+
+      # The only build: into the local Docker, with every release tag, nothing pushed yet.
+      - name: Build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      # Trivy reads the built image from a `docker save` file: it gets no Docker socket
+      # (which would be root on the runner), and the job has not logged in anywhere yet.
+      # Fails on a CRITICAL vulnerability that has a fixed version available (update the
+      # base image or the package). The full table of HIGH and CRITICAL findings goes to
+      # the job summary either way.
+      - name: Scan with Trivy
+        env:
+          TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+        run: |
+          docker save "$IMAGE:$VERSION" -o image.tar
+          trivy() {
+            docker run --rm -v "$PWD/image.tar:/image.tar:ro" \
+              -v "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
+              image --input /image.tar --quiet --scanners vuln "$@"
+          }
+          {
+            echo "### Trivy: ${{ matrix.name }}"
+            echo '```'
+            trivy --severity HIGH,CRITICAL --format table
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          trivy --severity CRITICAL --ignore-unfixed --exit-code 1
+          rm image.tar
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The scanned image itself, not a rebuild: every tag names the same local image,
+      # and the digest the registry gives it goes into the release notes.
+      - name: Push
+        run: |
+          docker push --all-tags "$IMAGE"
+          digest="$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE:$VERSION" | grep -m1 "^$IMAGE@")"
+          echo "Pushed $digest"
+          mkdir -p digests
+          echo "$IMAGE:$VERSION@${digest#*@}" > "digests/${{ matrix.name }}.txt"
+
+      - name: Upload the digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digest-${{ matrix.name }}
+          path: digests/${{ matrix.name }}.txt
+          retention-days: 7
+
+  chart:
+    needs: [version, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          version: v4.3.1
+
+      - name: Package the chart
+        run: >-
+          python3 scripts/release.py package-chart --version "$VERSION"
+          --image-repository "$REGISTRY/wikipulse" --out dist
+
+      - name: Push the chart to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          helm push "dist/wikipulse-$VERSION.tgz" "oci://$REGISTRY/charts"
+
+      - name: Upload the chart
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: chart
+          path: dist/wikipulse-${{ needs.version.outputs.version }}.tgz
+          retention-days: 7
+
+  release:
+    needs: [version, images, chart]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
+    steps:
+      - name: Download the digests and the chart
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Write the release notes
+        run: |
+          {
+            echo "## Images"
+            echo
+            for file in artifacts/*.txt; do echo "- \`$(cat "$file")\`"; done
+            echo
+            echo "## Helm chart"
+            echo
+            echo "\`oci://$REGISTRY/charts/wikipulse\` version \`$VERSION\` (also attached below)."
+            echo
+            echo "## Deploy to the local kind cluster"
+            echo
+            echo '```'
+            echo "uv run python scripts/deploy.py $VERSION"
+            echo '```'
+            echo
+          } > notes.md
+          cat notes.md
+
+      # --generate-notes appends GitHub's notes (merged pull requests, contributors).
+      # A version with a pre-release part (0.2.0-rc.1) becomes a pre-release.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          prerelease=()
+          if [[ "$PRERELEASE" == "true" ]]; then prerelease=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" artifacts/*.tgz \
+            --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "WikiPulse $VERSION" --notes-file notes.md --generate-notes \
+            "${prerelease[@]}"
