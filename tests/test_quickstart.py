@@ -102,6 +102,7 @@ def test_every_wikimedia_url_points_at_the_local_address() -> None:
     for name in wikimedia_settings:
         assert env[name] == "http://127.0.0.1:9"
     assert env["EVENTS_ENRICH_WAIT_S"] == "0"  # no enricher: grouping doesn't wait for it
+    assert float(env["DETECT_SNAPSHOT_INTERVAL_S"]) <= 5  # spikes reach the page quickly
     assert env["HF_HUB_OFFLINE"] == "1"
     assert "METRICS_PORT" not in env  # one port can't serve several processes
     assert env["PATH"] == "x"

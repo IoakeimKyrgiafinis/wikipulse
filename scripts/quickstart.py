@@ -161,14 +161,18 @@ def child_env(base: dict[str, str], wikimedia_url: str, hf_offline: bool) -> dic
     """The environment of every started process: offline by construction.
 
     Every Wikimedia URL points at `wikimedia_url` (a local address), grouping doesn't
-    wait for an enricher that isn't running, and the page and grouping poll often so the
-    fast replay looks smooth.
+    wait for an enricher that isn't running, and the detector, grouping and the page hand
+    on their results often, so the fast replay looks smooth.
     """
     env = dict(base)
     env.update({name: wikimedia_url for name in WIKIMEDIA_URL_SETTINGS})
     env.update(
         {
             "EVENTS_ENRICH_WAIT_S": "0",
+            # The detector hands new spikes over at each snapshot: every 30 s by default,
+            # which at 300x would be 2.5 hours of the day at once. (Wall clock: it changes
+            # when spikes become visible, never which spikes there are.)
+            "DETECT_SNAPSHOT_INTERVAL_S": "2",
             "EVENTS_POLL_INTERVAL_S": "2",
             "API_POLL_INTERVAL_S": "2",
             "GRAPH_POLL_INTERVAL_S": "5",
