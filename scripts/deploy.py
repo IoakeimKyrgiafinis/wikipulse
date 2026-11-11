@@ -1,7 +1,8 @@
 """Deploy a released version of WikiPulse to the local kind cluster (spec 09c).
 
-    uv run python scripts/deploy.py 0.2.0
-    uv run python scripts/deploy.py 0.2.0 --values values-prod.yaml --offline
+    uv run python scripts/deploy.py 0.2.0                  # offline (the default)
+    uv run python scripts/deploy.py 0.2.0 --values values-prod.yaml
+    uv run python scripts/deploy.py 0.2.0 --online         # with the live services
 
 What a release (.github/workflows/release.yml) published, put on the laptop's cluster:
 
@@ -14,21 +15,23 @@ What a release (.github/workflows/release.yml) published, put on the laptop's cl
    release's image: a new revision of the release `wikipulse`, so
    `scripts/cluster.py rollback` goes back to what ran before.
 
-The registry is `--registry`, else WIKIPULSE_REGISTRY, else `ghcr.io/<owner>` from the
-git remote `origin`. The cluster must exist (`scripts/cluster.py create`). A cluster
-made by Terraform (infra/cluster) owns its release: deploy there by setting the image
-tag in Terraform instead, or Terraform's next apply undoes this.
+The registry is `--registry`, else the WIKIPULSE_REGISTRY setting, else
+`ghcr.io/<owner>` from the git remote `origin`. The cluster must exist
+(`scripts/cluster.py create`). A cluster made by Terraform (infra/cluster) owns its
+release: deploy there by setting the image tag in Terraform instead, or Terraform's next
+apply undoes this.
 
 Why the laptop pulls instead of GitHub pushing: see docs/learning/09c-cicd-pipeline.md
 (continuous deployment to a laptop needs a self-hosted runner, a security decision).
 
-Like `cluster.py deploy`, this refuses a placeholder contact in USER_AGENT;
-`--allow-placeholder-contact` deploys offline instead (no service contacts Wikimedia).
+Offline by default: values-offline.yaml gives the services that contact Wikimedia
+(consumer, enricher, graph runner) 0 replicas, whatever USER_AGENT holds. Only
+`--online` starts them, and only with a real contact in USER_AGENT: with the
+placeholder it refuses before doing anything.
 """
 
 import argparse
 import logging
-import os
 import re
 import sys
 import tempfile
@@ -40,13 +43,18 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import cluster  # noqa: E402
 
-from wikipulse.config import get_settings  # noqa: E402
+from wikipulse.config import Settings, get_settings  # noqa: E402
 from wikipulse.logging_setup import setup_logging  # noqa: E402
 
 logger = logging.getLogger("deploy")
 
 VERSION = re.compile(r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$")
 REMOTE = re.compile(r"github\.com[:/](?P<owner>[^/]+)/")
+ONLINE_NEEDS_CONTACT = (
+    "--online starts the services that contact Wikimedia, whose policy requires a real "
+    "way to reach you, but USER_AGENT still contains the placeholder contact. Set "
+    "USER_AGENT in .env to your own contact address, or deploy offline (no --online)."
+)
 
 
 def registry_from_remote(url: str) -> str:
@@ -57,9 +65,9 @@ def registry_from_remote(url: str) -> str:
     return f"ghcr.io/{match['owner'].lower()}"
 
 
-def default_registry() -> str:
-    if os.environ.get("WIKIPULSE_REGISTRY"):
-        return os.environ["WIKIPULSE_REGISTRY"].rstrip("/")
+def default_registry(settings: Settings) -> str:
+    if settings.wikipulse_registry:
+        return settings.wikipulse_registry.rstrip("/")
     url = cluster.run(["git", "remote", "get-url", "origin"], capture=True).strip()
     return registry_from_remote(url)
 
@@ -102,15 +110,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="append",
         help="a values file of the chart, repeatable (default: values-dev.yaml)",
     )
-    parser.add_argument("--offline", action="store_true", help="add values-offline.yaml")
-    parser.add_argument(
-        "--allow-placeholder-contact",
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--offline",
+        dest="online",
+        action="store_false",
+        help="the default: add values-offline.yaml (nothing contacts Wikimedia)",
+    )
+    mode.add_argument(
+        "--online",
+        dest="online",
         action="store_true",
-        help="OFFLINE USE ONLY: go on with the placeholder contact; implies --offline",
+        help="also start the services that contact Wikimedia (needs a real USER_AGENT contact)",
     )
     parser.add_argument(
         "--plain-http", action="store_true", help="the registry speaks HTTP (a local test one)"
     )
+    parser.set_defaults(online=False)  # offline unless --online says otherwise
     return parser.parse_args(argv)
 
 
@@ -121,10 +137,13 @@ def main(argv: list[str] | None = None) -> int:
     if not VERSION.match(version):
         raise SystemExit(f"Not a release version: {args.version!r} (e.g. 0.2.0)")
     settings = get_settings()
-    offline = cluster.check_contact(settings, args.allow_placeholder_contact) or args.offline
+    if args.online and settings.user_agent_is_placeholder():
+        raise SystemExit(ONLINE_NEEDS_CONTACT)
+    offline = not args.online
+    logger.info("Deploying %s", "ONLINE (contacts Wikimedia)" if args.online else "offline")
     if not cluster.cluster_exists():
         raise SystemExit("No kind cluster `wikipulse`: run `scripts/cluster.py create` first")
-    registry = (args.registry or default_registry()).rstrip("/")
+    registry = (args.registry or default_registry(settings)).rstrip("/")
     image = image_ref(registry, version)
 
     cluster.run(["docker", "pull", image])
@@ -132,7 +151,8 @@ def main(argv: list[str] | None = None) -> int:
     with tempfile.TemporaryDirectory() as temp:
         cluster.run(pull_chart_command(registry, version, Path(temp), args.plain_http))
         chart = Path(temp) / cluster.RELEASE
-        cluster.secret(settings, args.allow_placeholder_contact)
+        # Online, the contact was checked above; offline, a placeholder is harmless.
+        cluster.secret(settings, allow_placeholder=offline)
         values = args.values or list(cluster.DEFAULT_VALUES)
         cluster.run(install_command(chart, registry, version, values, offline))
     logger.info("Deployed %s (chart %s %s)", image, chart_ref(registry), version)

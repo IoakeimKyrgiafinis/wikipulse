@@ -340,19 +340,73 @@ def test_deploy_installs_the_released_chart_and_image(tmp_path: Path) -> None:
     assert deploy.image_ref("ghcr.io/owner", "0.2.0") == "ghcr.io/owner/wikipulse:0.2.0"
 
 
-def test_deploy_refuses_a_placeholder_contact_before_doing_anything(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls = []
-    monkeypatch.setattr(deploy.cluster, "run", lambda *a, **k: calls.append(a) or "")
-    monkeypatch.setenv("USER_AGENT", "WikiPulse/0.1 (you@example.com)")
+REAL_AGENT = "WikiPulse/0.1 (https://github.com/owner/wikipulse; ops@wikipulse.test)"
+PLACEHOLDER_AGENT = "WikiPulse/0.1 (you@example.com)"
+
+
+@pytest.fixture
+def fake_cluster(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    """deploy.main with every cluster, Docker and Helm command recorded, none run."""
+    calls: list[list[str]] = []
+    monkeypatch.setattr(deploy.cluster, "run", lambda command, **_: calls.append(command) or "")
+    monkeypatch.setattr(deploy.cluster, "cluster_exists", lambda: True)
+    monkeypatch.setattr(deploy.cluster, "history", lambda: None)
+    monkeypatch.setattr(deploy.cluster, "status", lambda: None)
+    monkeypatch.setattr(deploy.cluster, "secret_manifest", lambda settings: {})
     deploy.get_settings.cache_clear()
-    try:
-        with pytest.raises(SystemExit, match="placeholder"):
-            deploy.main(["0.2.0"])
-    finally:
-        deploy.get_settings.cache_clear()
-    assert calls == []
+    yield calls
+    deploy.get_settings.cache_clear()
+
+
+def installed_values(command: list[str]) -> list[str]:
+    return [Path(command[i + 1]).name for i, arg in enumerate(command) if arg == "--values"]
+
+
+@pytest.mark.parametrize("user_agent", [REAL_AGENT, PLACEHOLDER_AGENT])
+def test_deploy_is_offline_by_default_whatever_the_contact(
+    fake_cluster: list[list[str]], user_agent: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USER_AGENT", user_agent)
+    deploy.get_settings.cache_clear()
+    assert deploy.main(["0.2.0", "--registry", "ghcr.io/owner"]) == 0
+    (install,) = [c for c in fake_cluster if "upgrade" in c]
+    assert installed_values(install) == ["values-dev.yaml", "values-offline.yaml"]
+
+
+def test_deploy_online_with_a_real_contact_starts_the_live_services(
+    fake_cluster: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USER_AGENT", REAL_AGENT)
+    deploy.get_settings.cache_clear()
+    assert deploy.main(["0.2.0", "--registry", "ghcr.io/owner", "--online"]) == 0
+    (install,) = [c for c in fake_cluster if "upgrade" in c]
+    assert installed_values(install) == ["values-dev.yaml"]  # no offline overlay
+
+
+def test_deploy_online_refuses_a_placeholder_contact_before_doing_anything(
+    fake_cluster: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USER_AGENT", PLACEHOLDER_AGENT)
+    deploy.get_settings.cache_clear()
+    with pytest.raises(SystemExit, match="placeholder"):
+        deploy.main(["0.2.0", "--registry", "ghcr.io/owner", "--online"])
+    assert fake_cluster == []
+
+
+def test_deploy_has_no_flag_that_goes_online_by_accident() -> None:
+    assert deploy.parse_args(["0.2.0"]).online is False
+    assert deploy.parse_args(["0.2.0", "--offline"]).online is False
+    assert deploy.parse_args(["0.2.0", "--online"]).online is True
+    with pytest.raises(SystemExit):  # the old flag that was misread as "offline" is gone
+        deploy.parse_args(["0.2.0", "--allow-placeholder-contact"])
+    with pytest.raises(SystemExit):
+        deploy.parse_args(["0.2.0", "--online", "--offline"])
+
+
+def test_the_registry_setting_overrides_the_git_remote(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(deploy.cluster, "run", lambda *a, **k: pytest.fail("ran git"))
+    settings = deploy.Settings(_env_file=None, wikipulse_registry="localhost:5001/me/")
+    assert deploy.default_registry(settings) == "localhost:5001/me"
 
 
 # --- scripts/make_gate_fixture.py ---
