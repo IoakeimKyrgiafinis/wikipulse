@@ -587,8 +587,15 @@ def model_health() -> dict[str, Any]:
     )
 
 
-# Spec 09b: one story's trail through every service, by its correlation id.
-TRAIL = '{system="wikipulse"} | correlation_id="$correlation_id"'
+# Spec 09b: one story's trail through every service, by its correlation id. A merge
+# line also matches by the merged event's id (its alias). Each side requires a non-empty
+# id: with the textbox empty, `correlation_id=""` alone would match every line that has
+# no id, so the panels show nothing instead.
+TRAIL = (
+    '{system="wikipulse"}'
+    ' | (correlation_id!="" and correlation_id="$correlation_id")'
+    ' or (merged_correlation_id!="" and merged_correlation_id="$correlation_id")'
+)
 
 
 def event_trail() -> dict[str, Any]:

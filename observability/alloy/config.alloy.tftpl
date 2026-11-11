@@ -54,9 +54,10 @@ loki.process "wikipulse" {
   stage.json {
     expressions = {
       level          = "level",
-      correlation_id = "correlation_id",
-      event_key      = "event_key",
-      trace_id       = "trace_id",
+      correlation_id        = "correlation_id",
+      merged_correlation_id = "merged_correlation_id",
+      event_key             = "event_key",
+      trace_id              = "trace_id",
     }
   }
   stage.labels {
@@ -64,9 +65,10 @@ loki.process "wikipulse" {
   }
   stage.structured_metadata {
     values = {
-      correlation_id = "",
-      event_key      = "",
-      trace_id       = "",
+      correlation_id        = "",
+      merged_correlation_id = "",
+      event_key             = "",
+      trace_id              = "",
     }
   }
   forward_to = [loki.write.default.receiver]

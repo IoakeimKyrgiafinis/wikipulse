@@ -251,7 +251,7 @@ def test_ids_are_structured_metadata_not_labels() -> None:
     config = (OBSERVABILITY / "alloy" / "config.alloy.tftpl").read_text(encoding="utf-8")
     labels = re.search(r"stage\.labels \{(.*?)\n  \}", config, re.DOTALL).group(1)
     metadata = re.search(r"stage\.structured_metadata \{(.*?)\n  \}", config, re.DOTALL).group(1)
-    for field in ("correlation_id", "event_key", "trace_id"):
+    for field in ("correlation_id", "merged_correlation_id", "event_key", "trace_id"):
         assert field in metadata and field not in labels
 
 
@@ -260,4 +260,9 @@ def test_the_trail_dashboard_searches_by_correlation_id() -> None:
     assert [v["name"] for v in board["templating"]["list"]] == ["correlation_id"]
     for panel in board["panels"]:
         assert panel["datasource"]["type"] == "loki"
-        assert 'correlation_id="$correlation_id"' in panel["targets"][0]["expr"]
+        expr = panel["targets"][0]["expr"]
+        assert 'correlation_id="$correlation_id"' in expr
+        # A merge line is found by the merged event's id too (its alias).
+        assert 'merged_correlation_id="$correlation_id"' in expr
+        # An empty textbox matches nothing: both sides demand a non-empty id.
+        assert 'correlation_id!=""' in expr and 'merged_correlation_id!=""' in expr

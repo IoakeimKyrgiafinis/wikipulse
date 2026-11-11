@@ -84,7 +84,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (service) (count_over_time({system=\"wikipulse\"} | correlation_id=\"$correlation_id\" [$__range]))",
+          "expr": "sum by (service) (count_over_time({system=\"wikipulse\"} | (correlation_id!=\"\" and correlation_id=\"$correlation_id\") or (merged_correlation_id!=\"\" and merged_correlation_id=\"$correlation_id\") [$__range]))",
           "legendFormat": "{{service}}",
           "range": true
         }
@@ -138,7 +138,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{system=\"wikipulse\"} | correlation_id=\"$correlation_id\" | json",
+          "expr": "{system=\"wikipulse\"} | (correlation_id!=\"\" and correlation_id=\"$correlation_id\") or (merged_correlation_id!=\"\" and merged_correlation_id=\"$correlation_id\") | json",
           "legendFormat": "",
           "range": true
         }
