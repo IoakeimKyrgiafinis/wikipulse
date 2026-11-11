@@ -208,6 +208,7 @@ def burst_key(label: Label) -> str:
 
 
 def covering(labels: Sequence[Label], spike: SpikeRecord) -> list[Label]:
+    """The labels whose burst the spike overlaps."""
     return [label for label in labels if label.covers(spike)]
 
 
@@ -252,6 +253,7 @@ def baseline_data(
     labels: Path,
     margins: tuple[int, int] = (DEFAULT_MARGIN_SPIKES, DEFAULT_MARGIN_BURSTS),
 ) -> dict[str, Any]:
+    """The baseline file's content for a gate result."""
     return {
         "precision": result.precision,
         "recall": result.recall,
@@ -309,6 +311,7 @@ def stale_inputs(baseline: dict[str, Any], fixture: Path, labels: Path) -> list[
 
 
 def config_changes(before: dict[str, Any], config: DetectorConfig) -> dict[str, tuple]:
+    """Detector settings that differ from the baseline's: name -> (before, now)."""
     now = config.model_dump()
     return {k: (before.get(k), v) for k, v in now.items() if before.get(k) != v}
 
@@ -317,6 +320,7 @@ def config_changes(before: dict[str, Any], config: DetectorConfig) -> dict[str, 
 
 
 def fmt(value: float | None) -> str:
+    """A number with three decimals, or `n/a`."""
     return "n/a" if value is None else f"{value:.3f}"
 
 
@@ -435,6 +439,7 @@ def margins(args: argparse.Namespace, baseline: dict[str, Any] | None) -> tuple[
 
 
 def run(args: argparse.Namespace) -> int:
+    """Run the gate with the command-line options; returns the exit code."""
     base = get_settings().detector_config().model_dump()
     config = DetectorConfig.model_validate({**base, **parse_overrides(args.set)})
     info, events = read_fixture(args.fixture)

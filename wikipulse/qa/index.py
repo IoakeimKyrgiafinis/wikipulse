@@ -50,6 +50,7 @@ FULLTEXT_INDEXES = [
 
 
 def vector_indexes(dimensions: int) -> list[str]:
+    """The statements that create the vector indexes."""
     options = (
         "OPTIONS {indexConfig: {"
         f"`vector.dimensions`: {int(dimensions)}, `vector.similarity_function`: 'cosine'}}}}"
@@ -71,6 +72,7 @@ def event_text(title: str | None, description: str | None, pages: Sequence[str])
 
 
 def text_hash(text: str, model: str) -> str:
+    """A short hash of a text and model, to notice changed texts."""
     return hashlib.sha256(f"{model}\n{text}".encode()).hexdigest()[:16]
 
 
@@ -134,6 +136,7 @@ def ensure_indexes(driver: Driver, dimensions: int) -> None:
 def write_embeddings(
     driver: Driver, docs: Sequence[Document], vectors: Sequence[Sequence[float]], model: str
 ) -> None:
+    """Store the vectors (and text hashes) on their nodes."""
     rows = {"Page": [], "Event": []}
     for doc, vector in zip(docs, vectors, strict=True):
         rows[doc.label].append(

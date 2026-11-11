@@ -70,6 +70,7 @@ class DailyStats:
 
 
 def day_start(day: date) -> datetime:
+    """Midnight UTC at the start of `day`."""
     return datetime.combine(day, time(), tzinfo=UTC)
 
 

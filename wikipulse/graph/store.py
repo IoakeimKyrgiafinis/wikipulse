@@ -163,6 +163,7 @@ def entity_key(name: str, link: Link) -> str:
 
 
 def page_props(page: EventPage) -> dict[str, Any]:
+    """A page's properties on its `Page` node."""
     return {
         "title": page.title,
         "wikidata_id": page.wikidata_id,

@@ -99,6 +99,8 @@ class ModelHealthCollector(Collector):
 
 
 def drift_metrics(reports: list[dict[str, Any]]) -> Iterator[GaugeMetricFamily]:
+    """Gauges from the newest drift reports."""
+
     def family(name: str, doc: str, extra: list[str] | None = None) -> GaugeMetricFamily:
         return GaugeMetricFamily(name, doc, labels=DRIFT_LABELS + (extra or []))
 
@@ -161,6 +163,7 @@ def _row_id(row: Any) -> Any:
 
 
 def score_metrics(rows: list[dict[str, Any]]) -> Iterator[GaugeMetricFamily]:
+    """Gauges from the stored spike scores."""
     stored = GaugeMetricFamily(
         "wikipulse_model_stored_scores", "Spike scores stored.", labels=DRIFT_LABELS
     )

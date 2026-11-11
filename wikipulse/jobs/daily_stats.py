@@ -82,6 +82,7 @@ def run_check(conn: psycopg.Connection, dataset: str, day: date) -> list[str]:
 
 
 def summary(stats: DailyStats) -> str:
+    """One line about a day's statistics."""
     return (
         f"{stats.dataset} {stats.day}: {stats.edits} edits in {stats.hours_present} hours, "
         f"bots {stats.bot_share:.1%}, median hour {stats.median_hour_edits or 0:.0f}, "

@@ -112,10 +112,12 @@ def parse_wikitext(text: str) -> tuple[tuple[str, ...], tuple[str, ...], int]:
 
 
 def parse_time(text: str) -> datetime:
+    """A MediaWiki timestamp as a datetime."""
     return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
 
 def revisions_params(revids: Iterable[int]) -> dict[str, Any]:
+    """Action API parameters for the wikitext of revisions."""
     return {
         "action": "query",
         "prop": "revisions",
@@ -140,6 +142,7 @@ def parse_revisions(body: dict[str, Any]) -> list[Revision]:
 
 
 def creation_params(pageid: int) -> dict[str, Any]:
+    """Action API parameters for a page's first revision."""
     return {
         "action": "query",
         "prop": "revisions",

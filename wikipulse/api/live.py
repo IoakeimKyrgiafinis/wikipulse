@@ -83,6 +83,7 @@ def as_of(cards: list[EventCard]) -> datetime | None:
 
 
 def event_json(card: EventCard) -> Message:
+    """A card as a JSON-ready message."""
     return card.model_dump(mode="json")
 
 

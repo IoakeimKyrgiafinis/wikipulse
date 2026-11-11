@@ -96,6 +96,7 @@ def build_archiver(args: argparse.Namespace, settings: Settings, client: redis.R
 
 
 def run(args: argparse.Namespace, settings: Settings, should_stop=lambda: False) -> ArchiveStats:
+    """Archive with the command-line options until stopped; returns the stats."""
     client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
     try:
         archiver = build_archiver(args, settings, client)

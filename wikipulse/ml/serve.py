@@ -319,6 +319,7 @@ def score_spikes(
 
 
 def log_scores(scores: Sequence[SpikeScore], titles: dict[int, str]) -> None:
+    """Log one line per scored spike."""
     for s in scores:
         logger.info(
             "%s %.3f %s (v%s, cutoff %s)",

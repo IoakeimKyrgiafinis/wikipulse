@@ -102,6 +102,7 @@ def pick_relation_label(records: Sequence[RelationLabelRecord]) -> RelationLabel
 def labels_by_relation(
     records: Sequence[RelationLabelRecord],
 ) -> dict[RelationKey, RelationLabelRecord]:
+    """The label that counts for each relation (human beats LLM)."""
     grouped: dict[RelationKey, list[RelationLabelRecord]] = {}
     for record in records:
         grouped.setdefault(record.key, []).append(record)
@@ -156,10 +157,12 @@ class RelationToLabel:
 
 
 def with_article(word: str) -> str:
+    """A word with `a` or `an` in front."""
     return f"an {word}" if word[:1] in "aeiou" else f"a {word}"
 
 
 def judge_message(item: RelationToLabel) -> str:
+    """The relation judge's input: the source text and the relation."""
     source = item.source
     if source is None:
         text = "(the source could not be read)"
@@ -278,6 +281,7 @@ def make_record(
     model: str | None = None,
     reason: str = "",
 ) -> RelationLabelRecord:
+    """The stored record of one relation label."""
     relation = item.relation
     return RelationLabelRecord(
         event_key=relation.event_key,

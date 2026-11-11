@@ -126,6 +126,7 @@ def listen(
     args: argparse.Namespace,
     should_stop: Callable[[], bool] = lambda: False,
 ) -> ListenStats:
+    """Listen for notifications and run the worker until stopped."""
     catch_up = None if args.no_catch_up else (lambda: worker.backfill(args.prefix))
     listener = NotificationListener(
         worker.client,
@@ -147,6 +148,7 @@ def listen(
 
 
 def show_dead_letters(worker: Worker) -> int:
+    """Print the dead-lettered events; returns how many there are."""
     letters = dead_letters(worker.client, worker.invoker.dead_letter_key)
     print(f"{len(letters)} dead-lettered event(s) in {worker.invoker.dead_letter_key}")
     for letter in letters:

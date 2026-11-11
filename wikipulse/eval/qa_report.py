@@ -101,6 +101,7 @@ def question_row(
     record: AnswerRecord,
     judged: dict[str, tuple[dict[str, QAJudgement], dict[str, QAJudgement]]],
 ) -> dict[str, Any]:
+    """One question's row of the report."""
     return {
         "id": score.id,
         "type": score.type,
@@ -136,6 +137,7 @@ def build_report(
     titles_by_key: dict[str, str],
     config: dict[str, Any],
 ) -> dict[str, Any]:
+    """The whole QA report as a JSON-ready dict."""
     primary = judges[0]
     everyone = [*judges]
     if any(r.labeler == "human" and r.run == name for r in records):
@@ -185,14 +187,17 @@ def _claim_share(faithfulness: dict[str, QAJudgement]) -> float | None:
 
 
 def pct(value: float | None) -> str:
+    """A share as a percentage with one decimal, or `n/a`."""
     return "n/a" if value is None else f"{100 * value:.1f}%"
 
 
 def num(value: float | None, digits: int = 2) -> str:
+    """A number with `digits` decimals, or `n/a`."""
     return "n/a" if value is None else f"{value:.{digits}f}"
 
 
 def summary_line(report: dict[str, Any]) -> str:
+    """The report's main numbers in one line."""
     m = report["metrics"]
     return (
         f"{m['questions']} questions: correctness {num(m['correctness'])} of 2 "
@@ -246,6 +251,7 @@ def _agreement_lines(entry: dict[str, Any]) -> list[str]:
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    """The QA report as Markdown."""
     config = report["config"]
     m = report["metrics"]
     judges = [*config["judges"], *([HUMAN] if HUMAN in report["per_judge"] else [])]
@@ -338,6 +344,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 
 def json_value(value: Any) -> str:
+    """A config value as text for the report."""
     if isinstance(value, list | tuple):
         return ", ".join(str(v) for v in value)
     if isinstance(value, dict):

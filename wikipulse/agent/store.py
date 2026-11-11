@@ -19,9 +19,9 @@ or by number of pages) whose briefing is missing or out of date.
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any
 
 import neo4j
 from neo4j import Driver
@@ -73,10 +73,6 @@ class BriefingMeta:
     prompt_version: str
     written_at: datetime
     transcript: str | None = None
-
-
-class BriefingSink(Protocol):
-    def save(self, key: str, briefing: Briefing, meta: BriefingMeta) -> bool: ...
 
 
 class BriefingStore:
@@ -134,14 +130,3 @@ class BriefingStore:
         if not saved:
             logger.warning("No event %s in the graph; briefing not saved", key)
         return bool(saved)
-
-
-@dataclass
-class MemoryBriefingStore:
-    """Keeps briefings in a dict (tests and the injection evaluation)."""
-
-    saved: dict[str, tuple[Briefing, BriefingMeta]] = field(default_factory=dict)
-
-    def save(self, key: str, briefing: Briefing, meta: BriefingMeta) -> bool:
-        self.saved[key] = (briefing, meta)
-        return True

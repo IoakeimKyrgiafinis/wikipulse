@@ -116,6 +116,7 @@ async def enrich_titles(
 
 
 def parse_time(value: str) -> datetime:
+    """A command-line time with a time zone (argparse type)."""
     parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is None:
         raise argparse.ArgumentTypeError(f"{value!r}: dates are UTC; add +00:00 or use a date")

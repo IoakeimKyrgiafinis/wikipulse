@@ -138,6 +138,7 @@ class Statement:
 
 
 def parse_statements(body: Any) -> list[Statement]:
+    """The statements in a SPARQL answer."""
     statements = []
     for row in bindings(body):
         prop = qid(row.get("property", {}).get("value", ""))
@@ -148,6 +149,7 @@ def parse_statements(body: Any) -> list[Statement]:
 
 
 def batches(items: Sequence[Any], size: int) -> Iterable[Sequence[Any]]:
+    """`items` in slices of at most `size`."""
     for start in range(0, len(items), size):
         yield items[start : start + size]
 

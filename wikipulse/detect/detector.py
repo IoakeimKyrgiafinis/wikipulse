@@ -71,6 +71,7 @@ def is_revert(comment: str) -> bool:
 
 
 def to_datetime(seconds: float) -> datetime:
+    """A Unix timestamp as a UTC datetime."""
     return datetime.fromtimestamp(seconds, UTC)
 
 

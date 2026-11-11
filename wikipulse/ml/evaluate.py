@@ -254,6 +254,7 @@ def plot_calibration(y: np.ndarray, score: np.ndarray, name: str, path: Path) ->
 
 
 def plot_importance(rows: list[dict[str, Any]], name: str, path: Path, top: int = 15) -> None:
+    """Plot the permutation importance of the `top` inputs to `path`."""
     shown = list(reversed(rows[:top]))
     fig, ax = plt.subplots(figsize=(6, 0.3 * len(shown) + 1.2))
     ax.barh(
@@ -332,6 +333,7 @@ def evaluate_model(
 
 
 def write_artifacts(result: Evaluation, y: np.ndarray, score: np.ndarray, out_dir: Path) -> None:
+    """Write a model's plots and importance table into `out_dir`."""
     plot_pr_curves({result.name: (y, score)}, out_dir / "pr_curve.png")
     plot_calibration(y, score, result.name, out_dir / "calibration.png")
     plot_importance(result.importance, result.name, out_dir / "feature_importance.png")

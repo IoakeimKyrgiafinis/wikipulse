@@ -91,6 +91,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
+    """Replay with the command-line options; returns the replay's stats."""
     stop = asyncio.Event()
     install_stop_handlers(stop)
     keys = replay_keys(target_stream(args.stream_key, settings), uuid.uuid4().hex)

@@ -60,6 +60,7 @@ class ModelInput:
 
 
 def features_of(frame: pd.DataFrame) -> np.ndarray:
+    """The feature columns of a frame as a float matrix."""
     return frame[FEATURE_NAMES].to_numpy(dtype=np.float64)
 
 
@@ -181,6 +182,7 @@ class TrainHistory:
 
 
 def tensors(features: np.ndarray, embeddings: np.ndarray | None) -> tuple[torch.Tensor, ...]:
+    """Features and embeddings as float tensors (no embeddings: zero columns)."""
     f = torch.as_tensor(features, dtype=torch.float32)
     if embeddings is None:
         embeddings = np.zeros((len(features), 0), dtype=np.float32)

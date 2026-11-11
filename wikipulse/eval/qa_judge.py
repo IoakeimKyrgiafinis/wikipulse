@@ -68,6 +68,7 @@ FAITHFULNESS_SCHEMA = {
 
 
 def load_prompt(version: str) -> str:
+    """A judge prompt of the given version."""
     return (PROMPTS_DIR / f"{version}.md").read_text(encoding="utf-8")
 
 
@@ -111,6 +112,7 @@ class QAJudgement(BaseModel):
 
 
 def load_judgements(path: Path) -> list[QAJudgement]:
+    """The judgements stored in a file (none if it doesn't exist)."""
     if not path.exists():
         return []
     records = []
@@ -162,6 +164,7 @@ def find_judgement(
 
 
 def correctness_message(question: QAQuestion, answer: str, answered: bool) -> str:
+    """The correctness judge's input: question, reference and answer."""
     status = "answerable" if question.answerable else "not answerable"
     shown = answer if answered else f"(The system refused.) {answer}"
     return (
@@ -172,12 +175,14 @@ def correctness_message(question: QAQuestion, answer: str, answered: bool) -> st
 
 
 def short(text: str, limit: int = MAX_FACT_CHARS) -> str:
+    """`text` cut to `limit` characters."""
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def faithfulness_message(
     question: str, facts: Sequence[tuple[str, str]], claims: Sequence[str]
 ) -> str:
+    """The faithfulness judge's input: question, facts and claims."""
     fact_lines = "\n".join(f"[{fact_id}] {short(text)}" for fact_id, text in facts)
     claim_lines = "\n".join(f"{number}. {claim}" for number, claim in enumerate(claims, 1))
     return f"QUESTION: {question}\n\nFACTS:\n{fact_lines}\n\nCLAIMS:\n{claim_lines}"

@@ -195,6 +195,7 @@ class Fitted:
 
 
 def valid_log_loss(scorer: Scorer, valid: Split) -> float:
+    """A scorer's log loss on the validation split."""
     return ranking_metrics(valid.y, scorer.predict_proba(valid.x))["log_loss"]
 
 
@@ -377,6 +378,7 @@ TABLE_COLUMNS = [
 
 
 def comparison_table(results: dict[str, dict[str, float]]) -> pd.DataFrame:
+    """The models' metrics as a table, one row per model."""
     rows = []
     for name in sorted(results, key=MODELS.index):
         m = results[name]
@@ -385,6 +387,7 @@ def comparison_table(results: dict[str, dict[str, float]]) -> pd.DataFrame:
 
 
 def markdown_table(table: pd.DataFrame) -> str:
+    """A comparison table as Markdown."""
     header = "| " + " | ".join(table.columns) + " |"
     rule = "|" + "|".join("---" if c == "model" else "---:" for c in table.columns) + "|"
     lines = [header, rule]

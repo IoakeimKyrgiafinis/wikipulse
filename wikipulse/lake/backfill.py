@@ -175,6 +175,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def parse_time(text: str) -> datetime:
+    """An ISO time (UTC if it has no time zone)."""
     moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
@@ -182,6 +183,7 @@ def parse_time(text: str) -> datetime:
 
 
 async def run(args: argparse.Namespace, settings: Settings) -> Backfill:
+    """Backfill the lake with the command-line options; returns the backfill."""
     since, until = parse_time(args.since), parse_time(args.until)
     if until <= since:
         raise ValueError("--until must be after --since")

@@ -118,6 +118,7 @@ def stale_events(
 
 
 def graph_summary(run_id: str, counts: GraphCounts) -> str:
+    """The graph of a run in one line."""
     methods = ", ".join(f"{name} {count}" for name, count in counts.by_method.items())
     return (
         f"Graph of run {run_id}: {counts.events} events, {counts.entities} distinct "

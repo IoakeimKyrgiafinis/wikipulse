@@ -32,6 +32,7 @@ SCHEMA_INSTRUCTION = (
 
 
 def to_anthropic_tool(tool: ToolSpec) -> dict[str, Any]:
+    """A neutral tool spec in Anthropic's format."""
     return {"name": tool.name, "description": tool.description, "input_schema": tool.parameters}
 
 

@@ -114,6 +114,7 @@ def eval_client(settings: Settings, cache_conn: psycopg.Connection) -> Wikimedia
 
 
 def event_number(event_key: str) -> int:
+    """The number of an event key (`run:number`)."""
     return int(event_key.rpartition(":")[2])
 
 
@@ -172,6 +173,7 @@ def items_to_label(
     sample: Sequence[Any],
     texts: dict[tuple[str, str], SourceText | None],
 ) -> list[RelationToLabel]:
+    """The sampled relations with their entities and source texts."""
     items = []
     for relation in sample:
         subject, object_ = data.entity(relation.subject), data.entity(relation.object)
@@ -191,6 +193,7 @@ def items_to_label(
 def config_snapshot(
     args: argparse.Namespace, settings: Settings, data: ExtractionData
 ) -> dict[str, Any]:
+    """The settings behind an extraction report."""
     return {
         "extraction": {
             "source": data.source,
@@ -219,6 +222,7 @@ def config_snapshot(
 
 
 async def run_report(args: argparse.Namespace, settings: Settings) -> Path:
+    """The `report` command: measure, then write the report; returns its path."""
     data = load_data(args, settings)
     with psycopg.connect(settings.postgres_dsn, autocommit=True) as cache_conn:
         async with eval_client(settings, cache_conn) as wiki:
@@ -259,6 +263,7 @@ async def run_report(args: argparse.Namespace, settings: Settings) -> Path:
 
 
 async def run_label(args: argparse.Namespace, settings: Settings) -> None:
+    """The `label` command: label the sampled relations not labeled yet."""
     data = load_data(args, settings)
     sample = sample_relations(data.relations, args.sample, args.seed)
     keys = sorted({(r.event_key, r.source_title) for r in sample})
@@ -315,6 +320,7 @@ def selected_numbers(conn: psycopg.Connection, run_id: str, events: EventSelecti
 
 
 async def run_extract(args: argparse.Namespace, settings: Settings) -> str:
+    """The `extract` command: re-extract events into a file; returns a summary."""
     path = args.extractions_dir / f"{args.name}.jsonl"
     done = set() if args.force else {r["number"] for r in read_records(path)}
     model = args.model or settings.extract_model
@@ -358,6 +364,7 @@ async def run_extract(args: argparse.Namespace, settings: Settings) -> str:
 
 
 def run_compare(args: argparse.Namespace) -> None:
+    """The `compare` command: print two reports' measures side by side."""
     path_a = find_report(args.a, args.results_dir)
     path_b = find_report(args.b, args.results_dir)
     a = json.loads(path_a.read_text(encoding="utf-8"))

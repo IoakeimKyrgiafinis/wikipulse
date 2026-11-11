@@ -92,6 +92,7 @@ def pick_pair_label(records: Sequence[PairLabelRecord]) -> PairLabelRecord | Non
 
 
 def labels_by_pair(records: Sequence[PairLabelRecord]) -> dict[PairKey, PairLabelRecord]:
+    """The label that counts for each page pair (human beats LLM)."""
     grouped: dict[PairKey, list[PairLabelRecord]] = {}
     for record in records:
         grouped.setdefault(record.key, []).append(record)
@@ -128,6 +129,7 @@ class PageView:
 
 
 def pair_text(a: PageView, b: PageView) -> str:
+    """Both pages of a pair as text for the labeler."""
     return f"{a.as_text('Page A')}\n\n{b.as_text('Page B')}"
 
 
@@ -246,6 +248,7 @@ def make_record(
     model: str | None = None,
     reason: str = "",
 ) -> PairLabelRecord:
+    """The stored record of one pair label."""
     (title_a, started_a), (title_b, started_b) = pair.key
     return PairLabelRecord(
         title_a=title_a,

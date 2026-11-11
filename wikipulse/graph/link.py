@@ -91,6 +91,7 @@ def link_index(pages: Sequence[EventPage]) -> dict[str, str]:
 
 
 def pageprops_params(titles: Sequence[str]) -> dict[str, Any]:
+    """Action API parameters for the Wikidata ids of page titles."""
     return {
         "action": "query",
         "format": "json",
@@ -127,6 +128,7 @@ def parse_pageprops(titles: Sequence[str], body: Mapping[str, Any]) -> dict[str,
 
 
 def search_params(name: str) -> dict[str, Any]:
+    """Wikidata API parameters to search for a name."""
     return {
         "action": "wbsearchentities",
         "format": "json",

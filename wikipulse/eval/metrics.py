@@ -33,6 +33,7 @@ DEFAULT_SEED = 2026
 
 
 def day_start(day: date) -> datetime:
+    """Midnight UTC at the start of `day`."""
     return datetime(day.year, day.month, day.day, tzinfo=UTC)
 
 
@@ -52,6 +53,7 @@ def gap_hours(start: datetime, end: datetime, day: date) -> float:
 
 
 def spike_gap_hours(spike: SpikeRecord, day: date) -> float:
+    """Hours between the spike's active period and `day` (0 if they overlap)."""
     return gap_hours(spike.first_edit_at, spike_end(spike), day)
 
 
@@ -61,6 +63,7 @@ def ratio(part: int, whole: int) -> float | None:
 
 
 def by_title(spikes: Iterable[SpikeRecord]) -> dict[str, list[SpikeRecord]]:
+    """Spikes grouped by page title."""
     index: dict[str, list[SpikeRecord]] = {}
     for spike in spikes:
         index.setdefault(spike.title, []).append(spike)
@@ -124,6 +127,7 @@ def match_spikes(
     portal: Sequence[PortalDay],
     window_h: float = PRECISION_WINDOW_H,
 ) -> list[SpikeMatch]:
+    """Each spike with the portal days that list its page within `window_h` hours."""
     return [
         SpikeMatch(
             spike,
@@ -165,6 +169,7 @@ class Distribution:
 
 
 def distribution(values: Sequence[float]) -> Distribution:
+    """Count, median, 90th percentile, minimum and maximum of `values`."""
     return Distribution(
         count=len(values),
         median=percentile(values, 50),
@@ -180,6 +185,7 @@ def detection_delay_minutes(spike: SpikeRecord) -> float:
 
 
 def time_to_detection(matches: Sequence[SpikeMatch]) -> Distribution:
+    """Detection delays (minutes) of the spikes the portal lists."""
     return distribution([detection_delay_minutes(m.spike) for m in matches if m.matched])
 
 

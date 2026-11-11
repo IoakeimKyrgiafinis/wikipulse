@@ -137,6 +137,7 @@ def time_window(question: str, times: TimeParameters) -> tuple[datetime, datetim
 
 
 def time_parameters(now: datetime) -> TimeParameters:
+    """Now, the start of today and a week ago, in UTC."""
     now = now.astimezone(UTC)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return TimeParameters(now=now, today_start=today, week_start=now - timedelta(days=7))
@@ -156,6 +157,7 @@ def _when(moment: datetime | None) -> str:
 
 
 def event_fact(event: EventInfo, channel: Channel, max_sources: int = 2) -> Fact:
+    """A fact stating an event: title, key, start, pages, description."""
     pages = f", {event.page_count} pages" if event.page_count else ""
     description = f": {event.description}" if event.description else ""
     text = (
@@ -167,6 +169,7 @@ def event_fact(event: EventInfo, channel: Channel, max_sources: int = 2) -> Fact
 
 
 def involvement_fact(item: Involvement, channel: Channel) -> Fact:
+    """A fact stating that an entity is involved in an event."""
     type_ = f" ({item.type})" if item.type else ""
     text = (
         f'{item.entity_name}{type_} is involved in the event "{item.event_title}" '
@@ -182,6 +185,7 @@ def involvement_fact(item: Involvement, channel: Channel) -> Fact:
 
 
 def relation_fact(item: Relation, channel: Channel) -> Fact:
+    """A fact stating a relation between two entities."""
     where = f' (in the event "{item.event_title}", {item.event_key})' if item.event_key else ""
     text = f"{item.subject} — {item.relation} — {item.object}{where}"
     key = f"relation:{item.subject}:{item.relation}:{item.object}:{item.event_key}"
@@ -203,6 +207,7 @@ def path_text(path: GraphPath) -> str:
 
 
 def path_fact(a: str, b: str, path: GraphPath, channel: Channel) -> Fact:
+    """A fact stating how two entities are connected through the graph."""
     sources: list[Citation] = []
     for step in path.steps:
         for citation in _citation(step.source):

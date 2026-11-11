@@ -87,12 +87,14 @@ class ExplorerGraph(Protocol):
 
 
 def shorten(text: str | None, limit: int = MAX_DESCRIPTION_CHARS) -> str | None:
+    """`text` cut to `limit` characters (None stays None)."""
     if text is None or len(text) <= limit:
         return text
     return text[: limit - 1] + "…"
 
 
 def summarize_event(info: EventInfo) -> EventSummary:
+    """The short form of an event that list tools return."""
     return EventSummary(
         event_id=info.key,
         title=info.title,
@@ -107,6 +109,7 @@ def summarize_event(info: EventInfo) -> EventSummary:
 
 
 def entity_out(entity: EntityCandidate) -> EntityOut:
+    """An entity as the tools return it."""
     return EntityOut(
         entity_id=entity.key, name=entity.name, type=entity.type, wikidata_id=entity.wikidata_id
     )

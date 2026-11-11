@@ -55,6 +55,7 @@ def entity_names(data: ExtractionData) -> list[tuple[str, str]]:
 def check_links(
     data: ExtractionData, items_by_label: Mapping[str, tuple[str, ...]]
 ) -> list[LinkCheck]:
+    """Each linked name checked against the Wikidata items carrying it."""
     checks = []
     for key, name in entity_names(data):
         entity = data.entities[key]
@@ -126,6 +127,7 @@ class LinkCounts:
 
 
 def count_links(checks: Iterable[LinkCheck]) -> LinkCounts:
+    """The link checks added up."""
     counts = LinkCounts()
     for check in checks:
         counts.add(check)
@@ -167,6 +169,7 @@ def linked_pairs(data: ExtractionData) -> list[tuple[str, str]]:
 def check_support(
     data: ExtractionData, statements: Mapping[frozenset[str], Sequence[Statement]]
 ) -> list[SupportCheck]:
+    """Each relation checked for a Wikidata statement between its entities."""
     checks = []
     for relation in data.relations:
         a = data.entities[relation.subject].wikidata_id
@@ -216,6 +219,7 @@ class LabelCounts:
 
 
 def labeler_name(label: RelationLabelRecord) -> str:
+    """Who made a relation label, for the report."""
     if label.labeler == "human":
         return "human"
     return f"llm ({label.model}, judge prompt v{label.prompt_version})"
@@ -224,6 +228,7 @@ def labeler_name(label: RelationLabelRecord) -> str:
 def count_labels(
     sample: Sequence[RelationView], labels: Mapping[RelationKey, RelationLabelRecord]
 ) -> LabelCounts:
+    """The labels of the sampled relations added up."""
     counts = LabelCounts()
     for relation in sample:
         counts.add(labels.get(relation.key))
@@ -234,6 +239,7 @@ def count_labels(
 
 
 def ratio(part: int, whole: int) -> float | None:
+    """`part / whole`, or None when `whole` is 0."""
     return part / whole if whole else None
 
 
@@ -246,6 +252,7 @@ def margin(p: float | None, n: int) -> float | None:
 
 
 def by_key(items: Iterable[Any], key: Any) -> dict[str, list[Any]]:
+    """`items` grouped by `key(item)`."""
     grouped: dict[str, list[Any]] = {}
     for item in items:
         grouped.setdefault(key(item), []).append(item)
@@ -259,6 +266,7 @@ def ordered(names: Iterable[str], known: Sequence[str]) -> list[str]:
 
 
 def overview(data: ExtractionData) -> dict[str, Any]:
+    """Counts of events, entities, links and relations of the extraction."""
     entities = list(data.entities.values())
     methods = Counter(e.link_method for e in entities)
     linked = sum(e.wikidata_id is not None for e in entities)
@@ -281,6 +289,7 @@ def overview(data: ExtractionData) -> dict[str, Any]:
 
 
 def support_summary(checks: Sequence[SupportCheck]) -> dict[str, Any]:
+    """The Wikidata support rate, matching properties and examples."""
     linked = [c for c in checks if c.both_linked]
     supported = [c for c in linked if c.supported]
     properties = Counter(
@@ -330,6 +339,7 @@ def type_rows(
 
 
 def entity_label(data: ExtractionData, key: str) -> str:
+    """An entity's name, with its Wikidata id if linked."""
     entity = data.entities[key]
     return f"{entity.name} ({entity.wikidata_id})" if entity.wikidata_id else entity.name
 
@@ -340,6 +350,7 @@ def sample_rows(
     labels: Mapping[RelationKey, RelationLabelRecord],
     support: Mapping[RelationKey, SupportCheck],
 ) -> list[dict[str, Any]]:
+    """The labeled sample's rows for the report."""
     rows = []
     for relation in sample:
         label = labels.get(relation.key)
@@ -404,6 +415,7 @@ def build_report(
     note: str = "",
     descriptions: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
+    """The whole extraction report as a JSON-ready dict."""
     support_by_key = {c.relation.key: c for c in support_checks}
     by_method = by_key(link_checks, lambda c: c.link_method)
     supported = [c for c in support_checks if c.supported]
@@ -446,21 +458,25 @@ def build_report(
 
 
 def pct(value: float | None) -> str:
+    """A share as a percentage with one decimal, or `n/a`."""
     return "n/a" if value is None else f"{100 * value:.1f}%"
 
 
 def pct_pm(value: float | None, half_width: float | None) -> str:
+    """A percentage with its 95% margin in percentage points."""
     if value is None:
         return "n/a"
     return pct(value) + (f" ± {100 * half_width:.1f} pp" if half_width else "")
 
 
 def labelers_text(labels: dict[str, Any]) -> str:
+    """Who labeled how many relations, as text."""
     who = ", ".join(f"{name}: {count}" for name, count in labels["labelers"].items())
     return who or "nobody yet"
 
 
 def render_overview(report: dict[str, Any]) -> list[str]:
+    """The report's overview section (Markdown lines)."""
     o = report["overview"]
     methods = ", ".join(f"{m} {n}" for m, n in o["by_link_method"].items())
     return [
@@ -474,6 +490,7 @@ def render_overview(report: dict[str, Any]) -> list[str]:
 
 
 def render_headline(report: dict[str, Any]) -> list[str]:
+    """The report's results table (Markdown lines)."""
     link, support, labels = report["linking"]["all"], report["support"], report["labels"]
     return [
         "## Results",
@@ -497,6 +514,7 @@ def render_headline(report: dict[str, Any]) -> list[str]:
 
 
 def render_types(report: dict[str, Any]) -> list[str]:
+    """The report's table by entity type (Markdown lines)."""
     lines = [
         "## By entity type",
         "",
@@ -521,6 +539,7 @@ def render_types(report: dict[str, Any]) -> list[str]:
 
 
 def render_linking(report: dict[str, Any]) -> list[str]:
+    """The report's linking details by link method (Markdown lines)."""
     lines = [
         "## Linking in detail",
         "",
@@ -552,6 +571,7 @@ def render_linking(report: dict[str, Any]) -> list[str]:
 
 
 def render_support(report: dict[str, Any]) -> list[str]:
+    """The report's Wikidata support section (Markdown lines)."""
     support = report["support"]
     lines = ["## Wikidata support", "", "Properties that matched:", ""]
     lines += [f"- {prop}: {count}" for prop, count in support["properties"].items()]
@@ -567,6 +587,7 @@ def render_support(report: dict[str, Any]) -> list[str]:
 
 
 def render_sample(report: dict[str, Any]) -> list[str]:
+    """The report's labeled sample (Markdown lines)."""
     lines = [
         "## Labeled sample",
         "",
@@ -584,6 +605,7 @@ def render_sample(report: dict[str, Any]) -> list[str]:
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    """The extraction report as Markdown."""
     git = report["git"]
     lines = [
         f"# Extraction evaluation: {report['name']}",
@@ -611,6 +633,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 
 def summary_line(report: dict[str, Any]) -> str:
+    """The report's main numbers in one line."""
     link, support, labels = report["linking"]["all"], report["support"], report["labels"]
     return (
         f"{report['overview']['events']} events: linking accuracy {pct(link['accuracy'])} "
@@ -639,6 +662,7 @@ COMPARED = [
 
 
 def lookup(report: Mapping[str, Any], path: Sequence[str]) -> Any:
+    """The value at `path` in a nested report, or None."""
     value: Any = report
     for part in path:
         value = value.get(part) if isinstance(value, Mapping) else None
@@ -646,10 +670,12 @@ def lookup(report: Mapping[str, Any], path: Sequence[str]) -> Any:
 
 
 def show(value: Any) -> str:
+    """A report value as text (shares as percentages)."""
     if isinstance(value, float):
         return pct(value)
     return "n/a" if value is None else str(value)
 
 
 def compare_reports(a: Mapping[str, Any], b: Mapping[str, Any]) -> list[tuple[str, str, str]]:
+    """The compared measures of two reports, as rows of text."""
     return [(label, show(lookup(a, path)), show(lookup(b, path))) for label, path in COMPARED]

@@ -40,6 +40,7 @@ class ExtractionCitation(Citation):
 
 
 def extraction_citation(event_key: str) -> ExtractionCitation:
+    """The citation of an event's extracted title and description."""
     return ExtractionCitation(title=f"WikiPulse event {event_key}: title and description")
 
 

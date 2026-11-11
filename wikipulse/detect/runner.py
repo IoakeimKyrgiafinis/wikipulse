@@ -81,6 +81,7 @@ def entry_id_key(entry_id: str) -> tuple[int, int]:
 
 
 def chunks(items: list[Any], size: int = CHUNK) -> Iterable[list[Any]]:
+    """`items` in lists of at most `size`."""
     for start in range(0, len(items), size):
         yield items[start : start + size]
 

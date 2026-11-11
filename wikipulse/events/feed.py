@@ -86,6 +86,7 @@ def news_text(score: float | None) -> str:
 
 
 def render_event(event: FeedEvent, max_pages: int) -> list[str]:
+    """One event of the feed as text lines."""
     end = f"{event.ended_at.astimezone(UTC):%m-%d %H:%M}" if event.ended_at else "now"
     pages = distinct_pages(event)
     spikes = f", {len(event.pages)} spikes" if len(event.pages) != len(pages) else ""
@@ -112,6 +113,7 @@ def render_event(event: FeedEvent, max_pages: int) -> list[str]:
 
 
 def render(events: list[FeedEvent], run_id: str, limit: int, max_pages: int) -> str:
+    """The feed of a grouping run as text."""
     lines = [f"Events of grouping run '{run_id}'", stats_line(events), ""]
     for event in events[:limit]:
         lines.extend(render_event(event, max_pages))

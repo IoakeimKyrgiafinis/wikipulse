@@ -71,6 +71,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 async def run(args: argparse.Namespace, settings: Settings) -> Path:
+    """Record with the command-line options until stopped; returns the file."""
     started = datetime.now(UTC)
     path = args.output or default_output_path(settings.data_dir, started)
     path.parent.mkdir(parents=True, exist_ok=True)

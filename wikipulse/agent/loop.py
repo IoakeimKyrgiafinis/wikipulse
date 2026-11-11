@@ -118,6 +118,7 @@ StopReason = Literal[
 
 
 def load_prompt(version: str = PROMPT_VERSION) -> str:
+    """The analyst's system prompt of the given version."""
     return (PROMPTS_DIR / f"{version}.md").read_text(encoding="utf-8")
 
 

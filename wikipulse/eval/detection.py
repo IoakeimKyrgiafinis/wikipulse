@@ -77,6 +77,7 @@ COMPARED_METRICS = [
 
 
 def days_between(first: date, last: date) -> list[date]:
+    """Every day from `first` to `last`, both included."""
     return [first + timedelta(days=n) for n in range((last - first).days + 1)]
 
 
@@ -106,6 +107,7 @@ def parse_overrides(items: list[str]) -> dict[str, str]:
 
 
 def config_snapshot(settings: Settings, overrides: dict[str, str]) -> dict[str, Any]:
+    """The detector settings of the run, with the `--set` changes."""
     base = settings.detector_config().model_dump()
     return DetectorConfig.model_validate({**base, **overrides}).model_dump()
 
@@ -124,6 +126,7 @@ def load_portal(
 
 
 def spike_row(match: SpikeMatch, labels: list[Label]) -> dict[str, Any]:
+    """One spike of the report, with its portal match and label."""
     spike = match.spike
     chosen = pick_label([label for label in labels if label.covers(spike)])
     return {
@@ -257,14 +260,17 @@ def build_report(
 
 
 def pct(value: float | None) -> str:
+    """A share as a percentage with one decimal, or `n/a`."""
     return "n/a" if value is None else f"{100 * value:.1f}%"
 
 
 def num(value: float | None, digits: int = 1) -> str:
+    """A number with `digits` decimals, or `n/a`."""
     return "n/a" if value is None else f"{value:.{digits}f}"
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    """The detection report as Markdown."""
     m = report["metrics"]
     git = report["git"]
     commit = git["commit"] or "unknown"
@@ -398,6 +404,7 @@ def compare_reports(a: dict[str, Any], b: dict[str, Any]) -> list[tuple[str, str
 
 
 def print_comparison(path_a: Path, path_b: Path) -> None:
+    """Print how the metrics of two saved reports differ."""
     a = json.loads(path_a.read_text(encoding="utf-8"))
     b = json.loads(path_b.read_text(encoding="utf-8"))
     rows = compare_reports(a, b)
@@ -486,6 +493,7 @@ def evaluate(args: argparse.Namespace, settings: Settings) -> Path:
 
 
 def summary_line(report: dict[str, Any]) -> str:
+    """The report's main numbers in one line."""
     m = report["metrics"]
     return (
         f"{m['spikes']} spikes; recall {pct(m['recall_all'])} (lead {pct(m['recall_lead'])}); "

@@ -184,6 +184,7 @@ def summary_text(title: str, lead: Lead | None) -> str:
 def summary_texts(
     titles: Sequence[str], revisions: Sequence[int | None], leads: dict[int, Lead]
 ) -> list[str]:
+    """The summary text of each spike's page at its revision."""
     return [
         summary_text(title, leads.get(rev) if rev is not None else None)
         for title, rev in zip(titles, revisions, strict=True)

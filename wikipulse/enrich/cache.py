@@ -37,6 +37,7 @@ class ResponseCache(Protocol):
 
 
 def utc_now() -> datetime:
+    """The current UTC time (the cache's age is wall-clock time)."""
     return datetime.now(UTC)
 
 

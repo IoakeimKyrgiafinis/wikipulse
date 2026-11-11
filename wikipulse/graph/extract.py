@@ -125,6 +125,7 @@ class Extraction:
 
 
 def clean_relation(text: str) -> str:
+    """A relation phrase in lower case with single spaces."""
     return " ".join(text.strip().lower().split())
 
 

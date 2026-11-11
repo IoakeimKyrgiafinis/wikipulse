@@ -27,6 +27,7 @@ from wikipulse.qa.types import Answer, Channel
 
 
 def parse_channels(text: str) -> list[Channel]:
+    """A comma-separated list of retrieval channels (argparse type)."""
     names = [part.strip() for part in text.split(",") if part.strip()]
     unknown = [name for name in names if name not in ALL_CHANNELS]
     if unknown or not names:
@@ -35,6 +36,7 @@ def parse_channels(text: str) -> list[Channel]:
 
 
 def parse_time(text: str) -> datetime:
+    """A command-line time with a time zone (argparse type)."""
     moment = datetime.fromisoformat(text)
     if moment.tzinfo is None:
         raise argparse.ArgumentTypeError("give a time zone, e.g. 2026-11-05T23:00:00+00:00")
@@ -42,6 +44,7 @@ def parse_time(text: str) -> datetime:
 
 
 def render(result: Answer, show_context: bool = False) -> str:
+    """An answer with its sources (and the context, if asked) as text."""
     lines = [result.text, ""]
     if result.citations:
         lines.append("Sources:")
