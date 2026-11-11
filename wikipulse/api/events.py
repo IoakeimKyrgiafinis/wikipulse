@@ -144,6 +144,7 @@ def group_pages(pages: Sequence[FeedPage]) -> list[PageGroup]:
 
 
 def page_url(title: str) -> str:
+    """The English Wikipedia URL of a page title."""
     return WIKIPEDIA_PAGE + quote(title.replace(" ", "_"), safe="")
 
 
@@ -164,6 +165,7 @@ def parse_event_id(event_id: str, default_run: str) -> tuple[str, int]:
 
 
 def make_card(run_id: str, row: FeedEvent, overview: EventOverview | None) -> EventCard:
+    """An event's card: Postgres' row, with the graph's overview if any."""
     pages = group_pages(row.pages)
     return EventCard(
         event_id=event_key(run_id, row.number),

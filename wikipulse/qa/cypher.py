@@ -221,6 +221,7 @@ def validate_cypher(query: str, max_rows: int = 25) -> str:
 
 
 def load_prompt(version: str = PROMPT_VERSION) -> str:
+    """The Cypher prompt of the given version."""
     return (PROMPTS_DIR / f"{version}.md").read_text(encoding="utf-8")
 
 
@@ -245,6 +246,7 @@ class TimeParameters:
 
 
 def build_message(question: str, times: TimeParameters, max_rows: int) -> str:
+    """The Cypher model's input: the time parameters and the question."""
     return (
         f"Current time (the newest event in the graph): {times.now.isoformat()}\n"
         f"$today_start = {times.today_start.isoformat()}, "

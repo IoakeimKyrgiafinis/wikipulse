@@ -69,6 +69,7 @@ def portal_range(day: date) -> tuple[date, date]:
 
 
 def wiki_client(settings: Settings) -> WikiClient:
+    """The Wikimedia client for the portal, caching in `data/ground_truth`."""
     cache_dir = settings.data_dir / "ground_truth"
     return WikiClient(settings.user_agent, cache_dir, settings.wiki_api_min_interval_s)
 
@@ -111,10 +112,12 @@ def evaluate_day(
 
 
 def report_path(settings: Settings, run_id: str, day: date) -> Path:
+    """Where the daily evaluation report of a run and day goes."""
     return settings.data_dir / "daily_eval" / run_id / f"{day.isoformat()}.md"
 
 
 def run_fetch(settings: Settings, day: date, now: datetime) -> list[PortalDay]:
+    """Fetch the portal pages the evaluation of `day` needs."""
     with wiki_client(settings) as client:
         portal = fetch_ground_truth(day, client, settings.wiki_api_url, now.date())
         logger.info(

@@ -160,12 +160,14 @@ def cut(text: str, limit: int) -> str:
 
 
 def citation_of(source: dict[str, Any] | None) -> Citation | None:
+    """The citation of a tool result's source, or None without a title."""
     if not source or not source.get("title"):
         return None
     return Citation(title=source["title"], revision=source.get("revision"))
 
 
 def cite(book: SourceBook, source: dict[str, Any] | None) -> str:
+    """The source's short id marker (like `[F4]`), registered in the book."""
     citation = citation_of(source)
     return marker(book.cite(citation)) if citation else ""
 

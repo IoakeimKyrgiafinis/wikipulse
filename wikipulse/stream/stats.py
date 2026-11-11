@@ -45,6 +45,7 @@ def recent_entries(client: redis.Redis, stream: str, now: float) -> list[tuple[s
 
 
 def is_bot_entry(fields: dict) -> bool:
+    """True if a stream entry is a bot edit."""
     try:
         return bool(json.loads(fields["data"]).get("is_bot"))
     except (KeyError, ValueError, AttributeError):
@@ -71,6 +72,7 @@ def take_snapshot(client: redis.Redis, keys: RedisKeys) -> Snapshot:
 
 
 def percent(part: int, whole: int) -> str:
+    """`part` as a percentage of `whole`, or `n/a`."""
     return f"{100 * part / whole:.1f}%" if whole else "n/a"
 
 
@@ -120,6 +122,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def watch(client: redis.Redis, keys: RedisKeys) -> None:
+    """Print the stats again every few seconds, until Ctrl+C."""
     previous: Snapshot | None = None
     clear = "\x1b[2J\x1b[H" if sys.stdout.isatty() else "\n"
     while True:

@@ -71,6 +71,7 @@ class EventInput:
 
 
 def event_key(run_id: str, number: int) -> str:
+    """The key of an event in the graph and the API: `run:number`."""
     return f"{run_id}:{number}"
 
 
@@ -122,6 +123,7 @@ def merge_pages(a: EventPage, b: EventPage) -> EventPage:
 
 
 def mw_time(moment: datetime) -> str:
+    """A time in the MediaWiki API's format."""
     return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 

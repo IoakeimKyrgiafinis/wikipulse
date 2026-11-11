@@ -70,10 +70,12 @@ ANSWER_SCHEMA = {
 
 
 def load_prompt(version: str = PROMPT_VERSION) -> str:
+    """The answer prompt of the given version."""
     return (PROMPTS_DIR / f"{version}.md").read_text(encoding="utf-8")
 
 
 def build_message(context: Context) -> str:
+    """The answer model's input: question, time, numbered facts and limits."""
     lines = [f"Question: {context.question}", ""]
     if context.as_of is not None:
         lines += [f"Current time (newest event in the graph): {context.as_of.isoformat()}", ""]
@@ -139,6 +141,7 @@ def claims(text: str) -> list[str]:
 
 
 def uncited_sentences(text: str) -> list[str]:
+    """The answer's claims that carry no citation marker."""
     return [piece for piece in claims(text) if not _MARKER.search(piece)]
 
 

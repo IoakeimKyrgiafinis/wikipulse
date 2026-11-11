@@ -347,6 +347,7 @@ def build_row(spike: SpikeRecord, src: RowSources, label_as_of: datetime) -> dic
 def build_rows(
     spikes: Sequence[SpikeRecord], src: RowSources, label_as_of: Callable[[SpikeRecord], datetime]
 ) -> list[dict[str, Any]]:
+    """One dataset row per spike (features and label)."""
     rows = []
     for number, spike in enumerate(spikes, start=1):
         rows.append(build_row(spike, src, label_as_of(spike)))
@@ -488,11 +489,13 @@ MANIFEST = "manifest.json"
 
 
 def rows_to_table(rows: Sequence[dict[str, Any]]) -> pa.Table:
+    """The rows as an Arrow table in the dataset's schema."""
     columns = {name: [row[name] for row in rows] for name in DATASET_SCHEMA.names}
     return pa.Table.from_pydict(columns, schema=DATASET_SCHEMA)
 
 
 def parquet_bytes(table: pa.Table) -> bytes:
+    """A table as zstd-compressed Parquet bytes."""
     sink = io.BytesIO()
     pq.write_table(table, sink, compression="zstd")
     return sink.getvalue()
@@ -624,10 +627,12 @@ def balance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
 
 
 def share(part: int, whole: int) -> float | None:
+    """`part / whole` rounded to four decimals, or None when `whole` is 0."""
     return round(part / whole, 4) if whole else None
 
 
 def file_sha256(path: Path) -> str | None:
+    """The SHA-256 of a file, or None if it doesn't exist."""
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
 
 
@@ -651,6 +656,7 @@ def parse_overrides(text: str) -> dict[str, str]:
 
 
 def candidate_config(settings: Settings, overrides: str) -> DetectorConfig:
+    """The candidate detector's settings: the defaults with `overrides`."""
     base = settings.detector_config().model_dump()
     return DetectorConfig.model_validate({**base, **parse_overrides(overrides)})
 
@@ -948,6 +954,7 @@ def summary(manifest: dict[str, Any]) -> str:
 
 
 def pct(value: float | None) -> str:
+    """A share as a percentage with one decimal, or `n/a`."""
     return "n/a" if value is None else f"{100 * value:.1f}%"
 
 

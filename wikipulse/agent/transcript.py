@@ -21,6 +21,7 @@ def transcript_name(run: AgentRun) -> str:
 
 
 def save_transcript(run: AgentRun, directory: Path) -> Path:
+    """Write the run's transcript as JSON into `directory`; returns its path."""
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / transcript_name(run)
     path.write_text(run.model_dump_json(indent=2), encoding="utf-8")

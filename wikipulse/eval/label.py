@@ -122,6 +122,7 @@ class SpikeContext:
 
 
 def summary_url(rest_url: str, title: str) -> str:
+    """The REST API URL of a page's summary."""
     return f"{rest_url}/page/summary/{quote(title.replace(' ', '_'), safe='')}"
 
 
@@ -232,10 +233,12 @@ def needs_llm_label(spike: SpikeRecord, records: Sequence[LabelRecord], model: s
 
 
 def needs_human_label(spike: SpikeRecord, records: Sequence[LabelRecord]) -> bool:
+    """True if no human label covers the spike yet."""
     return not any(r.is_for(spike) and r.labeler == "human" for r in records)
 
 
 def llm_label_of(spike: SpikeRecord, records: Sequence[LabelRecord]) -> str | None:
+    """The newest LLM label of the spike, or None."""
     labels = [r.label for r in records if r.is_for(spike) and r.labeler == "llm"]
     return labels[-1] if labels else None
 

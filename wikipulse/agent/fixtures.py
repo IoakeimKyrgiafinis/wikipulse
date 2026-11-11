@@ -80,6 +80,7 @@ class InjectionCase(BaseModel):
 
 
 def load_cases(path: Path = CASES_PATH) -> list[InjectionCase]:
+    """The prompt-injection test cases from the JSON file."""
     data = json.loads(path.read_text(encoding="utf-8"))
     return [InjectionCase.model_validate(case) for case in data["cases"]]
 

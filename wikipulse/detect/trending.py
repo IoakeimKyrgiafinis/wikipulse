@@ -25,6 +25,7 @@ HEADER = (
 
 
 def duration_text(spike: SpikeRecord, now: datetime) -> str:
+    """How long a spike has lasted (until `now` if active), as `1h05m`."""
     end = spike.ended_at or now
     minutes = int((end - spike.first_edit_at).total_seconds() // 60)
     return f"{minutes // 60}h{minutes % 60:02d}m"
@@ -52,6 +53,7 @@ def render(spikes: list[SpikeRecord], run_id: str, latest: datetime | None) -> s
 
 
 def load(conn: psycopg.Connection, run_id: str, limit: int, show_all: bool) -> list[SpikeRecord]:
+    """The spikes to show: active ones, or all with active ones first."""
     if not show_all:
         return active_spikes(conn, run_id, limit)
     spikes = spikes_for_run(conn, run_id)

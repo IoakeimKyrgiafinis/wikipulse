@@ -131,6 +131,7 @@ def decide(c: Comparison, margin: float, min_rows: int) -> tuple[str, str]:
 
 
 def retrain_key(day: date) -> str:
+    """The name of a retraining cycle (its day)."""
     return f"retrain-{day.isoformat()}"
 
 
@@ -153,6 +154,7 @@ def parse_models(text: str) -> tuple[str, ...]:
 
 
 def step_drift(settings: Settings, day: date, run_id: str | None) -> int:
+    """The `check_drift` task: the champion's drift report; returns the exit code."""
     import psycopg
 
     from wikipulse.ml.drift import render, run_drift
@@ -170,6 +172,7 @@ def step_drift(settings: Settings, day: date, run_id: str | None) -> int:
 
 
 def floor_hour(moment: datetime) -> datetime:
+    """`moment` rounded down to the hour."""
     return moment.replace(minute=0, second=0, microsecond=0)
 
 
@@ -195,6 +198,7 @@ def extend_window(last_hour: datetime | None, now: datetime) -> tuple[datetime, 
 
 
 def step_extend(settings: Settings, lake_prefix: str | None) -> int:
+    """The `extend_history` task: backfill the history lake; returns the exit code."""
     from wikipulse.lake import backfill
     from wikipulse.lake.lock import LockLostError
     from wikipulse.lake.store import LakeStore
@@ -222,6 +226,7 @@ def step_extend(settings: Settings, lake_prefix: str | None) -> int:
 
 
 def step_build(settings: Settings, lake_prefix: str | None) -> int:
+    """The `build_dataset` task: build a dataset version; returns the exit code."""
     from wikipulse.ml.dataset import BuildOptions, build
 
     logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)  # a line per spike
@@ -239,6 +244,7 @@ def existing_challenger(client: Any, name: str, key: str, dataset: str) -> str |
 
 
 def step_train(settings: Settings, day: date, dataset: str) -> int:
+    """The `train_challenger` task: train and register a challenger."""
     import mlflow
 
     from wikipulse.events.embed import Embedder
@@ -309,6 +315,7 @@ def step_train(settings: Settings, day: date, dataset: str) -> int:
 
 
 def threshold_pr(y: np.ndarray, scores: np.ndarray, threshold: float) -> tuple[float, float]:
+    """Precision and recall of `scores` at `threshold`."""
     from wikipulse.ml.evaluate import threshold_metrics
 
     m = threshold_metrics(y, scores, threshold)
@@ -417,6 +424,7 @@ def log_comparison(settings: Settings, c: Comparison, decision: str, reason: str
 
 
 def step_evaluate(settings: Settings, day: date, dataset: str, challenger_version: str) -> int:
+    """The `evaluate_against_champion` task: compare on the same test rows."""
     import mlflow
 
     from wikipulse.ml.models import TEXT_COLUMN
@@ -461,6 +469,7 @@ def step_evaluate(settings: Settings, day: date, dataset: str, challenger_versio
 
 
 def step_promote(settings: Settings, challenger_version: str) -> int:
+    """The `promote_or_reject` task: act on the evaluation's decision."""
     import mlflow
 
     from wikipulse.ml.registry import (

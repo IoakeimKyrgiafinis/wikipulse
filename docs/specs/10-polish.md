@@ -1,6 +1,6 @@
 # Spec 10: Polish and presentation
 
-Status: ready
+Status: done
 Stage: 10. Polish
 Owner: agent
 Depends on: everything

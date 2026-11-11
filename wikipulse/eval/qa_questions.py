@@ -69,6 +69,7 @@ class QAQuestion(BaseModel):
 
 
 def load_questions(path: Path) -> list[QAQuestion]:
+    """The questions of a questions file (none if it doesn't exist)."""
     if not path.exists():
         return []
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -76,6 +77,7 @@ def load_questions(path: Path) -> list[QAQuestion]:
 
 
 def write_questions(path: Path, questions: Sequence[QAQuestion]) -> None:
+    """Write the questions, one JSON object per line."""
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [json.dumps(q.model_dump(mode="json"), ensure_ascii=False) for q in questions]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
@@ -107,6 +109,7 @@ def mentions(text: str, term: str) -> bool:
 
 
 def name_list(names: Sequence[str]) -> str:
+    """Names joined as `A, B and C`."""
     if len(names) <= 1:
         return "".join(names)
     return ", ".join(names[:-1]) + " and " + names[-1]
@@ -250,6 +253,7 @@ def draft(
     events: Iterable[str] = (),
     answerable: bool = True,
 ) -> QAQuestion:
+    """A question without its id yet."""
     return QAQuestion(
         id="",
         question=question,
@@ -270,18 +274,21 @@ def top_events(rows: Sequence[dict[str, Any]], k: int = 5) -> list[dict[str, Any
 
 
 def event_list(rows: Sequence[dict[str, Any]]) -> str:
+    """Events as text: title, pages and start."""
     return "; ".join(
         f'"{r["title"]}" ({pages(r["pages"])}, {_when(r["started_at"])})' for r in rows
     )
 
 
 def pages(count: int | None) -> str:
+    """A page count as `1 page` or `N pages`."""
     return "1 page" if count == 1 else f"{count or 0} pages"
 
 
 def period_question(
     snapshot: Snapshot, question: str, start: datetime, end: datetime, label: str
 ) -> QAQuestion:
+    """A question about the events of a period, with its reference answer."""
     rows = snapshot.rows(EVENTS_IN, start=start, end=end)
     top = top_events(rows)
     if rows:
@@ -296,6 +303,7 @@ def period_question(
 
 
 def time_questions(snapshot: Snapshot, now: datetime) -> list[QAQuestion]:
+    """The questions about periods relative to the graph's now."""
     today = now.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     day = today.strftime("%Y-%m-%d")
     later = now + timedelta(seconds=1)
@@ -343,6 +351,7 @@ def time_questions(snapshot: Snapshot, now: datetime) -> list[QAQuestion]:
 
 
 def involved_answer(snapshot: Snapshot, event: dict[str, Any], who: str, names: list[str]) -> str:
+    """The reference answer naming who is involved in an event."""
     everyone = [r["name"] for r in snapshot.rows(ALL_INVOLVED, key=event["key"])]
     answer = f'{who} in the event "{event["title"]}" ({event["key"]}): {name_list(names)}.'
     others = [n for n in everyone if n not in names]
@@ -352,6 +361,7 @@ def involved_answer(snapshot: Snapshot, event: dict[str, Any], who: str, names: 
 
 
 def event_questions(snapshot: Snapshot) -> list[QAQuestion]:
+    """The questions about single events."""
     events = snapshot.rows(EVENTS_WITH_ENTITIES, tuned=list(TUNED_EVENT_NUMBERS), minimum=4)
     if len(events) < 5:
         raise SystemExit("The snapshot has too few events with linked entities.")
@@ -449,6 +459,7 @@ def other_connections(snapshot: Snapshot, a_id: str, b_id: str, limit: int = 6) 
 
 
 def connection_questions(snapshot: Snapshot) -> list[QAQuestion]:
+    """The questions about how two entities are connected."""
     tuned = list(TUNED_EVENT_NUMBERS)
     used_events: set[str] = set()
     used_entities: set[str] = set()
@@ -512,10 +523,12 @@ def connection_questions(snapshot: Snapshot) -> list[QAQuestion]:
 
 
 def counted(rows: Sequence[dict[str, Any]]) -> str:
+    """Names with their event counts, as text."""
     return "; ".join(f"{r['name']} ({r['count']} events)" for r in rows)
 
 
 def aggregation_questions(snapshot: Snapshot, now: datetime) -> list[QAQuestion]:
+    """The questions that count or rank across events."""
     today = now.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     window = {"start": today, "end": today + timedelta(days=1)}
     questions = []
@@ -631,6 +644,7 @@ def found_terms(texts: Iterable[str], absent: Sequence[str], anchor: str | None)
 
 
 def unanswerable_questions(snapshot: Snapshot, now: datetime) -> list[QAQuestion]:
+    """Questions the graph can't answer (checked to be absent)."""
     texts = snapshot.texts()
     questions = []
     for item in UNANSWERABLE:

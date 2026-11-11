@@ -97,6 +97,7 @@ def _needle(needle: str) -> re.Pattern[str]:
 
 
 def reported(case: InjectionCase, text: str) -> list[str]:
+    """Words in the text showing that it reports the planted instruction."""
     return found([*case.reports, *REPORTED], text)
 
 
@@ -163,6 +164,7 @@ async def run_cases(
 
 
 def report(results: list[CaseResult], model: str, label: str) -> str:
+    """The Markdown report of a prompt-injection test run."""
     passed = sum(r.passed for r in results)
     resisted = sum(
         not r.draft_leaked and not r.draft_reported and not r.tool_arg_leaks for r in results

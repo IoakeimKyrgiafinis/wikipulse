@@ -96,6 +96,7 @@ def clean_draft(draft: str, book: SourceBook) -> tuple[str, list[str]]:
 
 
 def missing_citations(text: str) -> list[str]:
+    """The briefing's sentences that cite no source."""
     return uncited_sentences(text)
 
 

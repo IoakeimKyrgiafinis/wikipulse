@@ -167,6 +167,7 @@ def native(value: Any) -> Any:
 def load_from_graph(
     driver: Driver, run_id: str, selection: EventSelection, database: str | None = None
 ) -> ExtractionData:
+    """The selected events' extraction, read from Neo4j."""
     data = ExtractionData(source="graph", run_id=run_id)
     with driver.session(database=database) as session:
         rows = session.run(GRAPH_EVENTS, run_id=run_id).data()
@@ -221,6 +222,7 @@ def event_record(event: GraphEvent) -> dict[str, Any]:
 
 
 def append_event(path: Path, event: GraphEvent) -> None:
+    """Append one extracted event to an extraction file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="\n") as out:
         out.write(json.dumps(event_record(event), ensure_ascii=False) + "\n")
@@ -298,4 +300,5 @@ def data_from_records(
 
 
 def load_from_file(path: Path, run_id: str, selection: EventSelection) -> ExtractionData:
+    """The selected events' extraction, read from an extraction file."""
     return data_from_records(read_records(path), run_id, str(path.as_posix()), selection)

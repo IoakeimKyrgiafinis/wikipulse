@@ -83,6 +83,7 @@ class Pair:
 
 
 def linked(a: SpikePage, b: SpikePage) -> bool:
+    """True if either page links to the other."""
     return not (a.links.isdisjoint(b.names) and b.links.isdisjoint(a.names))
 
 
@@ -110,10 +111,12 @@ def stratify(
 
 
 def spike_key(page: SpikePage) -> tuple[str, datetime]:
+    """A spike's identity across runs: title and start."""
     return (page.title, page.started_at)
 
 
 def key_of(pair: Pair, pages: Sequence[SpikePage]) -> PairKey:
+    """The label key of a page pair."""
     return pair_key(spike_key(pages[pair.i]), spike_key(pages[pair.j]))
 
 
@@ -210,6 +213,7 @@ def count_strata(
     pages: Sequence[SpikePage],
     labels: dict[PairKey, PairLabelRecord],
 ) -> GroupingMetrics:
+    """Sampled and labeled pairs counted per stratum."""
     population = Counter(p.stratum for p in pairs)
     metrics = GroupingMetrics({name: StratumCount(name, population[name]) for name in STRATA})
     for pair in sample:
@@ -276,6 +280,7 @@ def load_day(settings: Settings, run_id: str, day: date) -> DayData:
 
 
 def pct(value: float | None) -> str:
+    """A share as a percentage with one decimal, or `n/a`."""
     return "n/a" if value is None else f"{100 * value:.1f}%"
 
 
@@ -290,6 +295,7 @@ def build_report(
     now: datetime,
     note: str = "",
 ) -> dict[str, Any]:
+    """The whole grouping report as a JSON-ready dict."""
     metrics = count_strata(data.pairs, sample, data.pages, labels)
     sizes = event_sizes(data.pages, data.event_of)
     sampled_pairs = []
@@ -352,6 +358,7 @@ def build_report(
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    """The grouping report as Markdown."""
     m, e = report["metrics"], report["events"]
     margin = m["precision_margin_95"]
     lines = [
@@ -419,6 +426,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 
 def summary_line(report: dict[str, Any]) -> str:
+    """The report's main numbers in one line."""
     m, e = report["metrics"], report["events"]
     return (
         f"{e['events']} events from {e['spikes']} spikes; pairwise precision "
@@ -462,6 +470,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def run_label(args: argparse.Namespace, settings: Settings, data: DayData) -> None:
+    """The `label` command: label the sampled pairs not labeled yet."""
     sample = sample_pairs(data.pairs, data.pages, args.sizes, args.seed)
     pairs = [data.to_label(pair) for pair in sample]
 
@@ -483,6 +492,7 @@ def run_label(args: argparse.Namespace, settings: Settings, data: DayData) -> No
 
 
 def run_report(args: argparse.Namespace, settings: Settings, data: DayData) -> Path:
+    """The `report` command: write the grouping report; returns its path."""
     sample = sample_pairs(data.pairs, data.pages, args.sizes, args.seed)
     labels = labels_by_pair(load_pair_records(args.labels))
     base = settings.events_config().model_dump()

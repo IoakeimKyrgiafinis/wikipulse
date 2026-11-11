@@ -102,12 +102,14 @@ def notification_xml(arn: str, config_id: str = CONFIG_ID, suffix: str = SUFFIX)
 
 
 def put_bucket_notification(api: S3Api, bucket: str, arn: str) -> None:
+    """Set the bucket's notification configuration."""
     api.request(
         "PUT", f"/{bucket}", params={"notification": ""}, body=notification_xml(arn).encode()
     )
 
 
 def get_bucket_notification(api: S3Api, bucket: str) -> str:
+    """The bucket's notification configuration (XML)."""
     return api.request("GET", f"/{bucket}", params={"notification": ""}).text
 
 

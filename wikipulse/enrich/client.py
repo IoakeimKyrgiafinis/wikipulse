@@ -86,6 +86,7 @@ def request_key(url: str, params: dict[str, Any]) -> str:
 
 
 def is_action_api(url: str) -> bool:
+    """True for a MediaWiki Action API URL (`.../api.php`)."""
     return url.endswith("/api.php")
 
 
@@ -97,6 +98,7 @@ def api_error_code(body: Any) -> str | None:
 
 
 def retry_after_s(response: httpx.Response) -> float:
+    """The response's Retry-After in seconds (0 if absent or not a number)."""
     value = response.headers.get("Retry-After", "")
     return float(value) if value.isdigit() else 0.0
 

@@ -250,6 +250,7 @@ def is_anonymous(user: str) -> bool:
 
 
 def share(part: int, whole: int) -> float:
+    """`part / whole`, or NaN when `whole` is 0."""
     return part / whole if whole else math.nan
 
 
@@ -264,12 +265,14 @@ def peak_count(times: Sequence[datetime], width: timedelta) -> int:
 
 
 def size_change(edit: PageEdit) -> int:
+    """Bytes an edit added (negative: removed)."""
     if edit.len_new is None:
         return 0
     return edit.len_new - (edit.len_old or 0)
 
 
 def burst_features(window: SpikeWindow, visible: Sequence[PageEdit]) -> dict[str, float]:
+    """Features of the burst up to the cutoff: edits, editors, shares, timing."""
     start, cutoff = window.first_edit_at, window.cutoff
     in_burst = [e for e in visible if e.time >= start]
     burst = [e for e in in_burst if not e.is_bot]
@@ -312,6 +315,7 @@ def burst_features(window: SpikeWindow, visible: Sequence[PageEdit]) -> dict[str
 
 
 def history_features(window: SpikeWindow, visible: Sequence[PageEdit]) -> dict[str, float]:
+    """Features of the page's editing in the 24 hours before the burst."""
     start = window.first_edit_at
     prior = [e for e in visible if start - HISTORY <= e.time < start and not e.is_bot]
     last_hour = [e for e in prior if e.time >= start - timedelta(hours=1)]
@@ -331,6 +335,7 @@ def history_features(window: SpikeWindow, visible: Sequence[PageEdit]) -> dict[s
 
 
 def title_features(window: SpikeWindow) -> dict[str, float]:
+    """Features of the title and the start time."""
     title = window.title
     started = window.started_at.astimezone(UTC)
     year = str(started.year)
@@ -348,6 +353,7 @@ CURRENT_TEMPLATES = ("current", "recent death", "ongoing", "developing")
 
 
 def page_features(window: SpikeWindow, page: PageSnapshot | None) -> dict[str, float]:
+    """Features of the page as it was at the cutoff (NaN if unknown)."""
     if page is None:
         return {name: math.nan for name in PAGE_FEATURES}
     year = str(window.started_at.astimezone(UTC).year)

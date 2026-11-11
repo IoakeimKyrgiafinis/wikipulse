@@ -76,6 +76,7 @@ def mcp_client(settings: Settings, mcp_url: str | None) -> AbstractAsyncContextM
 
 
 def summary(run: AgentRun) -> str:
+    """One log line about a finished agent run."""
     result = (
         f"briefing with {len(run.briefing.citations)} sources"
         if run.briefing
@@ -154,6 +155,7 @@ class Trigger:
 
 
 async def run(args: argparse.Namespace, settings: Settings, stop: asyncio.Event) -> str:
+    """Run the trigger with the command-line options; returns the last summary."""
     if args.neo4j_uri:
         settings = settings.model_copy(update={"neo4j_uri": args.neo4j_uri})
     if args.model:

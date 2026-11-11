@@ -225,6 +225,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 async def run(args: argparse.Namespace, stop: asyncio.Event) -> RunStats:
+    """Group spikes with the command-line options until stopped (or once)."""
     settings = get_settings()
     run_id = args.run_id or args.spike_run
     embedder = Embedder(settings.events_embed_model)

@@ -75,6 +75,7 @@ _CITATION_NUMBERS = re.compile(r"\s*(?:\[\d+\])+")
 
 
 def answers_path(settings: Settings, name: str) -> Path:
+    """Where the answers of an evaluation run are stored."""
     return settings.data_dir / "qa_eval" / name / "answers.jsonl"
 
 
@@ -91,12 +92,14 @@ def read_answers(path: Path) -> dict[str, AnswerRecord]:
 
 
 def append_answer(path: Path, record: AnswerRecord) -> None:
+    """Append one answer record to the answers file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="\n") as out:
         out.write(record.model_dump_json() + "\n")
 
 
 def record_answer(run: str, question: QAQuestion, result: Answer) -> AnswerRecord:
+    """The stored record of the system's answer to a question."""
     context = result.context
     return AnswerRecord(
         run=run,
@@ -165,6 +168,7 @@ def answer_all(session: QASession, questions: Sequence[QAQuestion], path: Path, 
 
 
 def run_answer(args: argparse.Namespace, settings: Settings, questions: list[QAQuestion]) -> str:
+    """The `answer` step: ask every question not answered yet; returns a summary."""
     path = answers_path(settings, args.name)
     if args.force and path.exists():
         path.unlink()
@@ -283,6 +287,7 @@ def judge_all(
 
 
 def run_judge(args: argparse.Namespace, settings: Settings, questions: list[QAQuestion]) -> str:
+    """The `judge` step: grade the answers with each judge; returns a summary."""
     answers = read_answers(answers_path(settings, args.name))
     if not answers:
         raise SystemExit(f"No answers for {args.name!r} yet (run the answer step).")
@@ -328,6 +333,7 @@ def lookups(
 def report_config(
     args: argparse.Namespace, settings: Settings, snapshot: Snapshot, answers: list[AnswerRecord]
 ) -> dict[str, Any]:
+    """The settings and snapshot behind a QA report."""
     retrieval = RetrievalConfig.from_settings(settings)
     counts = {row["label"]: row["count"] for row in snapshot.rows(SNAPSHOT_COUNTS)}
     models = sorted({a.model for a in answers if a.model})
@@ -351,6 +357,7 @@ def report_config(
 
 
 def run_report(args: argparse.Namespace, settings: Settings, questions: list[QAQuestion]) -> str:
+    """The `report` step: score and write the report; returns a summary."""
     answers = read_answers(answers_path(settings, args.name))
     if not answers:
         raise SystemExit(f"No answers for {args.name!r} yet (run the answer step).")
@@ -451,10 +458,12 @@ def rate_manually(
 
 
 def parse_list(text: str) -> list[str]:
+    """A comma-separated list (argparse type)."""
     return [part.strip() for part in text.split(",") if part.strip()]
 
 
 def parse_channels(text: str) -> list[Channel]:
+    """A comma-separated list of retrieval channels (argparse type)."""
     channels = parse_list(text)
     unknown = set(channels) - set(ALL_CHANNELS)
     if unknown:

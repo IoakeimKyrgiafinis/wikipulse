@@ -86,6 +86,7 @@ def content_allows_link(a: SpikePage, b: SpikePage, config: EventsConfig) -> boo
 
 
 def time_signal(a: SpikePage, b: SpikePage, config: EventsConfig) -> float:
+    """1 for spikes starting together, falling to 0 at `time_window_h` apart."""
     hours = abs((a.started_at - b.started_at).total_seconds()) / 3600
     return max(0.0, 1.0 - hours / config.time_window_h)
 
@@ -98,6 +99,7 @@ def cosine(a: np.ndarray | None, b: np.ndarray | None) -> float:
 
 
 def embed_signal(a: SpikePage, b: SpikePage, config: EventsConfig) -> float:
+    """The summaries' cosine similarity, rescaled from `embed_floor`..1 to 0..1."""
     similarity = cosine(a.embedding, b.embedding)
     return min(1.0, max(0.0, (similarity - config.embed_floor) / (1.0 - config.embed_floor)))
 

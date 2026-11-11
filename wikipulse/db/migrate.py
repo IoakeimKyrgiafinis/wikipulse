@@ -43,6 +43,7 @@ def migration_files(directory: Path = MIGRATIONS_DIR) -> list[Path]:
 
 
 def applied_versions(conn: psycopg.Connection) -> set[str]:
+    """The versions of the migrations already applied."""
     rows = conn.execute("SELECT version FROM schema_migrations").fetchall()
     return {row[0] for row in rows}
 

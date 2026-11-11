@@ -63,6 +63,7 @@ def baseline_totals(conn: psycopg.Connection, dataset: str, day: date, days: int
 
 
 def upsert_daily_stats(conn: psycopg.Connection, stats: DailyStats) -> None:
+    """Insert or replace one day's statistics."""
     params = asdict(stats)
     params["issues"] = json.dumps([asdict(issue) for issue in stats.issues], ensure_ascii=False)
     params["passed"] = stats.passed
@@ -94,6 +95,7 @@ def upsert_detection_eval(
 
 
 def get_detection_eval(conn: psycopg.Connection, run_id: str, day: date) -> dict[str, Any] | None:
+    """The stored daily detection evaluation of a run and day, or None."""
     with conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
             "SELECT * FROM detection_eval_daily WHERE run_id = %s AND day = %s", (run_id, day)

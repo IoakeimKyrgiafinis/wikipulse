@@ -159,6 +159,7 @@ def load_event(conn: psycopg.Connection, run_id: str, number: int) -> EventInput
 
 
 def record_success(conn: psycopg.Connection, event: EventInput, result: ExtractionResult) -> None:
+    """Record a successful extraction of an event and what it cost."""
     conn.execute(
         RECORD,
         {
@@ -196,6 +197,7 @@ def current_events(conn: psycopg.Connection, run_id: str) -> list[int]:
 
 
 def forget_extraction(conn: psycopg.Connection, run_id: str, number: int) -> None:
+    """Delete an event's extraction record, so it is extracted again."""
     conn.execute(
         "DELETE FROM graph_extractions WHERE run_id = %s AND event_number = %s", (run_id, number)
     )

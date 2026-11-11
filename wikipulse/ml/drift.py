@@ -141,6 +141,7 @@ def ks_statistic(reference: np.ndarray, current: np.ndarray) -> float:
 
 
 def nan_mean(values: np.ndarray) -> float:
+    """The mean of the known (not NaN) values, or NaN."""
     known = values[~np.isnan(values)]
     return float(known.mean()) if len(known) else math.nan
 
@@ -210,6 +211,7 @@ class DriftReport:
 
 
 def jsonable(value: Any) -> Any:
+    """A value with NaN replaced by None, for JSON."""
     if isinstance(value, float) and math.isnan(value):
         return None
     if isinstance(value, dict):
@@ -377,6 +379,8 @@ def run_drift(
 
 
 def render(report: DriftReport, top: int = 12) -> str:
+    """A drift report as text, the `top` most drifted features first."""
+
     def fmt(value: float) -> str:
         return "   n/a" if math.isnan(value) else f"{value:6.3f}"
 

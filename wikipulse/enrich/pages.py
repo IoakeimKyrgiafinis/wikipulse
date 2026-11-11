@@ -101,6 +101,7 @@ def summary_url(rest_url: str, title: str) -> str:
 
 
 def strip_category_prefix(name: str) -> str:
+    """A category name without its `Category:` prefix."""
     return name.removeprefix(CATEGORY_PREFIX)
 
 
@@ -123,6 +124,7 @@ def resolve_title(requested: str, query: dict[str, Any]) -> tuple[str, bool, str
 
 
 def find_page(title: str, query: dict[str, Any]) -> dict[str, Any] | None:
+    """The page of `title` in a query answer (or its only page), else None."""
     pages = query.get("pages", [])
     for page in pages:
         if page.get("title") == title:
@@ -190,6 +192,7 @@ async def fetch_summary(client: WikimediaClient, rest_url: str, title: str) -> d
 
 
 def build_page_info(requested: str, facts: QueryFacts, summary: dict[str, Any]) -> PageInfo:
+    """The `PageInfo` of a title from the Action API facts and the summary."""
     status = facts.status
     if summary.get("type") == "disambiguation":
         status = PageStatus.DISAMBIGUATION

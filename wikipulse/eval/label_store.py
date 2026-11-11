@@ -57,6 +57,7 @@ def record_for(
     model: str | None = None,
     reason: str = "",
 ) -> LabelRecord:
+    """The stored label record of a spike."""
     return LabelRecord(
         title=spike.title,
         run_id=run_id,
@@ -87,6 +88,7 @@ def load_records(path: Path) -> list[LabelRecord]:
 
 
 def load_labels(path: Path) -> list[Label]:
+    """The labels of a labels file."""
     return [record.to_label() for record in load_records(path)]
 
 

@@ -70,6 +70,7 @@ def name_in(text: str, name: str) -> bool:
 
 
 def retrieved_text(record: AnswerRecord) -> str:
+    """All retrieved facts and entities of an answer as one text."""
     return "\n".join([*(f.text for f in record.facts), *record.entities])
 
 
@@ -96,6 +97,7 @@ def event_hits(
 
 
 def share(hits: Sequence[bool]) -> float | None:
+    """The share of true values, or None for none."""
     return sum(hits) / len(hits) if hits else None
 
 
@@ -141,6 +143,7 @@ def score_question(
     correctness: QAJudgement | None,
     faithfulness: QAJudgement | None,
 ) -> QuestionScore:
+    """One question's scores from its answer and judgements."""
     verdicts = faithfulness.claims if faithfulness else []
     judged = [v.supported for v in verdicts if v.supported is not None]
     return QuestionScore(
@@ -167,6 +170,7 @@ def score_question(
 
 
 def mean(values: Iterable[float | None]) -> float | None:
+    """The mean of the values that are not None, or None."""
     present = [v for v in values if v is not None]
     return sum(present) / len(present) if present else None
 
@@ -215,6 +219,7 @@ def summarize(scores: Sequence[QuestionScore]) -> dict[str, Any]:
 
 
 def summarize_by_type(scores: Sequence[QuestionScore]) -> dict[str, dict[str, Any]]:
+    """The summary metrics per question type."""
     types = [t for t in QUESTION_TYPES if any(s.type == t for s in scores)]
     return {t: summarize([s for s in scores if s.type == t]) for t in types}
 
