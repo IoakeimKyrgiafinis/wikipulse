@@ -34,7 +34,7 @@ Focus checks:
 6. **low**, `docs/specs/10-polish.md` line 3: status is `done` while the learning note says CI on the final commit was not verified. CI is green on the final commit now except `smoke`, which was still running at review time.
 7. **low**, `scripts/make_quickstart_sample.py` line 52: `SAMPLE_DIR = Path("demo") / "sample"` is relative to the working directory, unlike `quickstart.py`'s `ROOT`-based path, so running it from another directory writes the sample to the wrong place.
 8. **low**, `docs/architecture.md` lines 129-145: the batch diagram leaves out that `ml.serve` reads spikes from Postgres and page revisions from Wikipedia, and that `extend_history`/`lake.backfill` calls EventStreams through the DAG. The pipeline diagram (line 20) says every arrow goes through a store, while QA to MCP to agent are direct calls.
-9. **low**, `docs/learning/10-polish.md` line 117: the committed note contains `C:\Users\makis\wikipulse`, the owner's local path and Windows user name. Nothing on `main` contained it before.
+9. **low**, `docs/learning/10-polish.md` line 117: the committed note contains the owner's local repository path and Windows user name. Nothing on `main` contained it before.
 10. **low**, `scripts/quickstart.py` lines 236-243 (`Children.check`): a background child that exits with code 0 (for example `detect` or `api` ending early) is not noticed, and the script keeps polling a pipeline that has stopped.
 11. **low**, `scripts/quickstart.py` lines 251, 269: `port_is_free`, `wait_for_api`, `Child`, `Progress.line` and `Children.stop_all` have no docstrings, although the cleanup's rule was a docstring on every public function. (The rule was applied to `wikipulse/` only.)
 
