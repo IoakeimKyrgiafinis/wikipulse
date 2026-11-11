@@ -158,7 +158,7 @@ class Settings(BaseSettings):
     # --- Stage 2: spike detection (thresholds explained in DetectorConfig) ---
     detect_short_window_min: float = Field(default=10, gt=0)
     detect_long_window_min: float = Field(default=60, gt=0)
-    detect_min_edits: int = Field(default=5, ge=1)
+    detect_min_edits: int = Field(default=3, ge=1)
     detect_min_editors: int = Field(default=3, ge=1)
     detect_min_ratio: float = Field(default=5.0, gt=0)
     detect_long_min_edits: int = Field(default=10, ge=1)
