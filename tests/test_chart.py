@@ -10,6 +10,7 @@ Needs the `helm` binary (no network, no cluster). Skipped when helm isn't instal
 except in CI, where a missing helm is an error (CI installs it).
 """
 
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -172,6 +173,9 @@ def test_every_pod_has_an_egress_policy_and_everything_else_is_denied(env: str) 
         "podSelector": {},
         "policyTypes": ["Ingress", "Egress"],
     }
+    # The session pods' policy (spec 09b) selects by its own label; tested separately.
+    sessions = policies.pop("session-egress", None)
+    assert (sessions is not None) == ("values-replay.yaml" in ENVIRONMENTS[env])
     selected = {
         p["spec"]["podSelector"]["matchLabels"]["app.kubernetes.io/name"]
         for p in policies.values()
@@ -397,3 +401,96 @@ def test_the_replay_overlay_reads_the_replay_stream_as_its_own_run() -> None:
     assert of_kind(docs, "ConfigMap")["wikipulse-config"]["data"]["API_RUN_ID"] == "replay"
     # The archiver still reads the live stream: replayed edits never reach the lake.
     assert "--stream-key" not in container(deployments["archiver"])["command"]
+
+
+# --- logs and session pods (spec 09b) ---
+
+
+def test_every_pod_logs_json_under_its_service_name() -> None:
+    docs = render(("values-dev.yaml",))
+    config = of_kind(docs, "ConfigMap")["wikipulse-config"]["data"]
+    assert config["LOG_FORMAT"] == "json" and config["LOG_EDITS"] == "true"
+    for name, deployment in of_kind(docs, "Deployment").items():
+        env = {e["name"]: e.get("value") for e in pod_spec(deployment)["containers"][0]["env"]}
+        assert env["LOG_SERVICE"] == name
+
+
+def test_session_pods_only_with_the_replay_overlay_and_never_on_443() -> None:
+    plain = of_kind(render(("values-dev.yaml",)), "NetworkPolicy")
+    assert "session-egress" not in plain
+    replay = of_kind(
+        render(("values-dev.yaml", "values-offline.yaml", "values-replay.yaml")), "NetworkPolicy"
+    )
+    policy = replay["session-egress"]["spec"]
+    assert policy["podSelector"]["matchLabels"] == {"wikipulse.io/session": "true"}
+    ports = {p["port"] for rule in policy["egress"] for p in rule["ports"]}
+    assert 443 not in ports and {6379, 11434} <= ports
+
+
+def selects(selector: dict, labels: dict[str, str]) -> bool:
+    """Whether a NetworkPolicy's podSelector selects a pod with these labels."""
+    if not selector.get("matchLabels", {}).items() <= labels.items():
+        return False
+    for expression in selector.get("matchExpressions", []):
+        key, operator = expression["key"], expression["operator"]
+        present = key in labels
+        if operator == "DoesNotExist" and present or operator == "Exists" and not present:
+            return False
+        if operator == "In" and labels.get(key) not in expression["values"]:
+            return False
+        if operator == "NotIn" and labels.get(key) in expression["values"]:
+            return False
+    return True
+
+
+def load_cluster_script():
+    spec = importlib.util.spec_from_file_location("cluster", ROOT / "scripts" / "cluster.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_no_service_policy_selects_a_session_pod_whatever_its_name() -> None:
+    policies = of_kind(
+        render(("values-dev.yaml", "values-offline.yaml", "values-replay.yaml")), "NetworkPolicy"
+    )
+    services = {name.removesuffix("-egress") for name in policies if name.endswith("-egress")}
+    services.discard("session")
+    # The names `cluster.py run` refuses are exactly the chart's pods.
+    cluster = load_cluster_script()
+    assert cluster.CHART_POD_NAMES == services == set(DEPLOYMENTS) | {"migrate"}
+    # Even with a service's name (as if the refusal were bypassed), a session pod gets
+    # only the default deny, DNS and its own policy: never a service's ports, never 443.
+    for name in sorted(services) + ["replay", "graph-session"]:
+        labels = {
+            "app.kubernetes.io/name": name,
+            "app.kubernetes.io/part-of": "wikipulse",
+            "wikipulse.io/session": "true",
+        }
+        egress = {
+            policy_name
+            for policy_name, policy in policies.items()
+            if "Egress" in policy["spec"]["policyTypes"]
+            and selects(policy["spec"]["podSelector"], labels)
+        }
+        assert egress == {"default-deny-all", "allow-dns", "session-egress"}, name
+        ports = {
+            port["port"]
+            for policy_name in egress
+            for rule in policies[policy_name]["spec"].get("egress", [])
+            for port in rule.get("ports", [])
+        }
+        assert 443 not in ports
+    # The services themselves are still selected by their own policy.
+    for name in services:
+        policy = policies[f"{name}-egress"]["spec"]["podSelector"]
+        assert selects(policy, {"app.kubernetes.io/name": name})
+
+
+def test_the_schema_refuses_https_for_session_pods() -> None:
+    result = helm(
+        "template", "wikipulse", str(CHART), "--set", "sessionPods.egressPorts={6379,443}",
+        check=False,
+    )  # fmt: skip
+    assert result.returncode != 0 and "sessionPods" in result.stderr

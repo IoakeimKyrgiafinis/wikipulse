@@ -28,6 +28,7 @@ import psycopg
 from wikipulse.config import EventsConfig, get_settings
 from wikipulse.db.events import (
     SpikeRow,
+    active_correlation_ids,
     active_members,
     delete_grouping_run,
     run_info,
@@ -38,8 +39,9 @@ from wikipulse.db.events import (
 from wikipulse.db.spikes import latest_edit_time
 from wikipulse.enrich.run import parse_day_or_time
 from wikipulse.events.embed import Embedder, page_text
-from wikipulse.events.grouper import Event, Grouper, Member
+from wikipulse.events.grouper import Assignment, Event, Grouper, Member
 from wikipulse.events.similarity import SpikePage
+from wikipulse.graph.inputs import event_key
 from wikipulse.health import Heartbeat
 from wikipulse.logging_setup import setup_logging
 from wikipulse.metrics.catalog import GROUPER_ACTIVE_EVENTS, GROUPER_SPIKES, start_at_zero
@@ -67,6 +69,7 @@ def to_pages(rows: list[SpikeRow], embedder: Embedder) -> list[SpikePage]:
             score=row.score,
             links=frozenset(row.links or ()),
             embedding=vector,
+            correlation_id=row.correlation_id,
         )
         for row, vector in zip(rows, vectors, strict=True)
     ]
@@ -142,9 +145,12 @@ class GroupingRunner:
             )
         rows = active_members(self.conn, self.run_id)
         pages = to_pages([row for _, _, row in rows], self.embedder)
+        # The stored id, not one recomputed from the members: it never changes.
+        ids = active_correlation_ids(self.conn, self.run_id)
         events: dict[int, Event] = {}
         for (number, joined, _), page in zip(rows, pages, strict=True):
-            events.setdefault(number, Event(number)).members.append(Member(page, joined))
+            event = events.setdefault(number, Event(number, correlation_id=ids.get(number)))
+            event.members.append(Member(page, joined))
         for event in events.values():
             event.refresh()
         if events:
@@ -156,6 +162,29 @@ class GroupingRunner:
             return rows
         return ready_rows(rows, self.first_seen, time.monotonic(), self.enrich_wait_s)
 
+    def log_assignment(self, assignment: Assignment, page: SpikePage) -> None:
+        """One line per grouped spike, under its event's correlation id (spec 09b)."""
+        event = self.grouper.active[assignment.event_number]
+        key = event_key(self.run_id, event.number)
+        fields = {
+            "correlation_id": event.correlation_id,
+            "event_key": key,
+            "spike_id": page.spike_id,
+            "title": page.title,
+        }
+        if assignment.created:
+            logger.info("Event %s opened: %s", key, page.title, extra=fields)
+            return
+        fields["spike_correlation_id"] = page.correlation_id
+        logger.info(
+            "Spike %d (%s) joined event %s (score %.2f)",
+            page.spike_id,
+            page.title,
+            key,
+            assignment.score,
+            extra=fields,
+        )
+
     def step(self) -> int:
         """One round: refresh spike ends, group new spikes, close events, save."""
         ends = spike_ends(self.conn, list(self.grouper.event_of))
@@ -166,6 +195,7 @@ class GroupingRunner:
         )
         for page, row in zip(to_pages(rows, self.embedder), rows, strict=True):
             assignment = self.grouper.add(page)
+            self.log_assignment(assignment, page)
             self.first_seen.pop(row.spike_id, None)
             self.stats.spikes += 1
             self.stats.not_enriched += not row.enriched

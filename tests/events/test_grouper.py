@@ -1,10 +1,13 @@
 """Online grouping: assignment, merging, ending, titles and determinism."""
 
+from dataclasses import replace
+
 import pytest
 
 from tests.events.helpers import ELECTION, ELECTION_ISH, FOOTBALL, at, page, unit
 from wikipulse.config import EventsConfig
 from wikipulse.events.grouper import ACTIVE, ENDED, MERGED, Event, Grouper, Member
+from wikipulse.events.similarity import SpikePage
 
 CONFIG = EventsConfig()  # join threshold 0.55; a spike is over 30 min after its last edit
 
@@ -155,3 +158,65 @@ def test_a_restored_grouper_continues_numbering_and_events() -> None:
     assert grouper.add(page(2, "Candidate", minute=3)).event_number == 7
     assert grouper.add(page(3, "Unrelated", minute=4)).event_number == 8
     assert grouper.active[7].status == ACTIVE
+
+
+def with_id(spike: SpikePage, correlation_id: str) -> SpikePage:
+    return replace(spike, correlation_id=correlation_id)
+
+
+def test_an_event_carries_the_correlation_id_of_its_earliest_spike() -> None:
+    grouper = Grouper(CONFIG)
+    grouper.add(with_id(page(1, "Election", embedding=unit(1, 0, 0)), "edit-1"))
+    grouper.add(with_id(page(2, "Candidate", minute=5, embedding=unit(0, 1, 0)), "edit-2"))
+    assert grouper.active[2].correlation_id == "edit-2"
+    bridge = page(3, "Results", minute=10, links=("Election", "Candidate"), embedding=unit(1, 1, 0))
+    grouper.add(with_id(bridge, "edit-3"))  # merges event 2 into event 1
+    assert grouper.active[1].correlation_id == "edit-1"
+
+
+def test_an_earlier_spike_enriched_later_does_not_change_the_events_id() -> None:
+    # B (minute 5) opens the event; A started at minute 0 but waited for enrichment, so
+    # it joins later. The event now starts at minute 0, but its id stays B's.
+    grouper = Grouper(CONFIG)
+    grouper.add(with_id(page(1, "Candidate", minute=5, embedding=ELECTION), "edit-b"))
+    grouper.add(with_id(page(2, "Election", minute=0, embedding=ELECTION_ISH), "edit-a"))
+    event = grouper.active[1]
+    assert [p.spike_id for p in event.pages] == [1, 2]
+    assert event.started_at == at(0) and event.correlation_id == "edit-b"
+
+
+def test_a_merge_keeps_the_survivors_id_and_logs_the_merged_one_as_an_alias(caplog) -> None:
+    # Event 1 opens at minute 5; event 2 opens later with a spike that started earlier
+    # (minute 0). The bridge merges 2 into 1: the survivor keeps its own id.
+    grouper = Grouper(CONFIG)
+    grouper.add(with_id(page(1, "Candidate", minute=5, embedding=unit(0, 1, 0)), "edit-b"))
+    grouper.add(with_id(page(2, "Election", minute=0, embedding=unit(1, 0, 0)), "edit-a"))
+    assert grouper.active[2].correlation_id == "edit-a"
+    bridge = page(3, "Results", minute=10, links=("Election", "Candidate"), embedding=unit(1, 1, 0))
+    with caplog.at_level("INFO", logger="wikipulse.events.grouper"):
+        assignment = grouper.add(with_id(bridge, "edit-c"))
+    assert assignment.event_number == 1 and assignment.merged == (2,)
+    survivor = grouper.active[1]
+    assert survivor.started_at == at(0) and survivor.correlation_id == "edit-b"
+    (merge,) = [r for r in caplog.records if r.getMessage().startswith("Merging")]
+    assert merge.correlation_id == "edit-b" and merge.merged_correlation_id == "edit-a"
+
+
+def test_a_restored_event_keeps_its_stored_id() -> None:
+    # Restored members come back by start time, not join order: the stored id wins.
+    event = Event(7, [Member(with_id(page(1, "A", minute=0), "edit-a"), 1.0)], correlation_id="x")
+    event.refresh()
+    assert event.correlation_id == "x"
+
+
+def test_an_event_opened_without_an_id_takes_the_first_one_that_comes() -> None:
+    # Spikes from before spec 09b have no id; the first member that has one gives it.
+    event = Event(1, [Member(page(1, "Old"), 1.0)])
+    event.refresh()
+    assert event.correlation_id is None
+    event.members.append(Member(with_id(page(2, "New", minute=1), "edit-2"), 0.9))
+    event.refresh()
+    assert event.correlation_id == "edit-2"
+    event.members.append(Member(with_id(page(3, "Newer", minute=2), "edit-3"), 0.9))
+    event.refresh()
+    assert event.correlation_id == "edit-2"

@@ -1,6 +1,6 @@
 # Spec 09b: Centralized logging and LLM tracing
 
-Status: ready
+Status: done
 Stage: 9. Observability and CI/CD
 Owner: agent
 Depends on: 09a

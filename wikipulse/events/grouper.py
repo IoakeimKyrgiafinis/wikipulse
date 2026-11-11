@@ -19,6 +19,12 @@ with `merged_into` pointing at the survivor.
   stage 4 writes better titles.
 - Everything uses event time (spike timestamps). The same spikes in the same order
   always give the same events.
+- An event's correlation id (spec 09b) is set once, when the event opens: the id of
+  the spike that opened it (the edit that started the story, as far as the grouper
+  knows). It never changes after that, so every line about the event carries one id,
+  even if a spike that started earlier joins later (it waited for enrichment). A merge
+  keeps the survivor's id; the merge line also carries the merged event's id as
+  `merged_correlation_id`, an alias that joins the two trails.
 """
 
 import logging
@@ -59,13 +65,14 @@ class Event:
     started_at: datetime | None = None  # earliest spike start
     last_spike_at: datetime | None = None  # latest spike start
     score: float = 0.0  # highest spike score
+    correlation_id: str | None = None  # the opening spike's, set once (spec 09b)
 
     @property
     def pages(self) -> list[SpikePage]:
         return [member.page for member in self.members]
 
     def refresh(self) -> None:
-        """Recompute the summary fields from the members."""
+        """Recompute the summary fields from the members (never the correlation id)."""
         pages = self.pages
         top = max(pages, key=lambda p: (p.score, -p.started_at.timestamp(), p.title))
         self.title = top.canonical_title
@@ -73,6 +80,10 @@ class Event:
         self.started_at = min(p.started_at for p in pages)
         self.last_spike_at = max(p.started_at for p in pages)
         self.score = top.score
+        if self.correlation_id is None:
+            # Once: the first member that has one (the opener, unless its spike predates
+            # spec 09b and has none).
+            self.correlation_id = next((p.correlation_id for p in pages if p.correlation_id), None)
 
     def is_over(self, now: datetime, close_after: timedelta) -> bool:
         """True if every spike of the event has ended and is past its close time."""
@@ -123,7 +134,12 @@ class Grouper:
             event.status = ENDED
             event.ended_at = max(p.ended_at for p in event.pages if p.ended_at is not None)
             self._forget(event)
-            logger.debug("Event %d ended: %s", event.number, event.title)
+            logger.info(
+                "Event %d ended: %s",
+                event.number,
+                event.title,
+                extra={"correlation_id": event.correlation_id, "event_number": event.number},
+            )
         return ended
 
     def update_end(self, spike_id: int, ended_at: datetime | None) -> None:
@@ -186,9 +202,18 @@ class Grouper:
         self.changed[event.number] = event
 
     def _merge(self, event: Event, survivor: Event) -> None:
-        logger.debug("Merging event %d (%s) into %d", event.number, event.title, survivor.number)
         survivor.members.extend(event.members)
         survivor.refresh()
+        logger.info(
+            "Merging event %d (%s) into %d",
+            event.number,
+            event.title,
+            survivor.number,
+            extra={
+                "correlation_id": survivor.correlation_id,
+                "merged_correlation_id": event.correlation_id,  # the alias: joins the trails
+            },
+        )
         for page in event.pages:
             self.event_of[page.spike_id] = survivor.number
         event.members = []

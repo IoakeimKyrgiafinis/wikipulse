@@ -1,7 +1,14 @@
 """Unit tests: when the graph runner extracts an event again, and which events leave the graph."""
 
-from wikipulse.db.graph import event_fingerprint, needs_extraction
-from wikipulse.graph.run import stale_events
+from typing import Any
+
+import pytest
+
+from tests.graph.helpers import event
+from wikipulse.db.graph import ExtractionResult, event_fingerprint, needs_extraction
+from wikipulse.graph import run as graph_run
+from wikipulse.graph.run import GraphRunner, stale_events
+from wikipulse.logging_setup import current_context
 
 
 def test_an_active_event_has_a_different_fingerprint_than_the_same_event_ended() -> None:
@@ -35,3 +42,22 @@ def test_merged_and_deleted_events_are_stale() -> None:
 
 def test_stale_events_ignore_keys_of_other_runs() -> None:
     assert stale_events("run-a", ["run-ab:1", "run-a:1"], [], [1]) == []
+
+
+async def test_an_event_is_extracted_under_its_correlation_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    found = event(correlation_id="edit-9")
+    monkeypatch.setattr(graph_run, "load_event", lambda conn, run_id, number: found)
+    monkeypatch.setattr(graph_run, "record_success", lambda *args: None)
+    runner = GraphRunner(None, None, None, None, None, "", "test-run")  # type: ignore[arg-type]
+    seen: dict[str, Any] = {}
+
+    async def extract(event_input: Any, started: float) -> ExtractionResult:
+        seen.update(current_context())
+        return ExtractionResult("fake:m", "v1", 1, 0, 0, 0, 0.1, 0, 0, 0.0)
+
+    monkeypatch.setattr(runner, "_extract", extract)
+    assert await runner.process(7)
+    assert seen == {"correlation_id": "edit-9", "event_key": "test-run:7"}
+    assert current_context() == {}

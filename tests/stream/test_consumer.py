@@ -207,3 +207,19 @@ async def test_live_consumer_beats_its_heartbeat(consumer) -> None:
     stop.set()
     await asyncio.wait_for(task, timeout=2)
     assert len(beats) == 1 + len(messages)  # one per connection attempt, one per message
+
+
+async def test_with_log_edits_each_written_edit_logs_its_correlation_id(
+    redis_client, keys, caplog
+) -> None:
+    consumer = Consumer(redis_client, keys, maxlen=10_000, log_edits=True)
+    with caplog.at_level("INFO", logger="wikipulse.stream.consumer"):
+        await process_all(consumer, fixture_messages())
+    written = [r for r in caplog.records if r.getMessage().startswith("Edit written")]
+    assert [r.correlation_id for r in written] == WANTED_IDS
+
+
+async def test_without_log_edits_nothing_is_logged_per_edit(consumer, caplog) -> None:
+    with caplog.at_level("INFO", logger="wikipulse.stream.consumer"):
+        await process_all(consumer, fixture_messages())
+    assert not [r for r in caplog.records if r.getMessage().startswith("Edit written")]

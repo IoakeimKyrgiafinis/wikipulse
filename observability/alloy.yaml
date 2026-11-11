@@ -1,0 +1,27 @@
+# Values for the community chart grafana/alloy, the log collector, installed by Terraform
+# (infra/cluster/logging.tf) next to Loki (spec 09b). Its pipeline is
+# observability/alloy/config.alloy.tftpl, filled in by Terraform.
+#
+# One Alloy pod reads the WikiPulse pods' logs through the Kubernetes API (the same as
+# `kubectl logs -f`), so it needs no access to the node's files (no hostPath volume, no
+# privileged DaemonSet): it runs under the namespace's "baseline" pod security. A big
+# cluster would run one collector per node reading /var/log/pods instead.
+
+controller:
+  type: deployment
+  replicas: 1
+
+alloy:
+  configMap:
+    create: true  # the content comes from Terraform
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  mounts:
+    varlog: false
+    dockercontainers: false
+
+configReloader:
+  resources:
+    requests: {cpu: 10m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}

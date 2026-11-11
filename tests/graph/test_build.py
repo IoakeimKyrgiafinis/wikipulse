@@ -73,8 +73,11 @@ def test_the_event_node_gets_the_llm_title_and_provenance() -> None:
         model="ollama:qwen3:4b",
     )
     links = {"Mohammad Ibrahim": Link("Q60734382", "page", "Mohammad Ibrahim (footballer)")}
-    graph = build_graph_event(event((PAGE,)), [PAGE], extraction, links, NOW)
+    graph = build_graph_event(
+        event((PAGE,), correlation_id="edit-7"), [PAGE], extraction, links, NOW
+    )
     assert graph.key == "test-run:7"
+    assert graph.props["correlation_id"] == "edit-7"
     assert graph.props["title"] == "Bangladesh beat Bhutan"
     assert graph.props["provisional_title"] == "2026 SAFF Championship"
     assert graph.props["description"] == "Bangladesh beat Bhutan 1-0."

@@ -192,3 +192,36 @@ def test_the_secret_template_holds_only_placeholders() -> None:
     assert all("<" in value for value in secret["stringData"].values())
     # Not packaged with the chart.
     assert "secret.example.yaml" in (cluster.CHART / ".helmignore").read_text(encoding="utf-8")
+
+
+def test_a_session_pod_looks_like_the_charts_pods() -> None:
+    pod = cluster.session_pod(
+        "replay", "wikipulse:abc", ["python", "-m", "x"], {"A": "1"}, model_cache=True
+    )
+    labels = pod["metadata"]["labels"]
+    assert labels["wikipulse.io/session"] == "true" and labels["app.kubernetes.io/name"] == "replay"
+    spec = pod["spec"]
+    assert spec["restartPolicy"] == "Never" and spec["securityContext"]["runAsNonRoot"]
+    (container,) = spec["containers"]
+    assert container["name"] == "replay" and container["stdin"] and container["stdinOnce"]
+    assert {"name": "LOG_SERVICE", "value": "replay"} in container["env"]
+    assert {"name": "A", "value": "1"} in container["env"]
+    assert container["securityContext"]["readOnlyRootFilesystem"]
+    assert {v["name"] for v in spec["volumes"]} == {"tmp", "model-cache"}
+
+
+@pytest.mark.parametrize("name", sorted(cluster.CHART_POD_NAMES))
+def test_a_session_pod_may_not_take_a_chart_pods_name(name: str) -> None:
+    # Policies add up: a session pod labeled like `graph` would get graph's 443.
+    with pytest.raises(SystemExit, match="chart service"):
+        cluster.session_pod(name, "wikipulse:abc", ["python"], {})
+    args = cluster.parse_args(["run", "--name", name, "--", "python", "-V"])
+    with pytest.raises(SystemExit, match="chart service"):
+        cluster.run_pod(args)  # refused before any kubectl call
+    cluster.session_pod(f"{name}-session", "wikipulse:abc", ["python"], {})  # fine
+
+
+def test_session_pod_env_must_be_key_value() -> None:
+    assert cluster.parse_env(["A=1", "B=x=y"]) == {"A": "1", "B": "x=y"}
+    with pytest.raises(SystemExit):
+        cluster.parse_env(["nope"])

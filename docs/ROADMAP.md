@@ -59,7 +59,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 08b | Helm chart | done |
 | 08c | Terraform | done |
 | 09a | Metrics, dashboards and alerts | done |
-| 09b | Logging and LLM tracing | ready |
+| 09b | Logging and LLM tracing | done |
 | 09c | Full CI/CD pipeline | ready |
 | 10 | Polish and presentation | ready |
 

@@ -1,0 +1,81 @@
+// Alloy's pipeline for WikiPulse's logs (spec 09b). Terraform fills in ${namespace} and
+// ${loki_url} (infra/cluster/logging.tf).
+//
+//   pods in ${namespace} --discovery--> relabel (labels) --tail via the API--> process
+//   (JSON fields) --> Loki
+//
+// Labels index the log streams and must have few values: service, namespace, pod,
+// container, level. The ids that have millions of values (correlation_id, event_key,
+// trace_id) become *structured metadata*: stored with each line, searchable with
+// `| correlation_id="..."`, but not an index of their own.
+
+discovery.kubernetes "pods" {
+  role = "pod"
+  namespaces {
+    names = ["${namespace}"]
+  }
+}
+
+discovery.relabel "pods" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+  // `service` = the pod's app.kubernetes.io/name (detector, grouper, replay, ...), the
+  // same label the metrics have (monitoring.tf).
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    target_label  = "service"
+  }
+  rule {
+    target_label = "system"
+    replacement  = "wikipulse"
+  }
+}
+
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pods.output
+  forward_to = [loki.process.wikipulse.receiver]
+}
+
+loki.process "wikipulse" {
+  // The services log one JSON object per line (LOG_FORMAT=json). Lines that aren't JSON
+  // pass through unchanged.
+  stage.json {
+    expressions = {
+      level          = "level",
+      correlation_id        = "correlation_id",
+      merged_correlation_id = "merged_correlation_id",
+      event_key             = "event_key",
+      trace_id              = "trace_id",
+    }
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  stage.structured_metadata {
+    values = {
+      correlation_id        = "",
+      merged_correlation_id = "",
+      event_key             = "",
+      trace_id              = "",
+    }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "${loki_url}/loki/api/v1/push"
+  }
+}

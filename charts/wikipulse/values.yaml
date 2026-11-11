@@ -44,6 +44,13 @@ config:
   # Workers touch this file as they work; their probes run `python -m wikipulse.health`.
   HEALTH_FILE: /tmp/heartbeat
   LOG_LEVEL: INFO
+  # Spec 09b: one JSON object per line, which the collector (Alloy) sends to Loki. Each
+  # pod's `service` field is its name (LOG_SERVICE, set by the Deployment template).
+  LOG_FORMAT: json
+  # One line per edit written, with its correlation id: the first step of a story's trail.
+  LOG_EDITS: "true"
+  # LLM tracing: the keys are in the Secret (empty = no tracing); this is where they go.
+  LANGFUSE_HOST: https://cloud.langfuse.com
   # Scratch space only: the services keep their state in Redis, Postgres, Neo4j and S3.
   DATA_DIR: /tmp/data
   # Where the embedding model is cached (the model-cache volume).
@@ -101,6 +108,15 @@ metrics:
 # startup: how long a slow start may take (periodSeconds x failureThreshold).
 
 # Wikimedia's recentchange stream -> Redis Stream wiki:edits. One connection, ever.
+# One-off pods started by `scripts/cluster.py run` (spec 09b): a replay fed from the
+# laptop, a graph run or an agent run. They carry the label wikipulse.io/session: "true"
+# and may only open these ports. 443 is not allowed (the schema refuses it): a session pod
+# can't reach Wikimedia, or anything else on HTTPS, even by mistake. The services' egress
+# policies skip any pod with that label, and `cluster.py run` refuses the services' names.
+sessionPods:
+  enabled: false
+  egressPorts: [6379, 5432, 7687, 11434]  # Redis, Postgres, Neo4j, Ollama
+
 consumer:
   replicas: 1
   # Its own checkpoint namespace: the cluster starts from "now" instead of resuming a

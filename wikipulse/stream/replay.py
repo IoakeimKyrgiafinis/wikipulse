@@ -97,7 +97,13 @@ async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
     redis = aioredis.Redis.from_url(settings.redis_url, decode_responses=True)
     try:
         await redis.delete(keys.stats)  # stats describe this replay only
-        consumer = Consumer(redis, keys, settings.stream_maxlen, lag=ReplayLag(args.speed))
+        consumer = Consumer(
+            redis,
+            keys,
+            settings.stream_maxlen,
+            lag=ReplayLag(args.speed),
+            log_edits=settings.log_edits,
+        )
         speed = "max" if args.speed is None else f"{args.speed:g}x"
         logger.info("Replaying %s into %s at speed %s", args.file, keys.stream, speed)
         await consumer.consume(FileSource(args.file, speed=args.speed), stop)
@@ -108,7 +114,8 @@ async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.file.is_file():
+    # Not is_file(): a pipe (`--file /dev/stdin`, a replay pod fed by kubectl) is fine too.
+    if not args.file.exists() or args.file.is_dir():
         print(f"No such recording: {args.file}", file=sys.stderr)
         return 2
     settings = get_settings()

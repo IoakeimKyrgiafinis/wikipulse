@@ -1,4 +1,8 @@
-# observability/: metrics, dashboards and alerts as code (spec 09a)
+# observability/: metrics, dashboards and alerts as code (spec 09a), logs (spec 09b)
+
+Logs: `loki.yaml` and `alloy.yaml` (Helm values), `alloy/config.alloy.tftpl` (the
+collector's pipeline), the dashboard `dashboards/event-trail.json`; installed by
+`infra/cluster/logging.tf`. See docs/learning/09b-logging-tracing.md.
 
 | Path | What it is |
 |------|------------|

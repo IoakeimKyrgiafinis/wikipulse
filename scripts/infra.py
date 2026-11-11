@@ -77,6 +77,15 @@ def chart_checksum(chart: Path = CHART) -> str:
     return digest.hexdigest()
 
 
+def langfuse_keys(settings: Settings) -> dict[str, str]:
+    """The Langfuse keys (spec 09b), "" when unset: then the pods trace nothing."""
+    keys = {
+        "langfuse_public_key": settings.langfuse_public_key,
+        "langfuse_secret_key": settings.langfuse_secret_key,
+    }
+    return {name: key.get_secret_value() if key else "" for name, key in keys.items()}
+
+
 def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
     """The stack's variables from the settings, without the TF_VAR_ prefix."""
     s3_keys = {
@@ -94,6 +103,7 @@ def stack_variables(stack: str, settings: Settings) -> dict[str, str]:
         "postgres_dsn": cluster.cluster_dsn(settings.postgres_dsn),
         "neo4j_password": settings.neo4j_password.get_secret_value(),
         "user_agent": settings.user_agent,
+        **langfuse_keys(settings),
         "chart_checksum": chart_checksum(),
         **s3_keys,
     }

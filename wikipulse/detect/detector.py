@@ -32,6 +32,12 @@ Everything runs on event time: "now" is the *watermark*, the newest event time s
 Bot edits only move the watermark. Reverts (by their edit comment) don't count toward
 detection unless `count_reverts` is set; a running spike counts them in `revert_edits`.
 Same events in the same order always give the same spikes.
+
+**Correlation id** (spec 09b): a spike carries the `event_id` of the edit that made its
+start rule hold. The consumer logged that edit with the same id, the grouper gives it to
+the spike's event, and the graph runner and the agent log and trace under it, so one
+search shows the path edit -> spike -> event -> briefing. It comes from the data, so a
+replay gives the same ids as the live run.
 """
 
 import logging
@@ -83,6 +89,7 @@ class SpikeRecord:
     revert_edits: int
     peak_edits_10m: int  # most edits in any one short window (10 min) since first_edit_at
     score: float  # highest Poisson z-score during the spike
+    correlation_id: str | None = None  # event_id of the edit that started the spike
 
 
 @dataclass
@@ -100,6 +107,7 @@ class Spike:
     score: float
     revert_edits: int = 0
     ended_at: float | None = None
+    correlation_id: str = ""  # "" in snapshots written before spec 09b
 
     @property
     def key(self) -> tuple[str, float]:
@@ -118,6 +126,7 @@ class Spike:
             revert_edits=self.revert_edits,
             peak_edits_10m=self.peak_edits_10m,
             score=self.score,
+            correlation_id=self.correlation_id or None,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -195,7 +204,7 @@ class SpikeDetector:
         counts = self.windows.counts(event.title, now)
         spike = self.active.get(event.title)
         if spike is None:
-            self._maybe_start(event.title, now, counts)
+            self._maybe_start(event.title, now, counts, event.event_id)
         else:
             self._continue(spike, time, event.user, now, counts)
 
@@ -253,7 +262,9 @@ class SpikeDetector:
             ),
         }
 
-    def _maybe_start(self, title: str, now: float, counts: WindowCounts) -> None:
+    def _maybe_start(
+        self, title: str, now: float, counts: WindowCounts, correlation_id: str
+    ) -> None:
         checks = self._evaluate(title, now, counts)
         if checks["short"][0]:
             window, window_s, edits, first = (
@@ -283,6 +294,7 @@ class SpikeDetector:
             editors=editors,
             peak_edits_10m=self.windows.busiest_short(title, first),
             score=max(checks["short"][2], checks["long"][2]),
+            correlation_id=correlation_id,
         )
         self.active[title] = spike
         self._changed[spike.key] = spike
@@ -295,6 +307,7 @@ class SpikeDetector:
             len(editors),
             checks[window][1],
             spike.score,
+            extra={"correlation_id": correlation_id, "title": title, "window": window},
         )
 
     def _continue(
@@ -333,6 +346,7 @@ class SpikeDetector:
                 len(spike.editors),
                 spike.peak_edits_10m,
                 spike.score,
+                extra={"correlation_id": spike.correlation_id or None, "title": title},
             )
 
     # --- event time housekeeping ---

@@ -20,6 +20,7 @@ from typing import Any, Self
 
 from wikipulse.llm.errors import StructuredOutputError
 from wikipulse.llm.schema import schema_errors
+from wikipulse.llm.tracing import get_tracer
 from wikipulse.llm.types import LLMResponse, Message, ToolSpec, Usage
 from wikipulse.metrics.catalog import LLM_LATENCY, LLM_REQUESTS, LLM_TOKENS
 
@@ -79,6 +80,25 @@ def parse_json(text: str, schema: dict[str, Any]) -> tuple[Any, str | None]:
     if errors:
         return None, "; ".join(errors[:5])
     return data, None
+
+
+def trace_input(request: ChatRequest) -> list[dict[str, Any]]:
+    """The request as a trace shows it: the system prompt first, then the messages."""
+    messages = [{"role": "system", "content": request.system}] if request.system else []
+    messages += [message.model_dump(exclude_defaults=True) for message in request.messages]
+    return messages
+
+
+def model_parameters(request: ChatRequest) -> dict[str, Any]:
+    """The request's settings worth seeing next to a generation."""
+    parameters: dict[str, Any] = {
+        "temperature": request.temperature,
+        "max_tokens": request.max_tokens,
+        "think": request.think,
+        "json_schema": request.json_schema is not None,
+        "tools": [tool.name for tool in request.tools] or None,
+    }
+    return {name: value for name, value in parameters.items() if value is not None}
 
 
 class LLMClient(ABC):
@@ -145,16 +165,34 @@ class LLMClient(ABC):
         return second
 
     def _ask(self, request: ChatRequest) -> LLMResponse:
-        """One request: send it, time it, separate the thinking, record the usage.
+        """One request, traced as a generation (spec 09b; a no-op without Langfuse keys).
 
         Every request also lands in the LLM metrics (latency, tokens, errors), so all
         callers, extraction, questions, the agent, are measured in one place.
         """
+        with get_tracer().observe(
+            f"{self.backend} chat",
+            as_type="generation",
+            input=trace_input(request),
+            model=self.model,
+            model_parameters=model_parameters(request),
+        ) as generation:
+            response = self._ask_untraced(request)
+            output: Any = response.text
+            if response.tool_calls:
+                calls = [call.model_dump() for call in response.tool_calls]
+                output = {"text": response.text, "tool_calls": calls}
+            generation.update(output=output, usage=response.usage)
+            return response
+
+    def _ask_untraced(self, request: ChatRequest) -> LLMResponse:
+        """Send the request, time it, separate the thinking, record the usage."""
         started = time.perf_counter()
         try:
             response = self._send(request)
-        except Exception:
+        except Exception as error:
             LLM_REQUESTS.labels(self.backend, self.model, "error").inc()
+            logger.warning("%s failed: %s: %s", self.setting, type(error).__name__, error)
             raise
         response.usage.latency_s = time.perf_counter() - started
         self._record_metrics(response.usage)
@@ -165,14 +203,20 @@ class LLMClient(ABC):
         response.thinking = "\n\n".join(parts) or None
         self.total_usage = self.total_usage + response.usage
         usage = response.usage
-        logger.debug(
-            "%s: %d tokens in, %d out, %.2f s (load %.2f s), stop %s",
+        logger.info(
+            "LLM call %s: %d tokens in, %d out, %.2f s (load %.2f s), stop %s",
             self.setting,
             usage.input_tokens,
             usage.output_tokens,
             usage.latency_s,
             usage.load_s,
             response.stop_reason,
+            extra={
+                "model": self.setting,
+                "input_tokens": usage.input_tokens,
+                "output_tokens": usage.output_tokens,
+                "latency_s": round(usage.latency_s, 3),
+            },
         )
         return response
 

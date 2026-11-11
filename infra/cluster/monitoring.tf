@@ -44,6 +44,19 @@ locals {
         ]
       }
     }
+    # Spec 09b: Loki next to Prometheus, by a fixed uid the log dashboard refers to.
+    grafana = {
+      additionalDataSources = local.logging ? [{
+        name   = "Loki"
+        type   = "loki"
+        uid    = "loki"
+        url    = local.loki_url
+        access = "proxy"
+        jsonData = {
+          maxLines = 5000
+        }
+      }] : []
+    }
     additionalPrometheusRulesMap = {
       wikipulse = yamldecode(file("${local.observability}/alerts/wikipulse.rules.yaml"))
     }

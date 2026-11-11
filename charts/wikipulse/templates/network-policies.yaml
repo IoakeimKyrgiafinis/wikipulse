@@ -41,6 +41,10 @@ metadata:
 spec:
   podSelector:
     matchLabels: {app.kubernetes.io/name: {{ $name }}}
+    # Never a session pod, whatever its name (spec 09b): policies add up, so a session
+    # pod named like a service would otherwise get that service's ports, 443 included.
+    matchExpressions:
+      - {key: wikipulse.io/session, operator: DoesNotExist}
   policyTypes: [Egress]
   egress:
     - ports:
@@ -67,6 +71,25 @@ spec:
         - podSelector: {}  # any pod of this namespace, nothing outside it
       ports:
         - {protocol: TCP, port: {{ .Values.api.port }}}
+{{- if .Values.sessionPods.enabled }}
+---
+# One-off pods of `scripts/cluster.py run` (spec 09b): only the listed ports, never 443.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: session-egress
+  labels:
+    {{- include "wikipulse.labels" (dict "root" $) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {wikipulse.io/session: "true"}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        {{- range .Values.sessionPods.egressPorts }}
+        - {protocol: TCP, port: {{ . }}}
+        {{- end }}
+{{- end }}
 {{- if .Values.metrics.enabled }}
 ---
 # Prometheus, in its own namespace, may scrape every pod's metrics port, and only that.
@@ -97,6 +120,8 @@ metadata:
 spec:
   podSelector:
     matchLabels: {app.kubernetes.io/name: migrate}
+    matchExpressions:
+      - {key: wikipulse.io/session, operator: DoesNotExist}
   policyTypes: [Egress]
   egress:
     - ports:

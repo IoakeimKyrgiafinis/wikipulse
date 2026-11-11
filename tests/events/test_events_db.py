@@ -15,9 +15,10 @@ import pytest
 
 from wikipulse.config import EventsConfig, get_settings
 from wikipulse.db.events import delete_grouping_run, feed_events, unassigned_spikes
+from wikipulse.db.graph import load_event
 from wikipulse.db.migrate import migrate
 from wikipulse.db.pages import upsert_page
-from wikipulse.db.spikes import delete_run, upsert_spikes
+from wikipulse.db.spikes import delete_run, spikes_for_run, upsert_spikes
 from wikipulse.detect.detector import SpikeRecord
 from wikipulse.enrich.pages import PageInfo, PageStatus
 from wikipulse.events.embed import Embedder
@@ -123,3 +124,45 @@ def test_group_restart_and_end(conn, tag) -> None:
     assert events[1].status == "ended" and events[1].ended_at == T0 + timedelta(minutes=60)
     assert events[4].pages[0].title == f"{tag} Later election"  # numbering continued
     assert [e.number for e in feed_events(conn, tag)] == [4]  # only the active one
+
+
+def test_correlation_ids_go_from_spikes_to_events_to_the_graph_runner(conn, tag) -> None:
+    election, candidate = f"{tag} Election", f"{tag} Candidate"
+    store_page(conn, election, "An election was held.", links=(candidate,))
+    store_page(conn, candidate, "A candidate in the election.")
+    upsert_spikes(
+        conn,
+        tag,
+        [
+            replace(spike(election, 0, None), correlation_id="edit-1"),
+            replace(spike(candidate, 10, None), correlation_id="edit-2"),
+        ],
+    )
+    assert [s.correlation_id for s in spikes_for_run(conn, tag)] == ["edit-1", "edit-2"]
+    runner(conn, tag).step()
+    stored = conn.execute(
+        "SELECT number, correlation_id FROM events WHERE run_id = %s", (tag,)
+    ).fetchall()
+    assert stored == [(1, "edit-1")]  # the candidate joined the election's event
+    assert load_event(conn, tag, 1).correlation_id == "edit-1"
+
+
+def test_an_events_id_survives_a_late_earlier_spike_and_a_restart(conn, tag) -> None:
+    election, candidate = f"{tag} Election", f"{tag} Candidate"
+    store_page(conn, candidate, "A candidate in the election.")
+    upsert_spikes(conn, tag, [replace(spike(candidate, 10, None), correlation_id="edit-2")])
+    runner(conn, tag).step()  # the candidate opens event 1
+    # The election spike started earlier but is only now enriched and grouped, by a
+    # restarted runner that rebuilds event 1 from Postgres.
+    store_page(conn, election, "An election was held.", links=(candidate,))
+    upsert_spikes(conn, tag, [replace(spike(election, 0, None), correlation_id="edit-1")])
+    restarted = runner(conn, tag)
+    assert restarted.grouper.active[1].correlation_id == "edit-2"
+    restarted.step()
+    stored = conn.execute(
+        "SELECT number, correlation_id, started_at FROM events WHERE run_id = %s", (tag,)
+    ).fetchall()
+    assert stored == [(1, "edit-2", T0)]  # it now starts with the election, same id
+    # Another restart: the members come back by start time (election first); the
+    # stored id still wins.
+    assert runner(conn, tag).grouper.active[1].correlation_id == "edit-2"

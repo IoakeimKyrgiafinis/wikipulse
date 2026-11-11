@@ -24,7 +24,7 @@ import anyio
 
 from wikipulse.agent.render import WARNING, cut, defang, render_result, suspicious, untrusted
 from wikipulse.agent.sources import SourceBook, marker
-from wikipulse.llm import ToolCall, ToolSpec
+from wikipulse.llm import ToolCall, ToolSpec, trace
 from wikipulse.mcp_server.explore import Explorer, ExplorerGraph, ToolInputError
 from wikipulse.qa.graph import PageText
 from wikipulse.qa.types import Citation
@@ -138,6 +138,24 @@ class ToolBox:
         return [spec.name for spec in self.specs]
 
     async def call(self, call: ToolCall, book: SourceBook) -> ToolOutcome:
+        """Run one call within its timeout, logged and traced as one agent step."""
+        with trace(f"tool {call.name}", as_type="tool", input=call.arguments) as step:
+            outcome = await self._call(call, book)
+            step.update(
+                output=outcome.text,
+                error="the tool returned an error" if outcome.is_error else None,
+                metadata={"seconds": outcome.seconds, "suspicious": outcome.suspicious},
+            )
+        logger.info(
+            "Tool %s: %s in %.1f s",
+            call.name,
+            "error" if outcome.is_error else "ok",
+            outcome.seconds,
+            extra={"tool": call.name, "is_error": outcome.is_error},
+        )
+        return outcome
+
+    async def _call(self, call: ToolCall, book: SourceBook) -> ToolOutcome:
         """Run one call within its timeout; every failure becomes an error outcome."""
         started = time.monotonic()
         timeout = self.limits.timeout_for(call.name)

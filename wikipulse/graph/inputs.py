@@ -62,6 +62,7 @@ class EventInput:
     ended_at: datetime | None
     fingerprint: str  # spike ids (+ active mark): when it changes, extract again
     pages: tuple[EventPage, ...]
+    correlation_id: str | None = None  # the edit that started the story (spec 09b)
 
     @property
     def key(self) -> str:

@@ -89,16 +89,22 @@ def test_the_spec_dashboards_exist() -> None:
         assert f"WikiPulse: {topic}" in titles
 
 
-def test_dashboards_use_the_provisioned_data_source_and_fit_the_grid() -> None:
+def test_dashboards_use_the_provisioned_data_sources_and_fit_the_grid() -> None:
     values = yaml.safe_load((OBSERVABILITY / "kube-prometheus-stack.yaml").read_text())
-    uid = values["grafana"]["sidecar"]["datasources"]["uid"]
+    prometheus = values["grafana"]["sidecar"]["datasources"]["uid"]
+    # Loki's data source is added by Terraform (spec 09b), with this uid.
+    monitoring_tf = (ROOT / "infra" / "cluster" / "monitoring.tf").read_text(encoding="utf-8")
+    loki = dashboards.LOKI["uid"]
+    assert re.search(rf'type\s*=\s*"loki"\s+uid\s*=\s*"{loki}"', monitoring_tf)
+    uids_by_type = {"prometheus": prometheus, "loki": loki}
     uids = set()
     for name, board in dashboard_files().items():
         uids.add(board["uid"])
         ids = [panel["id"] for panel in board["panels"]]
         assert len(ids) == len(set(ids)), name
         for panel in board["panels"]:
-            assert panel["datasource"]["uid"] == uid, (name, panel["title"])
+            source = panel["datasource"]
+            assert source["uid"] == uids_by_type[source["type"]], (name, panel["title"])
             grid = panel["gridPos"]
             assert grid["x"] + grid["w"] <= 24, (name, panel["title"])
             assert panel["targets"] and panel["description"], (name, panel["title"])
@@ -215,3 +221,48 @@ def test_the_monitoring_stack_is_lean() -> None:
     assert values["grafana"]["defaultDashboardsEnabled"] is False
     assert values["grafana"]["sidecar"]["dashboards"]["label"] == "grafana_dashboard"
     assert values["prometheus"]["prometheusSpec"]["resources"]["limits"]["memory"]
+
+
+# --- logs (spec 09b) ---
+
+
+def test_loki_is_one_lean_process() -> None:
+    values = yaml.safe_load((OBSERVABILITY / "loki.yaml").read_text(encoding="utf-8"))
+    assert values["deploymentMode"] == "SingleBinary"
+    assert values["singleBinary"]["replicas"] == 1
+    for part in ("read", "write", "backend"):
+        assert values[part]["replicas"] == 0, part
+    for helper in ("chunksCache", "resultsCache", "lokiCanary", "gateway", "minio"):
+        assert values[helper]["enabled"] is False, helper
+    assert values["loki"]["limits_config"]["allow_structured_metadata"] is True
+    assert values["singleBinary"]["resources"]["limits"]["memory"]
+
+
+def test_the_collector_reads_logs_through_the_api_without_host_access() -> None:
+    values = yaml.safe_load((OBSERVABILITY / "alloy.yaml").read_text(encoding="utf-8"))
+    assert values["controller"]["type"] == "deployment"
+    assert values["alloy"]["mounts"] == {"varlog": False, "dockercontainers": False}
+    config = (OBSERVABILITY / "alloy" / "config.alloy.tftpl").read_text(encoding="utf-8")
+    assert "loki.source.kubernetes" in config
+
+
+def test_ids_are_structured_metadata_not_labels() -> None:
+    """A label per correlation id would create a stream per story: Loki's index explodes."""
+    config = (OBSERVABILITY / "alloy" / "config.alloy.tftpl").read_text(encoding="utf-8")
+    labels = re.search(r"stage\.labels \{(.*?)\n  \}", config, re.DOTALL).group(1)
+    metadata = re.search(r"stage\.structured_metadata \{(.*?)\n  \}", config, re.DOTALL).group(1)
+    for field in ("correlation_id", "merged_correlation_id", "event_key", "trace_id"):
+        assert field in metadata and field not in labels
+
+
+def test_the_trail_dashboard_searches_by_correlation_id() -> None:
+    board = dashboard_files()["event-trail.json"]
+    assert [v["name"] for v in board["templating"]["list"]] == ["correlation_id"]
+    for panel in board["panels"]:
+        assert panel["datasource"]["type"] == "loki"
+        expr = panel["targets"][0]["expr"]
+        assert 'correlation_id="$correlation_id"' in expr
+        # A merge line is found by the merged event's id too (its alias).
+        assert 'merged_correlation_id="$correlation_id"' in expr
+        # An empty textbox matches nothing: both sides demand a non-empty id.
+        assert 'correlation_id!=""' in expr and 'merged_correlation_id!=""' in expr
