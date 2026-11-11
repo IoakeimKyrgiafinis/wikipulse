@@ -83,9 +83,12 @@ id is **the `event_id` of the edit that made the spike's start rule hold** (Wiki
 2. `SpikeDetector._maybe_start()` gets the edit's id and stores it on the `Spike`
    (`Spike.correlation_id`, kept in the snapshot), logs `Spike started` with it, and
    writes it to `spikes.correlation_id`.
-3. The grouper's `Event.refresh()` gives the event the id of its **earliest** spike, so
-   it doesn't depend on the order members were restored in; a merge keeps the survivor's,
-   which started earlier. `GroupingRunner.log_assignment()` logs `Event replay:1 opened`
+3. The grouper gives an event the id of the spike that **opened** it, once
+   (`Event.refresh()` sets it only while it is still None), and nothing changes it after
+   that: not a later join, not a merge, not a restart (`GroupingRunner._restore()` reads
+   the stored `events.correlation_id` via `active_correlation_ids()` instead of
+   recomputing it). A merge keeps the survivor's id and logs the merged event's id as
+   `merged_correlation_id` (see "Fixes after the review"). `GroupingRunner.log_assignment()` logs `Event replay:1 opened`
    or `Spike 5 joined event replay:1` (that line also has `spike_correlation_id`, which
    links a later spike's own trail to the story). Stored in `events.correlation_id`.
 4. The graph runner reads it with the event (`db/graph.py`, `EventInput`), binds it in
@@ -138,8 +141,16 @@ box for the correlation id, a bar per service with its line count, and the lines
 first. The query is
 
 ```
-{system="wikipulse"} | correlation_id="$correlation_id" | json
+{system="wikipulse"}
+  | (correlation_id!="" and correlation_id="$correlation_id")
+    or (merged_correlation_id!="" and merged_correlation_id="$correlation_id")
+  | json
 ```
+
+The second line finds a merge line by the merged event's id too; the `!=""` guards make an
+empty box show nothing (without them, `correlation_id=""` matches every line that has no
+id). `merged_correlation_id` is structured metadata too (Alloy's `stage.json` and
+`stage.structured_metadata`).
 
 ### Tracing LLM calls and agent steps
 
@@ -195,8 +206,10 @@ returns `NoopTracer`, whose `observe()` yields one shared do-nothing object.
   replay reproduces it. Its cost: the consumer logs one line per written edit
   (`LOG_EDITS`, about two lines a second live), which is why it is a setting, off on the
   laptop and on in the cluster.
-- **An event's id is its earliest spike's.** A story with several pages has several
-  edit ids; the event keeps one, and the grouper's join line connects the others.
+- **An event's id is its opening spike's, set once.** A story with several pages has
+  several edit ids; the event keeps one, and the grouper's join line connects the others.
+  (The first version used the *earliest* spike's id and recomputed it on every change;
+  the review showed why that splits a trail, see below.)
 - **Alloy, reading through the Kubernetes API, as a Deployment**, rather than Promtail
   (deprecated) or a DaemonSet reading host files (needs hostPath, which `baseline` pod
   security forbids). Both charts go in the monitoring namespace, from Terraform
@@ -228,8 +241,48 @@ returns `NoopTracer`, whose `observe()` yields one shared do-nothing object.
   accepts the Loki uid for Loki panels, and checks that `monitoring.tf` provisions it.
 - **Dependency**: `langfuse` (5.2, with its OpenTelemetry exporter); added to
   `docker/airflow/requirements-ml.txt` too, as its lock test asks.
+- **Dependency fix (review)**: `opentelemetry-api` is declared in `pyproject.toml`
+  (`langfuse_tracing.py` imports it directly) and `opentelemetry-sdk` in the dev group
+  (the tests' in-memory exporter); both were only there through `langfuse` before.
 - **Tools**: nothing installed. The grafana Helm repository was added for the chart
   versions (loki 7.6.0, alloy 1.15.0).
+
+## Fixes after the review
+
+`docs/reviews/09b-logging-tracing.md` found two medium problems and some low ones. Fixed:
+
+- **Session pods could get 443 (problem 1).** NetworkPolicies **add up**: a pod gets the
+  union of what every policy selecting it allows. A session pod started with
+  `--name graph` carried `app.kubernetes.io/name: graph`, so `graph-egress` selected it
+  too and opened 443, whatever `session-egress` said. Now every service policy (and
+  `migrate-egress`) also has `matchExpressions: wikipulse.io/session DoesNotExist`, so no
+  service policy can select a session pod, whatever its name; and `cluster.py run`
+  refuses the chart's pod names (`CHART_POD_NAMES`, `check_session_name()`), which also
+  keeps a session's logs and metrics apart from the service's. Tests:
+  `test_no_service_policy_selects_a_session_pod_whatever_its_name` (evaluates the
+  rendered selectors against a session pod's labels, for every service name) and
+  `test_a_session_pod_may_not_take_a_chart_pods_name`. The running cluster gets the new
+  policies at the next `cluster.py deploy`; it was not rebuilt.
+- **The correlation id could change (problems 2 and 3).** It was recomputed as the
+  earliest spike's on every join. A spike that *started* earlier but waited for
+  enrichment joins later and would take the id over after `Event ... opened` was logged:
+  the trail split in two. Now the id is set once (above). For merges, the survivor keeps
+  its id and the merge line (logged after the survivor is updated) carries the merged
+  event's id as `merged_correlation_id`; the trail dashboard matches that alias, so a
+  search for either id finds the line that joins them. Tests: an earlier spike enriched
+  later, a merge of an event that started earlier, a restored event, an event opened by a
+  pre-09b spike without an id (unit, `tests/events/test_grouper.py`), and a restart after a
+  late earlier spike (integration, `tests/events/test_events_db.py`).
+- **An empty trail box showed thousands of lines (problem 4)**: the `!=""` guards above.
+- **opentelemetry undeclared (problem 6)**: declared (above).
+- **The tracer could be built twice (problem 8)**: `get_tracer()` checks again under a
+  `threading.Lock` (double-checked locking); `test_threads_racing_for_the_tracer_build_it_once`
+  starts eight threads at a barrier against a slow builder.
+
+Not changed (not asked): problem 5 (graph results from fake inputs stay under run id
+`replay`), 7 (LLM calls logged at INFO, failures twice), 9 (a replay of a recording also
+processed live shares its ids). The new LogQL was checked by the dashboard tests only;
+the cluster was down, so it was not run against Loki.
 
 ## Results
 
