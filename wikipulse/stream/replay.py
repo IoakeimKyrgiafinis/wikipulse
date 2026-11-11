@@ -114,7 +114,8 @@ async def run(args: argparse.Namespace, settings: Settings) -> dict[str, str]:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.file.is_file():
+    # Not is_file(): a pipe (`--file /dev/stdin`, a replay pod fed by kubectl) is fine too.
+    if not args.file.exists() or args.file.is_dir():
         print(f"No such recording: {args.file}", file=sys.stderr)
         return 2
     settings = get_settings()
