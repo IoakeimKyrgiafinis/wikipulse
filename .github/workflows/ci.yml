@@ -1,8 +1,31 @@
+# The CI pipeline (specs 00 to 09c). Every push and pull request runs:
+#   test          lint, formatting, Helm lint, unit tests, integration tests (service containers)
+#   terraform     terraform fmt and validate of both stacks
+#   dags          the Airflow DAGs import, inside the Airflow image
+#   eval-gate     the detection eval gate: fails when precision or recall drop (spec 09c)
+#   smoke         a throwaway kind cluster with the chart installed, every pod ready (spec 09c;
+#                 pull requests, main and releases only: it takes about 15 minutes)
+# release.yml calls this whole workflow first (workflow_call), so a release is only built
+# from a commit that passes all of it.
 name: CI
 
 on:
+  # Branches only: a version tag runs release.yml, which calls this workflow itself.
   push:
+    branches: ["**"]
   pull_request:
+  workflow_call:
+
+# The token GitHub gives each job can only read the repository: no job here writes
+# anything (no packages, no releases, no comments).
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the run still going for the
+# older one. Not for main, where every commit should keep its result.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   test:
@@ -167,3 +190,135 @@ jobs:
           -e PYTHONDONTWRITEBYTECODE=1 --entrypoint bash wikipulse-airflow:ci -c
           "pip install --quiet --user pytest==9.2.0 &&
           cd /src && python -m pytest tests/dags -p no:cacheprovider -o addopts='' -v"
+
+  # The detection eval gate (spec 09c): the spike detector, with this commit's thresholds,
+  # over a committed 16-hour recording (tests/fixtures/detection_gate/), scored against
+  # frozen labels (evals/labels/detection_gate_labels.jsonl). Fails when precision or
+  # recall fall more than the allowed margin below evals/baselines/detection_gate.json.
+  # Deterministic: no network, no database, no GPU. The report goes to the job summary.
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install uv (with download cache)
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python and dependencies
+        run: uv sync --locked
+
+      - name: Run the detection eval gate
+        run: uv run python -m wikipulse.eval.gate --markdown "$GITHUB_STEP_SUMMARY"
+
+  # Smoke test (spec 09c): build the image, create a throwaway kind cluster inside this
+  # job, install the chart with values-dev.yaml and values-offline.yaml (the consumer,
+  # enricher and graph runner, the services that contact Wikimedia, get 0 replicas), and
+  # check that every pod becomes ready and the API reaches Postgres and Neo4j.
+  # The databases are the job's service containers; inside the cluster they are reached
+  # as host.docker.internal, as on the laptop (scripts/smoke_test.py --host-gateway).
+  # Pull requests, main and release tags only: pushes to other branches skip it.
+  smoke:
+    if: >-
+      github.event_name != 'push' || github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wikipulse
+          POSTGRES_PASSWORD: wikipulse
+          POSTGRES_DB: wikipulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wikipulse -d wikipulse"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/wikipulse-graph
+          NEO4J_server_memory_heap_max__size: 1g
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p wikipulse-graph 'RETURN 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 12
+          --health-start-period 30s
+      rustfs:
+        image: rustfs/rustfs:1.0.4
+        env:
+          RUSTFS_ACCESS_KEY: wikipulse
+          RUSTFS_SECRET_KEY: wikipulse-lake
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -fs http://localhost:9000/health"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    # The settings the cluster's Secret is built from (throwaway CI passwords, the same
+    # as the service containers above). USER_AGENT keeps its placeholder contact: nothing
+    # in this cluster contacts Wikimedia.
+    env:
+      POSTGRES_DSN: postgresql://wikipulse:wikipulse@localhost:5432/wikipulse
+      NEO4J_PASSWORD: wikipulse-graph
+      S3_ACCESS_KEY: wikipulse
+      S3_SECRET_KEY: wikipulse-lake
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install uv (with download cache)
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python and dependencies
+        run: uv sync --locked
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v4.3.1
+
+      - name: Install kind (no cluster yet; the smoke test creates its own)
+        uses: helm/kind-action@v1
+        with:
+          version: v0.33.0
+          install_only: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The same Dockerfile the release builds; layers cached between runs.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: wikipulse:ci
+          cache-from: type=gha,scope=wikipulse
+          cache-to: type=gha,scope=wikipulse,mode=max
+
+      - name: Smoke test on a throwaway kind cluster
+        run: uv run python scripts/smoke_test.py --image wikipulse:ci --host-gateway
