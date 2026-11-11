@@ -1,0 +1,16 @@
+# Code owners (spec 09c): GitHub asks these people to review a pull request that touches
+# the matching paths. It is enforced only when branch protection on main turns on
+# "Require review from Code Owners"; GitHub never lets you approve your own pull request,
+# so for a one-person repository this is a written rule plus a request in the pull
+# request, not a hard block. CI's eval-gate job also flags such pull requests.
+#
+# The detection eval gate's reference: a pull request that changes any of these can make
+# the gate pass by moving the goalposts (for example, lower DETECT_MIN_EDITS and run
+# --write-baseline in the same commit). Review why the numbers moved before merging.
+/evals/baselines/ @IoakeimKyrgiafinis
+/evals/labels/detection_gate_labels.jsonl @IoakeimKyrgiafinis
+/tests/fixtures/detection_gate/ @IoakeimKyrgiafinis
+/wikipulse/eval/gate.py @IoakeimKyrgiafinis
+
+# The pipelines themselves, and what they may publish.
+/.github/ @IoakeimKyrgiafinis

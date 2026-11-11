@@ -4,16 +4,25 @@
 #   dags          the Airflow DAGs import, inside the Airflow image
 #   eval-gate     the detection eval gate: fails when precision or recall drop (spec 09c)
 #   smoke         a throwaway kind cluster with the chart installed, every pod ready (spec 09c;
-#                 pull requests, main and releases only: it takes about 15 minutes)
+#                 about 15 minutes)
 # release.yml calls this whole workflow first (workflow_call), so a release is only built
 # from a commit that passes all of it.
+#
+# When: every pull request, every push to main, and by hand (Actions tab, "Run workflow",
+# any branch). Not on every branch push as well: a pull request's branch would then run
+# everything twice. A version tag runs release.yml, which calls this workflow itself.
+#
+# Supply chain: every action is pinned to a full commit SHA (the comment names its
+# version; Dependabot's github-actions updates move SHA and comment together), and no
+# checkout leaves the token in .git/config (persist-credentials: false), since the jobs
+# run containers that mount the working directory or the Docker socket.
 name: CI
 
 on:
-  # Branches only: a version tag runs release.yml, which calls this workflow itself.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
   workflow_call:
 
 # The token GitHub gives each job can only read the repository: no job here writes
@@ -95,10 +104,12 @@ jobs:
       LAKE_NOTIFY_REDIS_URL: redis://redis:6379/0
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install uv (with download cache)
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -109,7 +120,7 @@ jobs:
       # Helm for the chart's lint and template tests (spec 08b): tests/test_chart.py runs
       # `helm template` and `helm lint`, locally, without a cluster.
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
           version: v4.3.1
 
@@ -155,10 +166,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "1.17.0"
           terraform_wrapper: false
@@ -179,7 +192,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Build the Airflow image
         run: docker build -t wikipulse-airflow:ci docker/airflow
@@ -193,17 +208,25 @@ jobs:
 
   # The detection eval gate (spec 09c): the spike detector, with this commit's thresholds,
   # over a committed 16-hour recording (tests/fixtures/detection_gate/), scored against
-  # frozen labels (evals/labels/detection_gate_labels.jsonl). Fails when precision or
-  # recall fall more than the allowed margin below evals/baselines/detection_gate.json.
+  # frozen labels (evals/labels/detection_gate_labels.jsonl). Fails when precision drops
+  # by more than the baseline's margin_spikes spikes' worth, or recall by more than
+  # margin_bursts news bursts' worth (evals/baselines/detection_gate.json).
   # Deterministic: no network, no database, no GPU. The report goes to the job summary.
+  # The labels are unreviewed LLM labels (qwen3:8b): the gate measures agreement with
+  # them, not with a human (see the ROADMAP follow-up).
   eval-gate:
     runs-on: ubuntu-latest
     steps:
+      # Depth 2: on a pull request the checked-out commit is the merge of the pull
+      # request into its base, and its first parent is the base branch.
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 2
+          persist-credentials: false
 
       - name: Install uv (with download cache)
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -214,17 +237,32 @@ jobs:
       - name: Run the detection eval gate
         run: uv run python -m wikipulse.eval.gate --markdown "$GITHUB_STEP_SUMMARY"
 
+      # A pull request that rewrites the baseline (or the labels, the recording or the
+      # gate itself) passes the gate by construction: say so loudly, so the reviewer
+      # checks why the numbers moved. .github/CODEOWNERS asks for the owner's review.
+      - name: Flag changes to what the gate measures against
+        if: github.event_name == 'pull_request'
+        run: |
+          changed="$(git diff --name-only HEAD^1 HEAD -- evals/baselines \
+            evals/labels/detection_gate_labels.jsonl tests/fixtures/detection_gate \
+            wikipulse/eval/gate.py)"
+          if [[ -n "$changed" ]]; then
+            echo "::warning::This pull request changes the eval gate's reference: review it explicitly"
+            {
+              echo "**Needs explicit review:** this pull request changes what the gate"
+              echo "compares against, so a passing gate proves nothing about it:"
+              echo
+              while read -r file; do echo "- $file"; done <<< "$changed"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # Smoke test (spec 09c): build the image, create a throwaway kind cluster inside this
   # job, install the chart with values-dev.yaml and values-offline.yaml (the consumer,
   # enricher and graph runner, the services that contact Wikimedia, get 0 replicas), and
   # check that every pod becomes ready and the API reaches Postgres and Neo4j.
   # The databases are the job's service containers; inside the cluster they are reached
   # as host.docker.internal, as on the laptop (scripts/smoke_test.py --host-gateway).
-  # Pull requests, main and release tags only: pushes to other branches skip it.
   smoke:
-    if: >-
-      github.event_name != 'push' || github.ref == 'refs/heads/main' ||
-      startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -285,10 +323,12 @@ jobs:
       S3_SECRET_KEY: wikipulse-lake
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install uv (with download cache)
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -297,22 +337,22 @@ jobs:
         run: uv sync --locked
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
           version: v4.3.1
 
       - name: Install kind (no cluster yet; the smoke test creates its own)
-        uses: helm/kind-action@v1
+        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
         with:
           version: v0.33.0
           install_only: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       # The same Dockerfile the release builds; layers cached between runs.
       - name: Build the image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           load: true

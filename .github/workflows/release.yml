@@ -1,11 +1,14 @@
 # The release pipeline (spec 09c). Pushing a version tag builds and publishes a release:
 #
 #   1. version   the tag must be v<version in pyproject.toml>, e.g. v0.2.0, or a
-#                pre-release of it, e.g. v0.2.0-rc.1 (no floating 0.2 tag, marked pre-release)
+#                pre-release of it, e.g. v0.2.0-rc.1 (no floating 0.2 tag, marked
+#                pre-release), and the tagged commit must be on main (reviewed code only)
 #   2. ci        the whole CI workflow (tests, eval gate, smoke test) on the tagged commit
-#   3. images    wikipulse, wikipulse-airflow and wikipulse-mlflow: build, scan with
-#                Trivy (no fixable critical vulnerability allowed), then push to GHCR,
-#                tagged with the version (0.2.0 and 0.2) and the commit (sha-1a2b3c4)
+#   3. images    wikipulse and wikipulse-mlflow: build once, scan that build with Trivy
+#                (no fixable critical vulnerability allowed), then push that same image
+#                to GHCR, tagged with the version (0.2.0 and 0.2) and the commit
+#                (sha-1a2b3c4). No `latest` tag: deploy a version, never "whatever is
+#                newest". wikipulse-airflow is not released (see the images job).
 #   4. chart     charts/wikipulse packaged as version 0.2.0, its default image set to
 #                ghcr.io/<owner>/wikipulse:0.2.0, pushed to oci://ghcr.io/<owner>/charts
 #   5. release   a GitHub Release with the image digests, the chart, how to deploy it
@@ -17,6 +20,11 @@
 # Permissions: the workflow's token starts with none, and each job gets only what it
 # needs (packages: write to push to GHCR, contents: write to create the release). The
 # token is the automatic GITHUB_TOKEN, valid for this run only; no stored secrets.
+#
+# Supply chain: every action is pinned to a full commit SHA (the comment names its
+# version; Dependabot's github-actions updates move SHA and comment together), Trivy is
+# pinned by image digest, and no checkout leaves the token in .git/config
+# (persist-credentials: false): nothing here pushes to git.
 name: Release
 
 on:
@@ -40,8 +48,19 @@ jobs:
       owner: ${{ steps.version.outputs.owner }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
+      - name: Check out the code (all history, to see main)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Anyone who can push a tag could otherwise release a commit no one reviewed.
+      - name: Check the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main: tag a merged commit"
+            exit 1
+          fi
 
       - name: Check the tag against pyproject.toml
         id: version
@@ -59,6 +78,12 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
+  # wikipulse-airflow is left out on purpose: no release consumer uses it (the chart and
+  # deploy.py run only `wikipulse`; Airflow runs from Docker Compose, which builds it
+  # locally), it only works with the repository mounted at /opt/wikipulse, so a
+  # published copy would not be a self-contained release, and at about 6 GB a build
+  # plus a scan on a standard runner risks running out of disk. CI still builds it on
+  # every run (the dags job), so a broken Dockerfile is caught.
   images:
     needs: [version, ci]
     runs-on: ubuntu-latest
@@ -71,87 +96,89 @@ jobs:
         include:
           - name: wikipulse
             context: .
-          - name: wikipulse-airflow
-            context: docker/airflow
           - name: wikipulse-mlflow
             context: docker/mlflow
     env:
       IMAGE: ghcr.io/${{ needs.version.outputs.owner }}/${{ matrix.name }}
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       # Tags: the version (0.2.0, or 0.2.0-rc.1), the floating 0.2 for full releases only
       # (a release candidate must never become "the newest 0.2"), and sha-<commit>.
+      # latest=false: metadata-action would otherwise add `latest` to full releases.
       - name: Image tags and labels
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ env.IMAGE }}
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}},enable=${{ needs.version.outputs.prerelease == 'false' }}
             type=sha,prefix=sha-
 
-      # Build into the local Docker first, so the scan runs before anything is published.
+      # The only build: into the local Docker, with every release tag, nothing pushed yet.
       - name: Build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           load: true
-          tags: ${{ matrix.name }}:scan
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
 
+      # Trivy reads the built image from a `docker save` file: it gets no Docker socket
+      # (which would be root on the runner), and the job has not logged in anywhere yet.
       # Fails on a CRITICAL vulnerability that has a fixed version available (update the
       # base image or the package). The full table of HIGH and CRITICAL findings goes to
       # the job summary either way.
       - name: Scan with Trivy
+        env:
+          TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
         run: |
+          docker save "$IMAGE:$VERSION" -o image.tar
           trivy() {
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-              -v "$HOME/.cache/trivy:/root/.cache/trivy" aquasec/trivy:0.76.2 "$@"
+            docker run --rm -v "$PWD/image.tar:/image.tar:ro" \
+              -v "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
+              image --input /image.tar --quiet --scanners vuln "$@"
           }
           {
             echo "### Trivy: ${{ matrix.name }}"
             echo '```'
-            trivy image --quiet --scanners vuln --severity HIGH,CRITICAL --format table \
-              ${{ matrix.name }}:scan
+            trivy --severity HIGH,CRITICAL --format table
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          trivy image --quiet --scanners vuln --severity CRITICAL --ignore-unfixed \
-            --exit-code 1 ${{ matrix.name }}:scan
+          trivy --severity CRITICAL --ignore-unfixed --exit-code 1
+          rm image.tar
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Same build again, entirely from the cache: now with every tag, pushed.
+      # The scanned image itself, not a rebuild: every tag names the same local image,
+      # and the digest the registry gives it goes into the release notes.
       - name: Push
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.context }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.name }}
-
-      - name: Record the digest for the release notes
         run: |
+          docker push --all-tags "$IMAGE"
+          digest="$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE:$VERSION" | grep -m1 "^$IMAGE@")"
+          echo "Pushed $digest"
           mkdir -p digests
-          echo "${IMAGE}:${{ needs.version.outputs.version }}@${{ steps.push.outputs.digest }}" \
-            > "digests/${{ matrix.name }}.txt"
+          echo "$IMAGE:$VERSION@${digest#*@}" > "digests/${{ matrix.name }}.txt"
 
       - name: Upload the digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: digest-${{ matrix.name }}
           path: digests/${{ matrix.name }}.txt
@@ -168,10 +195,12 @@ jobs:
       REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
     steps:
       - name: Check out the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
           version: v4.3.1
 
@@ -188,7 +217,7 @@ jobs:
           helm push "dist/wikipulse-$VERSION.tgz" "oci://$REGISTRY/charts"
 
       - name: Upload the chart
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: chart
           path: dist/wikipulse-${{ needs.version.outputs.version }}.tgz
@@ -204,7 +233,7 @@ jobs:
       REGISTRY: ghcr.io/${{ needs.version.outputs.owner }}
     steps:
       - name: Download the digests and the chart
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           merge-multiple: true

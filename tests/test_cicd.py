@@ -56,10 +56,12 @@ def test_ci_runs_every_stage_the_spec_lists() -> None:
     assert set(ci["jobs"]["test"]["services"]) == {"redis", "postgres", "neo4j", "rustfs"}
 
 
-def test_ci_runs_on_pull_requests_branches_and_when_called() -> None:
+def test_ci_runs_once_per_pull_request_on_main_and_when_called() -> None:
     on = workflow("ci.yml")["on"]
-    assert "pull_request" in on and "workflow_call" in on
-    assert on["push"] == {"branches": ["**"]}  # tags run release.yml, which calls CI
+    assert "pull_request" in on and "workflow_call" in on and "workflow_dispatch" in on
+    # Not every branch push too (a pull request's branch would run twice); tags run
+    # release.yml, which calls CI.
+    assert on["push"] == {"branches": ["main"]}
 
 
 def test_the_smoke_test_uses_the_same_service_images_as_the_tests() -> None:
@@ -76,17 +78,82 @@ def test_release_runs_on_version_tags_after_the_whole_ci() -> None:
     assert "ci" in jobs["images"]["needs"]
     assert jobs["release"]["needs"] == ["version", "images", "chart"]
     names = {item["name"] for item in jobs["images"]["strategy"]["matrix"]["include"]}
-    assert names == {"wikipulse", "wikipulse-airflow", "wikipulse-mlflow"}
+    assert names == {"wikipulse", "wikipulse-mlflow"}  # airflow: see release.yml
 
 
-def test_images_are_scanned_before_they_are_pushed() -> None:
+def test_only_a_commit_on_main_is_released() -> None:
+    steps = workflow("release.yml")["jobs"]["version"]["steps"]
+    assert steps[0]["with"]["fetch-depth"] == 0
+    check = next(step for step in steps if step["name"] == "Check the tagged commit is on main")
+    assert 'git merge-base --is-ancestor "$GITHUB_SHA" origin/main' in check["run"]
+
+
+def test_the_scanned_image_is_the_pushed_image() -> None:
     steps = workflow("release.yml")["jobs"]["images"]["steps"]
     names = [step["name"] for step in steps]
+    assert names.index("Scan with Trivy") < names.index("Log in to GitHub Container Registry")
     assert names.index("Scan with Trivy") < names.index("Push")
-    scan = next(step for step in steps if step["name"] == "Scan with Trivy")["run"]
-    assert "--exit-code 1" in scan and "CRITICAL" in scan
-    build = next(step for step in steps if step["name"] == "Build")["with"]
-    assert build["load"] is True and "push" not in build
+    # One build, loaded with every release tag; the push sends that image, no rebuild.
+    builds = [step for step in steps if "build-push-action" in step.get("uses", "")]
+    assert len(builds) == 1 and builds[0]["with"]["load"] is True
+    assert "push" not in builds[0]["with"]
+    assert builds[0]["with"]["tags"] == "${{ steps.meta.outputs.tags }}"
+    push = next(step for step in steps if step["name"] == "Push")["run"]
+    assert 'docker push --all-tags "$IMAGE"' in push
+    scan = next(step for step in steps if step["name"] == "Scan with Trivy")
+    assert "--exit-code 1" in scan["run"] and "CRITICAL" in scan["run"]
+
+
+def test_trivy_is_pinned_by_digest_and_gets_no_docker_socket() -> None:
+    scan = next(
+        step
+        for step in workflow("release.yml")["jobs"]["images"]["steps"]
+        if step["name"] == "Scan with Trivy"
+    )
+    assert re.fullmatch(r"aquasec/trivy:[\d.]+@sha256:[0-9a-f]{64}", scan["env"]["TRIVY_IMAGE"])
+    assert "docker.sock" not in scan["run"] and "--input /image.tar" in scan["run"]
+
+
+def test_no_latest_tag_is_published() -> None:
+    steps = workflow("release.yml")["jobs"]["images"]["steps"]
+    meta = next(step for step in steps if step["name"] == "Image tags and labels")["with"]
+    assert meta["flavor"] == "latest=false"
+
+
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+def test_every_action_is_pinned_to_a_commit(name: str) -> None:
+    lines = [
+        line.strip()
+        for line in (WORKFLOWS / name).read_text("utf-8").splitlines()
+        if line.strip().startswith(("uses:", "- uses:"))
+    ]
+    remote = [line for line in lines if "./.github/" not in line]
+    assert remote
+    for line in remote:
+        assert re.fullmatch(r"(- )?uses: [\w.-]+/[\w.-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+", line), line
+
+
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+def test_no_checkout_keeps_the_token(name: str) -> None:
+    for job in workflow(name)["jobs"].values():
+        for step in job.get("steps", []):
+            if step.get("uses", "").startswith("actions/checkout@"):
+                assert step["with"]["persist-credentials"] is False
+
+
+def test_changes_to_the_gate_reference_need_the_owners_review() -> None:
+    owners = (ROOT / ".github" / "CODEOWNERS").read_text("utf-8")
+    rules = [line.split()[0] for line in owners.splitlines() if line and line[0] != "#"]
+    for path in (
+        "/evals/baselines/",
+        "/evals/labels/detection_gate_labels.jsonl",
+        "/tests/fixtures/detection_gate/",
+        "/wikipulse/eval/gate.py",
+    ):
+        assert path in rules, path
+    steps = workflow("ci.yml")["jobs"]["eval-gate"]["steps"]
+    flag = next(step for step in steps if step["name"].startswith("Flag changes"))
+    assert "evals/baselines" in flag["run"] and "::warning::" in flag["run"]
 
 
 def test_workflow_tokens_have_the_least_permissions() -> None:
