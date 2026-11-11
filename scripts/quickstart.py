@@ -48,7 +48,7 @@ import time
 import webbrowser
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import IO
 
@@ -60,6 +60,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # so `wikipulse` imports when run as a script
 
 from wikipulse.config import Settings, get_settings  # noqa: E402
+from wikipulse.db.graph import pending_events  # noqa: E402
 from wikipulse.db.pages import get_page, upsert_page  # noqa: E402
 from wikipulse.enrich.pages import PageInfo  # noqa: E402
 from wikipulse.eval import gate  # noqa: E402
@@ -90,6 +91,9 @@ COMPOSE_TIMEOUT_S = 600
 API_START_TIMEOUT_S = 120
 PROGRESS_INTERVAL_S = 15
 SETTLE_POLLS = 3  # --exit-when-done: unchanged counts this many polls in a row
+# --graph: a failed extraction is retried after 10 min of wall clock, then 20, 40, ...
+# For settling it counts as finished (and is reported), so the run can end.
+NO_RETRY = timedelta(days=365)
 
 
 # --- The sample -----------------------------------------------------------------------
@@ -202,9 +206,12 @@ def model_is_cached(model: str) -> bool:
 
 @dataclass
 class Child:
+    """A started process, its log file, and whether it may end on its own."""
+
     name: str
     process: subprocess.Popen
     log: IO[str]
+    may_finish: bool = False  # True for a job (a replay); False for a service
 
 
 class Children:
@@ -216,33 +223,44 @@ class Children:
         self.running: list[Child] = []
         log_dir.mkdir(parents=True, exist_ok=True)
 
-    def start(self, name: str, args: Sequence[str]) -> Child:
+    def start(self, name: str, args: Sequence[str], may_finish: bool = False) -> Child:
+        """Start `python <args>` in the background, logging to `<name>.log`.
+
+        `may_finish`: the process is a job that ends by itself (exit code 0 is fine);
+        otherwise it is a service, and any exit means the pipeline stopped.
+        """
         log = (self.log_dir / f"{name}.log").open("w", encoding="utf-8")
         command = [sys.executable, *args]
         logger.info("Starting %s: %s", name, " ".join(args))
         process = subprocess.Popen(command, cwd=ROOT, env=self.env, stdout=log, stderr=log)
-        child = Child(name, process, log)
+        child = Child(name, process, log, may_finish)
         self.running.append(child)
         return child
 
     def run(self, name: str, args: Sequence[str]) -> None:
         """Run a process to its end; raise if it fails."""
-        child = self.start(name, args)
+        child = self.start(name, args, may_finish=True)
         if child.process.wait() != 0:
             raise SystemExit(f"{name} failed; see {self.log_dir / (name + '.log')}")
         self.running.remove(child)
         child.log.close()
 
     def check(self) -> None:
-        """Stop with a message if a background process died."""
+        """Stop with a message if a background process died.
+
+        A service (`may_finish=False`) that ends is a failure even with exit code 0:
+        the pipeline would otherwise stand still while the progress lines go on.
+        """
         for child in self.running:
-            if child.process.poll() not in (None, 0):
+            code = child.process.poll()
+            if code is not None and (code != 0 or not child.may_finish):
                 raise SystemExit(
                     f"{child.name} stopped (exit code {child.process.returncode}); "
                     f"see {self.log_dir / (child.name + '.log')}"
                 )
 
     def stop_all(self) -> None:
+        """Terminate the processes still running (kill after 15 s) and close their logs."""
         for child in reversed(self.running):
             if child.process.poll() is None:
                 child.process.terminate()
@@ -275,11 +293,13 @@ def check_tools() -> None:
 
 
 def port_is_free(host: str, port: int) -> bool:
+    """True if nothing accepts connections on `host:port`."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         return sock.connect_ex((host, port)) != 0
 
 
 def wait_for_api(url: str, children: Children, timeout_s: float = API_START_TIMEOUT_S) -> None:
+    """Wait until the API answers `/health`; stop if it doesn't within `timeout_s`."""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         children.check()
@@ -297,17 +317,22 @@ def wait_for_api(url: str, children: Children, timeout_s: float = API_START_TIME
 
 @dataclass(frozen=True)
 class Progress:
+    """The run's counts at one moment (spikes of the warm-up excluded)."""
+
     spikes: int
     events: int
     multi_page: int
-    extracted: int
+    extracted: int  # --graph: events whose last extraction succeeded
+    failed: int  # --graph: events whose last extraction failed
     data_until: datetime | None
 
     def line(self) -> str:
+        """The progress line the quickstart logs."""
         until = f"{self.data_until:%b %d, %H:%M} UTC" if self.data_until else "-"
         text = f"data up to {until}: {self.spikes} spikes, {self.events} events "
         text += f"({self.multi_page} with 2+ pages)"
-        return text + (f", {self.extracted} in the graph" if self.extracted else "")
+        text += f", {self.extracted} in the graph" if self.extracted else ""
+        return text + (f", {self.failed} failed extraction(s)" if self.failed else "")
 
 
 PROGRESS_SQL = """
@@ -316,7 +341,15 @@ SELECT (SELECT count(*) FROM spikes WHERE run_id = %(run)s AND started_at >= %(s
        (SELECT count(*) FROM events
          WHERE run_id = %(run)s AND status <> 'merged' AND page_count >= 2),
        (SELECT count(*) FROM graph_extractions WHERE run_id = %(run)s AND status = 'ok'),
+       (SELECT count(*) FROM graph_extractions WHERE run_id = %(run)s AND status = 'error'),
        (SELECT max(last_edit_at) FROM spikes WHERE run_id = %(run)s)
+"""
+
+FAILED_SQL = """
+SELECT g.event_number, ev.title, g.error FROM graph_extractions g
+JOIN events ev ON ev.run_id = g.run_id AND ev.number = g.event_number
+WHERE g.run_id = %s AND g.status = 'error' AND ev.status <> 'merged'
+ORDER BY g.event_number
 """
 
 TOP_EVENTS_SQL = """
@@ -333,16 +366,30 @@ def progress(conn: psycopg.Connection, since: datetime) -> Progress:
     return Progress(*row)
 
 
+def extractions_waiting(conn: psycopg.Connection) -> int:
+    """--graph: events not extracted yet in their current form.
+
+    Uses the graph runner's own rule (`pending_events`), but a failed extraction counts
+    as finished: its retry comes only after minutes of wall clock, so waiting for it
+    would keep the quickstart from ever settling. Failures are reported instead.
+    """
+    return len(pending_events(conn, RUN_ID, retry=NO_RETRY))
+
+
 def wait_until_settled(
     conn: psycopg.Connection, children: Children, since: datetime, graph: bool
 ) -> Progress:
-    """After the replay: wait until detection, grouping (and extraction) stop changing."""
+    """After the replay: wait until detection, grouping (and extraction) stop changing.
+
+    With `--graph`, every event must also have reached a final extraction state: done
+    or failed.
+    """
     last, same = None, 0
     while same < SETTLE_POLLS:
         time.sleep(PROGRESS_INTERVAL_S)
         children.check()
         current = progress(conn, since)
-        pending = graph and current.extracted < current.events
+        pending = graph and extractions_waiting(conn) > 0
         same = same + 1 if current == last and not pending else 0
         if current != last:
             logger.info(current.line())
@@ -351,10 +398,17 @@ def wait_until_settled(
     return last
 
 
+def report_failed_extractions(conn: psycopg.Connection) -> None:
+    """--graph: log each event whose extraction failed, with the last error."""
+    for number, title, error in conn.execute(FAILED_SQL, (RUN_ID,)):
+        logger.warning("  extraction of event %d (%s) failed: %s", number, title, error)
+
+
 # --- Main -------------------------------------------------------------------------------
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """The command-line options."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--speed",
@@ -401,6 +455,7 @@ def start_graph(children: Children, settings: Settings, port: int) -> None:
 
 
 def run(args: argparse.Namespace, children: Children, settings: Settings) -> Progress:
+    """Start the services and processes, replay the sample, and report the result."""
     url = f"http://127.0.0.1:{settings.api_port}"
     if not port_is_free("127.0.0.1", settings.api_port):
         raise SystemExit(f"Port {settings.api_port} is in use: set API_PORT to a free one")
@@ -437,7 +492,8 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
 
     speed = "max" if args.speed is None else f"{args.speed:g}"
     logger.info("Replaying the day (%d edits) at speed %s", day_edits, speed)
-    day = children.start("replay-day", [*replay, str(day_file), "--speed", speed])
+    day_args = [*replay, str(day_file), "--speed", speed]
+    day = children.start("replay-day", day_args, may_finish=True)
     with psycopg.connect(settings.postgres_dsn, autocommit=True) as conn:
         while day.process.poll() is None:
             time.sleep(PROGRESS_INTERVAL_S)
@@ -447,6 +503,7 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
             raise SystemExit("The replay failed; see its log")
         logger.info("The day is replayed; waiting for detection and grouping to finish")
         final = wait_until_settled(conn, children, info.evaluate_from, args.graph)
+        report_failed_extractions(conn)
         for number, title, pages, started in conn.execute(TOP_EVENTS_SQL, (RUN_ID, 5)):
             logger.info("  event %d: %s (%d page(s), from %s)", number, title, pages,
                         f"{started:%H:%M} UTC")  # fmt: skip
@@ -459,6 +516,7 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the quickstart; the started processes are stopped on the way out."""
     args = parse_args(argv)
     setup_logging()
     logging.getLogger("httpx").setLevel(logging.WARNING)  # the health polls

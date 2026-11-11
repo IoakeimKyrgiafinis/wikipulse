@@ -2,9 +2,10 @@
 
 import asyncio
 import importlib.util
+import io
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -124,6 +125,96 @@ def test_pages_already_there_are_kept(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     assert quickstart.load_pages(object(), pages) == 1
     assert written == ["Pedro Alliana"]
+
+
+# --- Settling and the started processes ---
+
+
+class NoChildren:
+    def check(self) -> None:
+        pass
+
+
+def settle(
+    monkeypatch: pytest.MonkeyPatch, polls: list[tuple["quickstart.Progress", int]], graph: bool
+) -> tuple["quickstart.Progress", int]:
+    """Run wait_until_settled over scripted polls; return its result and the polls used."""
+    used = 0
+
+    def next_poll(conn: object, since: datetime) -> "quickstart.Progress":
+        nonlocal used
+        used += 1
+        return polls[min(used, len(polls)) - 1][0]
+
+    monkeypatch.setattr(quickstart.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(quickstart, "progress", next_poll)
+    monkeypatch.setattr(
+        quickstart, "extractions_waiting", lambda conn: polls[min(used, len(polls)) - 1][1]
+    )
+    final = quickstart.wait_until_settled(object(), NoChildren(), datetime(2026, 11, 5), graph)
+    return final, used
+
+
+def counts(extracted: int, failed: int) -> "quickstart.Progress":
+    return quickstart.Progress(74, 69, 12, extracted, failed, datetime(2026, 11, 6))
+
+
+def test_a_failed_extraction_does_not_keep_the_graph_run_from_settling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # 68 extracted, 1 failed (its retry is minutes of wall clock away): nothing is waiting.
+    final, used = settle(monkeypatch, [(counts(68, 1), 0)], graph=True)
+    assert (final.extracted, final.failed) == (68, 1)
+    assert used == quickstart.SETTLE_POLLS + 1
+    assert "1 failed extraction(s)" in final.line()
+
+
+def test_the_graph_run_settles_only_when_no_extraction_is_waiting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    polls = [(counts(60, 0), 9)] * 5 + [(counts(69, 0), 0)]
+    final, used = settle(monkeypatch, polls, graph=True)
+    assert final.extracted == 69
+    assert used == 5 + quickstart.SETTLE_POLLS + 1  # unchanged counts alone were not enough
+
+
+def test_failed_extractions_never_wait_for_their_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, object] = {}
+
+    def pending(conn: object, run_id: str, retry: timedelta) -> list[int]:
+        seen.update(run_id=run_id, retry=retry)
+        return [3, 8]
+
+    monkeypatch.setattr(quickstart, "pending_events", pending)
+    assert quickstart.extractions_waiting(object()) == 2
+    assert seen["run_id"] == quickstart.RUN_ID
+    assert seen["retry"] >= timedelta(days=1)  # longer than any quickstart run
+
+
+class Finished:
+    def __init__(self, code: int | None) -> None:
+        self.returncode = code
+
+    def poll(self) -> int | None:
+        return self.returncode
+
+
+def children_with(tmp_path: Path, code: int | None, may_finish: bool) -> "quickstart.Children":
+    children = quickstart.Children(tmp_path, {})
+    children.running.append(quickstart.Child("detect", Finished(code), io.StringIO(), may_finish))
+    return children
+
+
+def test_a_service_that_ends_stops_the_quickstart_even_with_exit_code_0(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="detect stopped"):
+        children_with(tmp_path, 0, may_finish=False).check()
+    with pytest.raises(SystemExit, match="exit code 1"):
+        children_with(tmp_path, 1, may_finish=True).check()
+
+
+def test_a_job_may_end_and_a_running_service_is_fine(tmp_path: Path) -> None:
+    children_with(tmp_path, 0, may_finish=True).check()
+    children_with(tmp_path, None, may_finish=False).check()
 
 
 # --- The committed sample ---

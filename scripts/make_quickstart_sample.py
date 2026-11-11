@@ -48,7 +48,7 @@ from wikipulse.stream.models import EditEvent  # noqa: E402
 
 logger = logging.getLogger("make_quickstart_sample")
 
-SAMPLE_DIR = Path("demo") / "sample"
+SAMPLE_DIR = ROOT / "demo" / "sample"
 EDITS_FILE = "edits.jsonl.gz"
 PAGES_FILE = "pages.jsonl.gz"
 # Pages for the spikes of the default thresholds and of spec 02b's medium variant, so a
