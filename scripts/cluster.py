@@ -310,9 +310,7 @@ CHART_POD_NAMES = frozenset(
 def check_session_name(name: str) -> None:
     """Refuse a session pod name that is also one of the chart's pods."""
     if name in CHART_POD_NAMES:
-        raise SystemExit(
-            f"--name {name!r} is a chart service; pick another (e.g. {name}-session)"
-        )
+        raise SystemExit(f"--name {name!r} is a chart service; pick another (e.g. {name}-session)")
 
 
 def session_pod(
