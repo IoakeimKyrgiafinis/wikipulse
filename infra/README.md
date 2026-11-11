@@ -68,6 +68,33 @@ $env:METRICS_PORT=9464; uv run python -m wikipulse.stream.replay --file data/rec
 
 Stopping the replay (Ctrl+C) fires `WikiPulseNoEvents` about two minutes later.
 
+## Logs (spec 09b)
+
+`logging.tf` installs Loki and the Alloy collector next to Prometheus (`-var logging=false`
+leaves them out); Grafana gets the data source **Loki** and the dashboard **WikiPulse:
+Event trail**. Every pod logs JSON; search one story with its correlation id (from a log
+line, or `spikes.correlation_id` / `events.correlation_id` in Postgres):
+
+```
+{system="wikipulse"} | correlation_id="<id>"
+```
+
+Only pods' logs reach Loki, so in a replay session the replay, a graph run and an agent run
+run as one-off pods (`scripts/cluster.py run`, needs `-var replay=true`). Offline, the graph
+run uses `scripts/fake_wikimedia.py` on the laptop instead of the Wikimedia APIs (in
+PowerShell, `--env` and `--` work the same; in Git Bash set `MSYS_NO_PATHCONV=1` so
+`/dev/stdin` isn't rewritten):
+
+```
+uv run python scripts/cluster.py run --name replay --stdin data/recordings/<recording>.jsonl -- python -m wikipulse.stream.replay --file /dev/stdin --speed 6
+uv run python scripts/fake_wikimedia.py        # another terminal
+uv run python scripts/cluster.py run --name graph-session --env WIKI_API_URL=http://host.docker.internal:8089/w/api.php --env WIKIDATA_API_URL=http://host.docker.internal:8089/wikidata/api.php -- python -m wikipulse.graph.run --run-id replay --once
+uv run python scripts/cluster.py run --name agent-session --model-cache -- python -m wikipulse.agent.run --event replay:1 --once
+```
+
+LLM tracing: set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in `.env`; `apply` puts
+them into the Secret (empty: no tracing).
+
 ## Replacing the cluster
 
 Changing `cluster_name`, `node_image` or `kubeconfig_path` (marked in
