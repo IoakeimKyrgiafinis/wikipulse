@@ -41,6 +41,10 @@ metadata:
 spec:
   podSelector:
     matchLabels: {app.kubernetes.io/name: {{ $name }}}
+    # Never a session pod, whatever its name (spec 09b): policies add up, so a session
+    # pod named like a service would otherwise get that service's ports, 443 included.
+    matchExpressions:
+      - {key: wikipulse.io/session, operator: DoesNotExist}
   policyTypes: [Egress]
   egress:
     - ports:
@@ -116,6 +120,8 @@ metadata:
 spec:
   podSelector:
     matchLabels: {app.kubernetes.io/name: migrate}
+    matchExpressions:
+      - {key: wikipulse.io/session, operator: DoesNotExist}
   policyTypes: [Egress]
   egress:
     - ports:

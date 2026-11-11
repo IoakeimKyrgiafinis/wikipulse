@@ -210,6 +210,17 @@ def test_a_session_pod_looks_like_the_charts_pods() -> None:
     assert {v["name"] for v in spec["volumes"]} == {"tmp", "model-cache"}
 
 
+@pytest.mark.parametrize("name", sorted(cluster.CHART_POD_NAMES))
+def test_a_session_pod_may_not_take_a_chart_pods_name(name: str) -> None:
+    # Policies add up: a session pod labeled like `graph` would get graph's 443.
+    with pytest.raises(SystemExit, match="chart service"):
+        cluster.session_pod(name, "wikipulse:abc", ["python"], {})
+    args = cluster.parse_args(["run", "--name", name, "--", "python", "-V"])
+    with pytest.raises(SystemExit, match="chart service"):
+        cluster.run_pod(args)  # refused before any kubectl call
+    cluster.session_pod(f"{name}-session", "wikipulse:abc", ["python"], {})  # fine
+
+
 def test_session_pod_env_must_be_key_value() -> None:
     assert cluster.parse_env(["A=1", "B=x=y"]) == {"A": "1", "B": "x=y"}
     with pytest.raises(SystemExit):

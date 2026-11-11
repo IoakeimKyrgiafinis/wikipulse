@@ -111,7 +111,8 @@ metrics:
 # One-off pods started by `scripts/cluster.py run` (spec 09b): a replay fed from the
 # laptop, a graph run or an agent run. They carry the label wikipulse.io/session: "true"
 # and may only open these ports. 443 is not allowed (the schema refuses it): a session pod
-# can't reach Wikimedia, or anything else on HTTPS, even by mistake.
+# can't reach Wikimedia, or anything else on HTTPS, even by mistake. The services' egress
+# policies skip any pod with that label, and `cluster.py run` refuses the services' names.
 sessionPods:
   enabled: false
   egressPorts: [6379, 5432, 7687, 11434]  # Redis, Postgres, Neo4j, Ollama

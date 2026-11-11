@@ -299,10 +299,27 @@ def deployed_image() -> str:
     return run(kubectl("-n", NAMESPACE, "get", "deploy", "detector", "-o", path), capture=True)
 
 
+# The chart's pods (and their egress policies): a session pod may not take their names.
+# The policies already skip session pods; refusing the names also keeps a session's logs
+# and metrics apart from the service's (both are labeled by app.kubernetes.io/name).
+CHART_POD_NAMES = frozenset(
+    {"consumer", "detector", "archiver", "enricher", "grouper", "graph", "api", "migrate"}
+)
+
+
+def check_session_name(name: str) -> None:
+    """Refuse a session pod name that is also one of the chart's pods."""
+    if name in CHART_POD_NAMES:
+        raise SystemExit(
+            f"--name {name!r} is a chart service; pick another (e.g. {name}-session)"
+        )
+
+
 def session_pod(
     name: str, image: str, command: list[str], env: dict[str, str], model_cache: bool = False
 ) -> dict:
     """A pod like the chart's (same settings, same security), labeled as a session pod."""
+    check_session_name(name)
     mounts = [{"name": "tmp", "mountPath": "/tmp"}]
     volumes: list[dict] = [{"name": "tmp", "emptyDir": {"sizeLimit": "256Mi"}}]
     if model_cache:
@@ -377,6 +394,7 @@ def run_pod(args: argparse.Namespace) -> None:
     """`kubectl run` the session pod, attached; stdin comes from `--stdin` if given."""
     if not args.pod_command or not args.name:
         raise SystemExit("run needs --name and a command after `--`")
+    check_session_name(args.name)
     image = deployed_image()
     pod = session_pod(args.name, image, args.pod_command, parse_env(args.env), args.model_cache)
     command = kubectl(
