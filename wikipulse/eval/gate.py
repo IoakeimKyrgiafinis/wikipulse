@@ -9,8 +9,14 @@ small committed recording (`tests/fixtures/detection_gate/edits.jsonl.gz`, 16 ho
 English Wikipedia), scores the spikes against frozen labels
 (`evals/labels/detection_gate_labels.jsonl`), and compares precision and recall with the
 stored baseline (`evals/baselines/detection_gate.json`). If either drops by more than the
-baseline's `margin`, the gate fails (exit code 1). No network, no database, no GPU, and
-the same input always gives the same numbers, so CI can run it on every pull request.
+baseline allows (see `allowed_drops`), the gate fails (exit code 1). No network, no
+database, no GPU, and the same input always gives the same numbers, so CI can run it on
+every pull request.
+
+The margins are counts, not fractions: precision may drop by what `margin_spikes` of the
+baseline's scored spikes turning from news to not news would cost (2 of 19 spikes:
+0.105), recall by what losing `margin_bursts` news bursts would cost (1 of 38: 0.026).
+With so few spikes, a fixed 0.05 would fail as soon as a single spike moved.
 
 The numbers:
 
@@ -24,6 +30,9 @@ The numbers:
 The labels cover every spike that four detector variants (strict, default, medium,
 loose) raised on the recording, so moving a threshold within that range is judged on
 real labels. How the recording and the labels were made: `scripts/make_gate_fixture.py`.
+They are LLM labels (qwen3:8b, without the page summary) that no human has reviewed
+yet: the gate measures agreement with that model, not with the truth (ROADMAP
+follow-up). Changing them, or the baseline, needs the owner's review (.github/CODEOWNERS).
 """
 
 import argparse
@@ -51,8 +60,10 @@ DEFAULT_FIXTURE = Path("tests") / "fixtures" / "detection_gate" / "edits.jsonl.g
 DEFAULT_LABELS = Path("evals") / "labels" / "detection_gate_labels.jsonl"
 DEFAULT_BASELINE = Path("evals") / "baselines" / "detection_gate.json"
 FIXTURE_FORMAT = "wikipulse-gate-edits/1"
-# How far precision or recall may fall below the baseline before the gate fails.
-DEFAULT_MARGIN = 0.05
+# How far precision or recall may fall below the baseline before the gate fails, in
+# spikes (precision) and news bursts (recall): see `allowed_drops`.
+DEFAULT_MARGIN_SPIKES = 2
+DEFAULT_MARGIN_BURSTS = 1
 # The comment a fixture edit gets when the original was a revert: the detector only
 # looks at whether the comment marks a revert (`is_revert`).
 REVERT_COMMENT = "Reverted edits"
@@ -235,12 +246,17 @@ def file_digest(path: Path) -> str:
 
 
 def baseline_data(
-    result: GateResult, config: DetectorConfig, fixture: Path, labels: Path, margin: float
+    result: GateResult,
+    config: DetectorConfig,
+    fixture: Path,
+    labels: Path,
+    margins: tuple[int, int] = (DEFAULT_MARGIN_SPIKES, DEFAULT_MARGIN_BURSTS),
 ) -> dict[str, Any]:
     return {
         "precision": result.precision,
         "recall": result.recall,
-        "margin": margin,
+        "margin_spikes": margins[0],
+        "margin_bursts": margins[1],
         "spikes": result.spikes,
         "counts": result.counts,
         "news_bursts": result.news_bursts,
@@ -252,12 +268,26 @@ def baseline_data(
     }
 
 
+def allowed_drops(baseline: dict[str, Any]) -> dict[str, float]:
+    """How far precision and recall may fall, from the baseline's counts.
+
+    Precision: `margin_spikes` of the baseline's judged spikes (news, not news, unlabeled)
+    going from news to not news. Recall: `margin_bursts` of its news bursts going unfound.
+    """
+    counts = baseline["counts"]
+    judged = counts["news"] + counts["not news"] + counts["unlabeled"]
+    return {
+        "precision": baseline["margin_spikes"] / max(judged, 1),
+        "recall": baseline["margin_bursts"] / max(baseline["news_bursts"], 1),
+    }
+
+
 def check(result: GateResult, baseline: dict[str, Any]) -> list[str]:
     """The reasons the gate fails (empty: it passes)."""
     failures = []
-    margin = baseline["margin"]
+    drops = allowed_drops(baseline)
     for name in ("precision", "recall"):
-        now, before = getattr(result, name), baseline[name]
+        now, before, margin = getattr(result, name), baseline[name], drops[name]
         if before is None:
             continue
         if now is None or now < before - margin - 1e-9:
@@ -316,7 +346,12 @@ def report_lines(
         f"{c['unlabeled']} without a label (counted as not news)."
     )
     if baseline:
-        yield f"Allowed drop: {baseline['margin']:.3f}."
+        drops = allowed_drops(baseline)
+        yield (
+            f"Allowed drop: precision {drops['precision']:.3f} "
+            f"({baseline['margin_spikes']} spike(s)), recall {drops['recall']:.3f} "
+            f"({baseline['margin_bursts']} news burst(s))."
+        )
     if changes:
         yield ""
         yield "Detector settings that differ from the baseline's:"
@@ -377,9 +412,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="store this run's numbers as the new baseline (and pass)",
     )
-    parser.add_argument("--margin", type=float, help="with --write-baseline: the allowed drop")
+    parser.add_argument(
+        "--margin-spikes", type=int, help="with --write-baseline: precision's margin, in spikes"
+    )
+    parser.add_argument(
+        "--margin-bursts", type=int, help="with --write-baseline: recall's margin, in bursts"
+    )
     parser.add_argument("--markdown", type=Path, help="also append the report to this file")
     return parser.parse_args(argv)
+
+
+def margins(args: argparse.Namespace, baseline: dict[str, Any] | None) -> tuple[int, int]:
+    """The margins a new baseline gets: from the options, else the old baseline's."""
+    old = baseline or {}
+    spikes = args.margin_spikes
+    bursts = args.margin_bursts
+    if spikes is None:
+        spikes = old.get("margin_spikes", DEFAULT_MARGIN_SPIKES)
+    if bursts is None:
+        bursts = old.get("margin_bursts", DEFAULT_MARGIN_BURSTS)
+    return spikes, bursts
 
 
 def run(args: argparse.Namespace) -> int:
@@ -391,10 +443,7 @@ def run(args: argparse.Namespace) -> int:
     baseline = json.loads(args.baseline.read_text("utf-8")) if args.baseline.exists() else None
 
     if args.write_baseline:
-        margin = args.margin if args.margin is not None else DEFAULT_MARGIN
-        if args.margin is None and baseline:
-            margin = baseline["margin"]
-        data = baseline_data(result, config, args.fixture, args.labels, margin)
+        data = baseline_data(result, config, args.fixture, args.labels, margins(args, baseline))
         args.baseline.parent.mkdir(parents=True, exist_ok=True)
         with args.baseline.open("w", encoding="utf-8", newline="\n") as out:
             out.write(json.dumps(data, indent=2) + "\n")

@@ -1,7 +1,8 @@
 {
   "precision": 0.5263157894736842,
   "recall": 0.21052631578947367,
-  "margin": 0.05,
+  "margin_spikes": 2,
+  "margin_bursts": 1,
   "spikes": 19,
   "counts": {
     "news": 10,

@@ -121,8 +121,19 @@ def test_only_spikes_that_began_in_the_window_are_scored() -> None:
 # --- The baseline check ---
 
 
-def baseline(precision: float | None, recall: float | None, margin: float = 0.05) -> dict:
-    return {"precision": precision, "recall": recall, "margin": margin}
+def baseline(
+    news: int, not_news: int, found: int, bursts: int, spikes: int = 2, lost_bursts: int = 1
+) -> dict:
+    """A baseline with these counts and margins (in spikes and news bursts)."""
+    counts = {"news": news, "not news": not_news, "unsure": 0, "unlabeled": 0}
+    return {
+        "precision": news / (news + not_news),
+        "recall": found / bursts,
+        "counts": counts,
+        "news_bursts": bursts,
+        "margin_spikes": spikes,
+        "margin_bursts": lost_bursts,
+    }
 
 
 def result_with(news: int, not_news: int, found: int, bursts: int) -> gate.GateResult:
@@ -130,16 +141,31 @@ def result_with(news: int, not_news: int, found: int, bursts: int) -> gate.GateR
     return gate.GateResult(news + not_news, counts, bursts, found)
 
 
+def test_the_margins_are_counted_in_spikes_and_bursts() -> None:
+    drops = gate.allowed_drops(baseline(10, 9, 8, 38))
+    assert drops["precision"] == pytest.approx(2 / 19)
+    assert drops["recall"] == pytest.approx(1 / 38)
+
+
 def test_a_drop_within_the_margin_passes_and_a_bigger_one_fails() -> None:
-    assert gate.check(result_with(5, 5, 4, 10), baseline(0.54, 0.44)) == []
-    failures = gate.check(result_with(4, 6, 4, 10), baseline(0.5, 0.4))
-    assert len(failures) == 1 and failures[0].startswith("precision dropped from 0.500 to 0.400")
-    failures = gate.check(result_with(5, 5, 3, 10), baseline(0.5, 0.4))
+    stored = baseline(5, 5, 4, 10)  # precision 0.5 of 10 spikes, recall 0.4 of 10 bursts
+    assert gate.check(result_with(3, 7, 3, 10), stored) == []  # 2 spikes, 1 burst worse
+    failures = gate.check(result_with(2, 8, 4, 10), stored)  # 3 spikes worse
+    assert len(failures) == 1 and failures[0].startswith("precision dropped from 0.500 to 0.200")
+    failures = gate.check(result_with(5, 5, 2, 10), stored)  # 2 bursts lost
     assert len(failures) == 1 and failures[0].startswith("recall dropped")
 
 
+def test_one_spike_moving_the_wrong_way_is_no_false_alarm() -> None:
+    """The committed baseline's size: 10 news of 19 spikes, 8 of 38 news bursts found."""
+    stored = baseline(10, 9, 8, 38)
+    assert gate.check(result_with(9, 10, 8, 38), stored) == []  # one label flipped
+    assert gate.check(result_with(9, 11, 7, 38), stored) == []  # one news lost, noise gained
+    assert gate.check(result_with(10, 9, 6, 38), stored) != []  # two news bursts lost
+
+
 def test_better_numbers_pass() -> None:
-    assert gate.check(result_with(9, 1, 9, 10), baseline(0.5, 0.4)) == []
+    assert gate.check(result_with(9, 1, 9, 10), baseline(5, 5, 4, 10)) == []
 
 
 def test_changed_inputs_make_the_baseline_stale(tmp_path: Path) -> None:
@@ -206,6 +232,18 @@ def test_a_looser_threshold_fails_on_precision(committed: tuple) -> None:
     result, failures = run_gate(committed, config)
     assert result.recall >= committed[3]["recall"]  # it finds more ...
     assert [f.split(" ")[0] for f in failures] == ["precision"]  # ... but mostly noise
+
+
+def test_lowering_min_edits_to_3_fails_on_precision(committed: tuple) -> None:
+    """The demonstration pull request of spec 09c: DETECT_MIN_EDITS 5 -> 3."""
+    _, failures = run_gate(committed, DetectorConfig(min_edits=3))
+    assert [f.split(" ")[0] for f in failures] == ["precision"]
+
+
+def test_the_committed_margins_are_counts(committed: tuple) -> None:
+    *_, stored = committed
+    assert (stored["margin_spikes"], stored["margin_bursts"]) == (2, 1)
+    assert "margin" not in stored
 
 
 def test_a_stricter_threshold_fails_on_recall(committed: tuple) -> None:
