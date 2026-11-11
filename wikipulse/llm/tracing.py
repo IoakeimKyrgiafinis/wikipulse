@@ -24,6 +24,7 @@ Callers only see this module; the Langfuse SDK is used in `langfuse_tracing.py` 
 """
 
 import logging
+import threading
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from typing import Any, Literal, Protocol
@@ -124,20 +125,25 @@ def build_tracer(settings: Settings) -> Tracer:
 
 
 _tracer: Tracer | None = None
+_tracer_lock = threading.Lock()  # threads of a server may ask for it at the same moment
 
 
 def get_tracer() -> Tracer:
-    """The process's tracer, built from the settings on first use."""
+    """The process's tracer, built from the settings on first use (once, even if threads
+    race for it: the check is repeated under the lock)."""
     global _tracer
     if _tracer is None:
-        _tracer = build_tracer(get_settings())
+        with _tracer_lock:
+            if _tracer is None:
+                _tracer = build_tracer(get_settings())
     return _tracer
 
 
 def set_tracer(tracer: Tracer | None) -> None:
     """Replace the process's tracer (tests); None builds it from the settings again."""
     global _tracer
-    _tracer = tracer
+    with _tracer_lock:
+        _tracer = tracer
 
 
 def trace(

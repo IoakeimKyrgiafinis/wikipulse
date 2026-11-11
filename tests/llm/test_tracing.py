@@ -9,6 +9,8 @@ import itertools
 import json
 import logging
 import sys
+import threading
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -60,6 +62,33 @@ def test_without_keys_the_sdk_is_never_imported(monkeypatch: pytest.MonkeyPatch)
     assert answer.text == "hello"
     assert isinstance(get_tracer(), NoopTracer)
     assert "trace_id" not in current_context()
+
+
+def test_threads_racing_for_the_tracer_build_it_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    built: list[NoopTracer] = []
+    started = threading.Barrier(8)
+
+    def slow_build(_settings: Settings) -> NoopTracer:
+        time.sleep(0.05)  # long enough for every thread to arrive while it builds
+        built.append(NoopTracer())
+        return built[-1]
+
+    set_tracer(None)
+    monkeypatch.setattr("wikipulse.llm.tracing.get_settings", lambda: settings())
+    monkeypatch.setattr("wikipulse.llm.tracing.build_tracer", slow_build)
+    tracers: list[object] = []
+
+    def worker() -> None:
+        started.wait()
+        tracers.append(get_tracer())
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    set_tracer(None)
+    assert len(built) == 1 and all(tracer is built[0] for tracer in tracers)
 
 
 def test_the_noop_tracer_lets_errors_through() -> None:
