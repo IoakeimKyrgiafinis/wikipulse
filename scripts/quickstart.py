@@ -1,14 +1,15 @@
 """WikiPulse in one command, offline: `uv run python scripts/quickstart.py`.
 
-Starts the minimal system with Docker Compose (Redis and Postgres; no Kubernetes),
-replays the bundled sample (`demo/sample/`: a recorded day of English Wikipedia edits,
-5 November 2026) through the real pipeline, and opens the live page in the browser:
+Starts the minimal system with Docker Compose (Redis, Postgres and an empty Neo4j; no
+Kubernetes), replays the bundled sample (`demo/sample/`: a recorded day of English
+Wikipedia edits, 5 November 2026) through the real pipeline, and opens the live page:
 
     sample ──► stream.replay ──► Redis Stream ──► detect.run ──► Postgres spikes
                                                                      │
     browser ◄── WebSocket ◄── api (the live page) ◄── events ◄── events.run (grouping)
 
-1. `docker compose up -d --wait redis postgres`, then the database migrations.
+1. `docker compose up -d --wait redis postgres neo4j`, then the database migrations. (The
+   page reads headlines and entities from Neo4j; without `--graph` it stays empty.)
 2. Loads the sample's enriched pages (summaries, links) into the `pages` table, instead
    of running the enricher, which would call the Wikipedia API.
 3. Replays the 12 hours before the day at full speed (the detector's warm-up: it learns
@@ -23,7 +24,7 @@ live consumer and the enricher are never started. The only download is the group
 embedding model (`EVENTS_EMBED_MODEL`, from Hugging Face) on the very first run; once it
 is cached, the quickstart runs without any network.
 
-`--graph` adds the knowledge graph: Neo4j, and the graph runner extracting each event
+`--graph` fills the knowledge graph: the graph runner extracts each event
 with the local LLM (`EXTRACT_MODEL`, Ollama `qwen3:4b`), so cards gain a headline and
 entities. Offline, entities are not linked to Wikidata and the burst text is not
 fetched (the model reads the page summaries only). Needs Ollama with the model pulled.
@@ -278,7 +279,7 @@ def wait_for_api(url: str, children: Children, timeout_s: float = API_START_TIME
     while time.monotonic() < deadline:
         children.check()
         try:
-            if httpx.get(f"{url}/health", timeout=2).status_code == 200:
+            if httpx.get(f"{url}/health", timeout=10).status_code == 200:
                 return
         except httpx.HTTPError:
             pass
@@ -383,11 +384,10 @@ def prepare_sample(sample: Path, data_dir: Path) -> tuple[gate.FixtureInfo, Path
 
 
 def start_graph(children: Children, settings: Settings, port: int) -> None:
-    """--graph: Neo4j, the offline Wikimedia stand-in and the graph runner."""
+    """--graph: the offline Wikimedia stand-in and the graph runner."""
     if not port_is_free("127.0.0.1", port):
         raise SystemExit(f"Port {port} is in use: pick another with --fake-wikimedia-port")
     children.run("llm-check", ["-m", "wikipulse.llm.check", "--model", settings.extract_model])
-    compose(["neo4j"])
     children.start(
         "fake-wikimedia",
         ["scripts/fake_wikimedia.py", "--host", "127.0.0.1", "--port", str(port)],
@@ -399,7 +399,7 @@ def run(args: argparse.Namespace, children: Children, settings: Settings) -> Pro
     url = f"http://127.0.0.1:{settings.api_port}"
     if not port_is_free("127.0.0.1", settings.api_port):
         raise SystemExit(f"Port {settings.api_port} is in use: set API_PORT to a free one")
-    compose(["redis", "postgres"])
+    compose(["redis", "postgres", "neo4j"])
     children.run("migrate", ["-m", "wikipulse.db.migrate"])
     info, warmup_file, day_file, day_edits = prepare_sample(args.sample, settings.data_dir)
     with psycopg.connect(settings.postgres_dsn, autocommit=True) as conn:
