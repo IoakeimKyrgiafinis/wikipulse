@@ -2402,6 +2402,7 @@ dependencies = [
     { name = "mlflow" },
     { name = "neo4j" },
     { name = "ollama" },
+    { name = "opentelemetry-api" },
     { name = "prometheus-client" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyarrow" },
@@ -2424,6 +2425,7 @@ anthropic = [
 [package.dev-dependencies]
 dev = [
     { name = "fakeredis", extra = ["lua"] },
+    { name = "opentelemetry-sdk" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pyyaml" },
@@ -2443,6 +2445,7 @@ requires-dist = [
     { name = "mlflow", specifier = ">=3.18" },
     { name = "neo4j", specifier = ">=5.26" },
     { name = "ollama", specifier = ">=0.6" },
+    { name = "opentelemetry-api", specifier = ">=1.45" },
     { name = "prometheus-client", specifier = ">=0.21" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pyarrow", specifier = ">=26" },
@@ -2460,6 +2463,7 @@ provides-extras = ["anthropic"]
 [package.metadata.requires-dev]
 dev = [
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.40.0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.45" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "pyyaml", specifier = ">=6.0" },
