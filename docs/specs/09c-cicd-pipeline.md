@@ -1,6 +1,6 @@
 # Spec 09c: Full CI/CD pipeline
 
-Status: ready
+Status: done
 Stage: 9. Observability and CI/CD
 Owner: agent
 Depends on: 08c, 09a

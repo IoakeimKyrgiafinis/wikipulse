@@ -60,7 +60,7 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 08c | Terraform | done |
 | 09a | Metrics, dashboards and alerts | done |
 | 09b | Logging and LLM tracing | done |
-| 09c | Full CI/CD pipeline | ready |
+| 09c | Full CI/CD pipeline | done |
 | 10 | Polish and presentation | ready |
 
 ## Follow-ups
@@ -88,6 +88,16 @@ Known problems that were too large for the spec that found them. Each needs its 
   task in the DAG before `build_dataset` (`wikipulse.eval.label` on the new candidate
   spikes, within an LLM budget), and a label delay: build the test split from days whose
   portal is final.
+
+- **The detection eval gate's labels are unreviewed** (found in the 09c review). The CI
+  gate (`wikipulse.eval.gate`) scores against `evals/labels/detection_gate_labels.jsonl`:
+  167 of its 180 labels are `qwen3:8b` labels made without the page summary, and no human
+  has checked them, including the 38 `news` labels that recall rests on (for example,
+  "Scene (2026 film)" is `news` because a Reception section was added). *Impact:* a
+  blocking CI check measures agreement with an unchecked model; a change that moves
+  precision or recall may be judged against wrong labels. *Proposed fix:* a human pass,
+  starting with the 38 `news` labels, written as `labeler: "human"` records (which win
+  over LLM ones), then `--write-baseline` and a reviewed baseline change.
 
 ## Milestones
 
