@@ -1,4 +1,4 @@
-# Event time: why a replayed day gives exactly the live results
+# Event time: why a replayed day gives the same results every time
 
 *Draft. Built from the learning notes of specs 01, 02a, 03b, 06a and 10.*
 
@@ -29,14 +29,17 @@ makes the next property possible.
 
 ## Replays are not simulations
 
-Because nothing reads the clock, an hour of recorded edits replayed in two seconds gives
-exactly what the live hour gave. This isn't a nice-to-have; nearly every result in
-WikiPulse depends on it:
+Because nothing reads the clock, the result depends only on the edits, not on how fast
+or in which batches they arrive: a recording replayed at any speed, or stopped and
+restarted half way, gives the same spikes every time. (What has been checked is replay
+against replay; no live run was ever compared with a replay of its own recording.) This
+isn't a nice-to-have; nearly every result in WikiPulse depends on it:
 
 - **Determinism, checked.** `scripts/determinism_check.py` replays a recording twice, one
   run stopped half way and restarted from its snapshot. On an hour of the full stream
-  (141,149 messages, 7,215 kept edits) both runs gave identical spikes in every field,
-  with default and with looser thresholds. Grouping was checked the same way: a replay
+  (141,149 messages, 7,215 kept edits; each replay about 2.5 minutes) both runs gave
+  identical spikes in every field, with default and with looser thresholds, and the
+  offline detector (`scripts/compare_thresholds.py`, about 2 seconds) found the same. Grouping was checked the same way: a replay
   stopped at noon and restarted gave the same 665 assignments as an uninterrupted one.
 - **Evaluations run the production code.** Two full recorded days are detected in about
   20 seconds per threshold setting, so comparing four settings costs a minute, not two

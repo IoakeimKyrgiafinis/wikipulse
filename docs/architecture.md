@@ -17,8 +17,11 @@ lifecycle, Kubernetes, Helm, Terraform, monitoring and CI/CD.
 
 ## The pipeline
 
-Every arrow between processes goes through a store (Redis, Postgres, Neo4j, S3), never a
-direct call, so each process can stop, restart or be replaced without the others noticing.
+Between the pipeline's processes (ingest, detect, enrich, group, graph), every arrow goes
+through a store (Redis, Postgres, Neo4j, S3), never a direct call, so each process can
+stop, restart or be replaced without the others noticing. The answering side is
+different: the MCP server and the API call the question answering code in-process, and
+the agent calls the MCP server's tools (over stdio or HTTP).
 
 ```mermaid
 flowchart LR
@@ -107,6 +110,7 @@ messages, tools and JSON schemas in, a backend (`ollama_backend.py`, optionally
 flowchart LR
     STREAM[("Redis Stream<br/>wiki:edits")]
     WM[("EventStreams<br/>?since= history")]
+    WAPI[("Wikipedia API<br/>page revisions")]
 
     ARCHIVE["lake.archive<br/>consumer group lake:archive"]
     BACKFILL["lake.backfill"]
@@ -138,6 +142,9 @@ flowchart LR
     DATASET --> TRAIN --> MLFLOW
     MLFLOW --> SERVE
     STREAM --> SERVE --> PG
+    PG -->|"spikes"| SERVE
+    WAPI -->|"revision at the cutoff (cached)"| SERVE
+    RETRAIN -->|"extend_history"| BACKFILL
     PG --> DRIFT --> PG
     RETRAIN --> DATASET
     RETRAIN --> TRAIN
@@ -218,14 +225,16 @@ Wikimedia request with an empty result.
 ## Principles that hold everywhere
 
 - **Event time, not wall-clock time.** Windows, baselines, spike lifecycles, event
-  closing and "today" in questions all use the edits' own timestamps. A replayed
-  recording gives exactly the same spikes and events as the live run (checked by
-  `scripts/determinism_check.py` and the 03b replays).
+  closing and "today" in questions all use the edits' own timestamps, so replaying a
+  recording is deterministic: two replays of it, or one stopped and restarted half way,
+  give the same spikes and events (checked by `scripts/determinism_check.py` and the 03b
+  replays; a replay has not been compared with the live run it recorded).
 - **At-least-once delivery, idempotent writes.** Consumer groups acknowledge only after
   the write; spikes, events, lake hours and graph extractions are upserts keyed on their
   identity, so a crash and restart repeats work but never doubles it.
 - **One polite Wikimedia client.** One stream connection, a descriptive User-Agent,
   backoff, and caches (`api_cache`, `data/cache/`) in front of every API.
-- **Every number has an eval.** Detection, grouping, extraction, question answering,
-  prompt injection and the classifier each have a committed evaluation in
-  `evals/results/`, and CI blocks a pull request that makes detection worse.
+- **Every number has an eval.** Detection, grouping, extraction, question answering and
+  prompt injection each have a committed evaluation report in `evals/results/`; the
+  classifier's evaluation is in its learning notes and MLflow. CI blocks a pull request
+  that makes detection worse.

@@ -1,7 +1,8 @@
 # Measuring a breaking-news detector when nobody knows what the news was
 
 *Draft. Built from the learning notes of specs 02a, 02b, 03b, 07b and 09c. Every number
-is from a committed evaluation in `evals/results/`.*
+is from one of those notes; the detection and grouping ones are also committed reports in
+`evals/results/`.*
 
 WikiPulse watches every edit to English Wikipedia and raises a "spike" when a page
 suddenly gets unusual attention: for example 5 edits from 3 different people within 10
@@ -87,7 +88,9 @@ Two lessons from building it:
   new spikes has to earn them by labeling them; the gate lists them.
 
 Lowering `min_edits` from 5 to 3 fails the gate (precision 0.526 to 0.324); raising it to
-8 fails it the other way (recall 0.211 to 0.132). Both directions are kept as tests.
+8 fails it the other way (recall 0.211 to 0.132, in a manual run). Both directions are
+kept as tests: `min_edits=3` failing on precision, and spec 02b's strict variant (6 edits
+from 4 people; 12 from 5 over an hour) failing on recall.
 
 ## The caveat that stays
 

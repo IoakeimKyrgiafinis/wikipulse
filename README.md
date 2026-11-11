@@ -100,8 +100,10 @@ code).
 
 ## Results
 
-Every number comes from a committed evaluation in [`evals/results/`](evals/results/) and
-is explained in the stage's [learning note](docs/learning/). They are honest, small-sample
+Every number is explained, with how it was measured, in the stage's
+[learning note](docs/learning/); the detection, grouping, extraction, question-answering
+and prompt-injection evaluations are also committed reports in
+[`evals/results/`](evals/results/). The classifier's numbers live in the notes and MLflow. They are honest, small-sample
 numbers from one laptop and a few recorded days, with their margins.
 
 ### Detection (spec 02b)
@@ -187,8 +189,9 @@ should (gap +0.000), and drift monitoring found a real training/serving skew.
 
 - Crash test of the consumer: killed hard mid-stream, **0 missing, 0 extra, 0 duplicates**
   of 487 events; the same on Kubernetes and for the lake archiver.
-- Determinism: a replayed day gives the same spikes and events as the live run, also
-  when stopped and restarted half way. The quickstart reproduces the offline detector's
+- Determinism: replaying the same recording twice gives identical spikes and events, also
+  when one replay is stopped and restarted half way (a replay has not been compared with
+  the live run it recorded). The quickstart reproduces the offline detector's
   74 spikes of 5 November exactly.
 - Data lake: an hour as zstd Parquet is 16.3% of the JSON size and queries about 15x faster.
 
