@@ -175,6 +175,51 @@ def test_bounded_paths_fenced_answers_and_a_trailing_semicolon_are_accepted() ->
     assert validate_cypher("MATCH (n) RETURN [x IN [1, 2] | x * 2] AS doubled")
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        # 05b q17: the validator read ") +" as a quantified path pattern (spec 12a).
+        "MATCH (ev:Event) WHERE ev.started_at >= date($today_start) "
+        "AND ev.started_at < date($today_start) + duration({days:1}) "
+        "RETURN count(ev) AS event_count",
+        "MATCH (ev:Event) WHERE ev.started_at < datetime($now) - duration({hours: 2}) "
+        "RETURN ev.key AS event_key",
+        "MATCH (n:Entity)-[:INVOLVED_IN]->(ev:Event) RETURN n.name, count(ev) * 2 AS double",
+        "MATCH (ev:Event) RETURN (ev.page_count + 1) * (ev.page_count) AS x",
+    ],
+)
+def test_arithmetic_after_a_closing_parenthesis_is_not_a_path_quantifier(query: str) -> None:
+    assert validate_cypher(query) == query + "\nLIMIT 25"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # A group that holds a relationship is a path, with or without spaces.
+        "MATCH p = ((a)-->(b)) + RETURN p",
+        "MATCH p = ((a)-[:R]-(b)) * RETURN p",
+        "MATCH p = ((a)<-[:R]-(b))+ RETURN p",
+        "MATCH p = ((a)- -(b))+ RETURN p",
+        "MATCH p = (((a)-->(b)))+ RETURN p",
+        "MATCH (x) MATCH p = (x)((a)-->(b))+(c) RETURN p",
+        # Neo4j also takes other dash characters as relationship lines.
+        "MATCH (a)\u2013[:R]\u2013+(b) RETURN b.name",
+        "MATCH (a)\u2212\u2212>*(b) RETURN b.name",
+        "MATCH p = ((a)\u2013\u2013>(b))+ RETURN p",
+    ],
+)
+def test_quantified_groups_with_a_relationship_are_still_checked(query: str) -> None:
+    with pytest.raises(UnsafeCypherError, match="quantified path pattern .* upper bound"):
+        validate_cypher(query)
+
+
+def test_variable_length_patterns_with_other_dash_characters_are_checked() -> None:
+    with pytest.raises(UnsafeCypherError, match="upper bound"):
+        validate_cypher("MATCH (a)\u2013[*]\u2013(b) RETURN b.name")
+    with pytest.raises(UnsafeCypherError, match="longer than"):
+        validate_cypher("MATCH (a)\u2013[:R*1..9]\u2013>(b) RETURN b.name")
+
+
 def test_the_writer_asks_with_the_time_parameters_and_returns_the_query() -> None:
     client = ScriptedClient(['{"cypher": "MATCH (ev:Event) RETURN ev.key"}'])
     now = datetime(2026, 11, 5, 22, 54, tzinfo=UTC)
