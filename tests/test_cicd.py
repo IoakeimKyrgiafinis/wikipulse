@@ -120,7 +120,7 @@ def test_no_latest_tag_is_published() -> None:
     assert meta["flavor"] == "latest=false"
 
 
-@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml", "pages.yml"])
 def test_every_action_is_pinned_to_a_commit(name: str) -> None:
     lines = [
         line.strip()
@@ -133,7 +133,7 @@ def test_every_action_is_pinned_to_a_commit(name: str) -> None:
         assert re.fullmatch(r"(- )?uses: [\w.-]+/[\w.-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+", line), line
 
 
-@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml", "pages.yml"])
 def test_no_checkout_keeps_the_token(name: str) -> None:
     for job in workflow(name)["jobs"].values():
         for step in job.get("steps", []):
@@ -172,7 +172,24 @@ def test_workflow_tokens_have_the_least_permissions() -> None:
     }
 
 
-@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+def test_the_demo_deploys_from_main_with_only_the_pages_permissions() -> None:
+    flow = workflow("pages.yml")
+    assert flow["on"]["push"] == {"branches": ["main"], "paths": ["site/**"]}
+    assert "workflow_dispatch" in flow["on"]
+    assert flow["permissions"] == {}
+    granted = {name: job["permissions"] for name, job in flow["jobs"].items()}
+    assert granted == {
+        "upload": {"contents": "read"},
+        "deploy": {"pages": "write", "id-token": "write"},
+    }
+    uses = [s.get("uses", "") for job in flow["jobs"].values() for s in job["steps"]]
+    for action in ("configure-pages", "upload-pages-artifact", "deploy-pages"):
+        assert any(u.startswith(f"actions/{action}@") for u in uses), action
+    upload = next(s for s in flow["jobs"]["upload"]["steps"] if "upload-pages" in s["uses"])
+    assert upload["with"]["path"] == "site/"
+
+
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml", "pages.yml"])
 def test_workflows_use_no_stored_secrets_and_no_personal_data(name: str) -> None:
     text = (WORKFLOWS / name).read_text("utf-8")
     assert set(re.findall(r"secrets\.(\w+)", text)) <= {"GITHUB_TOKEN"}

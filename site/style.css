@@ -1,0 +1,177 @@
+/* WikiPulse demo page: the live page's look (wikipulse/api/static/style.css), plus the
+   replay controls and the small graph. System fonts only: nothing is loaded from outside. */
+:root {
+  --bg: #f7f7f5;
+  --card: #ffffff;
+  --text: #1d1d1b;
+  --muted: #6b6b66;
+  --line: #e2e2dc;
+  --accent: #2557a7;
+  --active: #1a7f37;
+  --flash: #fff4c2;
+  --error: #b42318;
+  --recorded: #9a6700;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+header h1 { margin: 0; font-size: 1.35rem; }
+.tagline { margin: 0; color: var(--muted); }
+.recorded {
+  margin: 0 0 0 auto;
+  padding: 0.1rem 0.6rem;
+  border: 1px solid var(--recorded);
+  border-radius: 999px;
+  color: var(--recorded);
+  font-size: 0.9rem;
+}
+.recorded::before { content: "\25A0  "; }
+
+.intro { margin: 0.75rem 1.25rem 0; max-width: 60rem; }
+
+/* Replay controls: stay in view while the list scrolls. */
+.replay {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.75rem 1.25rem 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.replay .clock { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 8.5rem; }
+.replay input[type="range"] { flex: 1 1 14rem; min-width: 10rem; accent-color: var(--accent); }
+.replay .speed { color: var(--muted); font-size: 0.9rem; }
+#progress { font-size: 0.85rem; }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(18rem, 2fr) minmax(20rem, 3fr);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; padding: 0.75rem; }
+  header, .intro, .replay { margin-left: 0.75rem; margin-right: 0.75rem; }
+  header { margin: 0; }
+  .recorded { margin-left: 0; }
+  .replay .clock { min-width: 0; }
+}
+
+h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
+.muted { color: var(--muted); }
+a { color: var(--accent); }
+
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; }
+.filters { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.9rem; color: var(--muted); }
+
+.event-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 2s ease-out;
+}
+.card:hover, .card:focus { border-color: var(--accent); outline: none; }
+.card.selected { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.card.flash { background: var(--flash); transition: none; }
+.card h3 { margin: 0 0 0.2rem; font-size: 1rem; overflow-wrap: anywhere; }
+.card .meta, .card .pages { font-size: 0.85rem; color: var(--muted); margin: 0.1rem 0 0; }
+.card .description { margin: 0.2rem 0 0; font-size: 0.9rem; }
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0 0.4rem;
+  margin-right: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  vertical-align: 1px;
+}
+.badge.active { color: var(--active); border-color: var(--active); }
+.badge.new { color: #9a6700; border-color: #9a6700; }
+.badge.good { color: var(--active); border-color: var(--active); }
+.badge.bad { color: var(--error); border-color: var(--error); }
+
+.side { display: grid; gap: 1rem; min-width: 0; }
+.detail, .answers, .about {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  min-width: 0;
+}
+.about ol { padding-left: 1.3rem; }
+
+.detail h3 { margin: 0.9rem 0 0.3rem; font-size: 0.95rem; }
+.detail h3:first-child { margin-top: 0; }
+.detail ul, .detail ol { margin: 0.2rem 0; padding-left: 1.3rem; }
+.detail li { margin: 0.15rem 0; overflow-wrap: anywhere; }
+.briefing-text, .answer-text { white-space: pre-line; }
+.cite { font-size: 0.75rem; vertical-align: super; text-decoration: none; margin-left: 1px; }
+.sources { font-size: 0.85rem; }
+.later { color: var(--muted); font-style: italic; }
+
+/* The small relation graph (SVG, drawn by app.js). */
+.graph { width: 100%; height: auto; max-height: 26rem; display: block; margin: 0.3rem 0; overflow: visible; }
+.graph line { stroke: #9aa7bd; stroke-width: 1.2; }
+.graph circle { fill: var(--accent); stroke: #fff; stroke-width: 1.5; }
+.graph circle.place { fill: #1a7f37; }
+.graph circle.person { fill: #2557a7; }
+.graph circle.organization { fill: #8a4baf; }
+.graph circle.event { fill: #b45309; }
+.graph circle.other { fill: #6b6b66; }
+.graph text { font-size: 11px; fill: var(--text); }
+.legend { font-size: 0.8rem; }
+.legend span::before { content: "\25CF "; }
+.legend .person::before { color: #2557a7; }
+.legend .organization::before { color: #8a4baf; }
+.legend .place::before { color: #1a7f37; }
+.legend .event::before { color: #b45309; }
+.legend .other::before { color: #6b6b66; }
+
+.answers details { border-top: 1px solid var(--line); padding: 0.4rem 0; }
+.answers summary { cursor: pointer; }
+
+button {
+  font: inherit;
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  min-width: 5rem;
+}
+
+footer { padding: 0.5rem 1.25rem 1.5rem; font-size: 0.85rem; max-width: 60rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
