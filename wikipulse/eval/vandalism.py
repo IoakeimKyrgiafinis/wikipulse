@@ -23,6 +23,11 @@ this analysis measures which properties of a burst actually tell news from not n
 5. **Candidate rules** (`RULES`): the detector over the whole lake once per value of
    `max_anon_share`, scored against human and LLM labels (precision with a Wilson
    interval, labeled news bursts still found), and on the CI gate's fixture.
+6. **Choosing the value, held out** (`choose_value`, `folds`, `held_out`): the lake is cut
+   in two at `SPLIT_AT`; the choosing rule (no human-labeled news burst lost, held-back
+   spikes at most `MAX_P90_DELAY_MIN` minutes late at p90, then the highest human
+   precision) picks a value on one half and that value is judged on the other. The
+   earlier half's choice is the one used.
 
 Writes `evals/results/<date>_vandalism.md` and `.json`. Reads the lake (S3) and the label
 files; no network beyond the lake, no database, no LLM.
@@ -61,6 +66,13 @@ DEFAULT_SEED = 2026
 NOT_NEWS = "not news"
 # Values of `max_anon_share` the detector is run with; 1.0 is the rule switched off.
 RULES = (1.0, 0.75, 0.6, 0.5, 0.45, 0.4)
+# The choosing rule's cap on how late a held-back spike may start (p90, minutes of event
+# time): one short detector window, which is also how long the news classifier waits
+# after a start. A burst held back for longer reaches the page late enough to matter.
+MAX_P90_DELAY_MIN = 10.0
+# Where the lake is cut in two for choosing and checking the value (`folds`): the human
+# labels cover 5 November (one half) and 6 November (the other).
+SPLIT_AT = datetime(2026, 11, 6, tzinfo=UTC)
 MAX_LISTED = 50  # dropped bursts listed per label set in the report (news first)
 
 SIGNALS: dict[str, str] = {
@@ -289,8 +301,14 @@ def auc(news: Sequence[float], not_news: Sequence[float]) -> float | None:
 
 def auc_interval(
     rows: Sequence[tuple[bool, float]], resamples: int, seed: int
-) -> tuple[float | None, float | None]:
-    """95% bootstrap percentile interval of the AUC over (news?, value) rows."""
+) -> tuple[float | None, float | None, int]:
+    """95% bootstrap percentile interval of the AUC over (news?, value) rows, and how
+    many resamples it rests on.
+
+    A resample that happens to hold only one class has no AUC and is left out; with a
+    small class that happens often, and the interval is then less reliable (the report
+    shows the count when it is below `resamples`).
+    """
     rng = random.Random(seed)
     values = []
     for _ in range(resamples):
@@ -299,8 +317,8 @@ def auc_interval(
         if value is not None:
             values.append(value)
     if not values:
-        return None, None
-    return percentile(values, 2.5), percentile(values, 97.5)
+        return None, None, 0
+    return percentile(values, 2.5), percentile(values, 97.5), len(values)
 
 
 def verdict(low: float | None, high: float | None) -> str:
@@ -330,7 +348,7 @@ def separation(
         for moment in MOMENTS:
             pairs = [(b.news, s[moment][signal]) for b, s in rows]
             known = [(n, v) for n, v in pairs if not math.isnan(v)]
-            low, high = auc_interval(known, resamples, seed) if known else (None, None)
+            low, high, used = auc_interval(known, resamples, seed) if known else (None, None, 0)
             table.append(
                 {
                     "signal": signal,
@@ -343,6 +361,8 @@ def separation(
                     "auc_low": low,
                     "auc_high": high,
                     "verdict": verdict(low, high),
+                    "resamples_used": used,
+                    "resamples": resamples,
                 }
             )
     return table
@@ -394,7 +414,10 @@ def dropped_item(burst: LabeledBurst, others: dict[str, list[LabeledBurst]]) -> 
 
 
 def start_changes(
-    before: Sequence[SpikeRecord], after: Sequence[SpikeRecord], scored_from: datetime
+    before: Sequence[SpikeRecord],
+    after: Sequence[SpikeRecord],
+    scored_from: datetime,
+    scored_to: datetime | None = None,
 ) -> dict[str, Any]:
     """How a rule changes the start of the spikes the run without it raised.
 
@@ -406,7 +429,7 @@ def start_changes(
     for spike in after:
         by_title.setdefault(spike.title, []).append(spike)
     same, delays, dropped = 0, [], 0
-    for spike in (s for s in before if s.first_edit_at >= scored_from):
+    for spike in (s for s in before if in_period(s.first_edit_at, scored_from, scored_to)):
         end = spike_end(spike)
         matches = [
             s
@@ -430,23 +453,34 @@ def start_changes(
     }
 
 
+def in_period(moment: datetime, start: datetime, end: datetime | None) -> bool:
+    """Is `moment` in [start, end)? No `end`: open to the right."""
+    return start <= moment and (end is None or moment < end)
+
+
 def rule_results(
     runs: dict[float, list[SpikeRecord]],
     sets: dict[str, list[LabeledBurst]],
     scored_from: datetime,
+    scored_to: datetime | None = None,
 ) -> list[dict[str, Any]]:
-    """Per rule value: spikes, precision per label set, labeled bursts still found."""
+    """Per rule value: spikes, precision per label set, labeled bursts still found.
+
+    Spikes and labeled bursts count when their first edit is in [scored_from, scored_to);
+    whether a burst is found may use any spike of the run.
+    """
     baseline = runs[1.0]
     results = []
     for value, spikes in runs.items():
-        scored = [s for s in spikes if s.first_edit_at >= scored_from]
+        scored = [s for s in spikes if in_period(s.first_edit_at, scored_from, scored_to)]
         row: dict[str, Any] = {
             "max_anon_share": value,
             "spikes": len(scored),
-            "starts": start_changes(baseline, spikes, scored_from),
+            "starts": start_changes(baseline, spikes, scored_from, scored_to),
             "sets": {},
         }
-        for name, bursts in sets.items():
+        for name, all_bursts in sets.items():
+            bursts = [b for b in all_bursts if in_period(b.first_edit_at, scored_from, scored_to)]
             found_before = [b for b in bursts if covered(b, baseline)]
             found = [b for b in found_before if covered(b, spikes)]
             row["sets"][name] = {
@@ -486,6 +520,107 @@ def gate_results(fixture: Path, labels: Path) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+# --- Choosing the value on one half, checking it on the other -------------------------
+
+
+def choose_value(
+    rows: Sequence[dict[str, Any]],
+    label_set: str = "human",
+    max_p90_delay: float = MAX_P90_DELAY_MIN,
+) -> dict[str, Any]:
+    """The choosing rule, applied to `rule_results` rows of one period.
+
+    A value is eligible when it loses none of the period's `label_set` news bursts and
+    the spikes it holds back start at most `max_p90_delay` minutes late (p90). Of the
+    eligible values, the one with the highest precision on `label_set` wins; on a tie,
+    the looser (higher) value. 1.0, the rule switched off, is always eligible.
+    """
+    candidates = []
+    for row in rows:
+        s = row["sets"][label_set]
+        lost = s["news_found_before"] - s["news_found"]
+        p90 = row["starts"]["later_p90_min"]
+        reasons = []
+        if lost:
+            reasons.append(f"loses {lost} {label_set} news burst(s)")
+        if p90 is not None and p90 > max_p90_delay:
+            reasons.append(f"p90 delay {p90:.1f} min > {max_p90_delay:g}")
+        candidates.append(
+            {
+                "max_anon_share": row["max_anon_share"],
+                "precision": s["precision"],
+                "n": s["n"],
+                "news_lost": lost,
+                "p90_delay_min": p90,
+                "eligible": not reasons,
+                "reasons": reasons,
+            }
+        )
+    eligible = [c for c in candidates if c["eligible"]]
+    best = max(
+        eligible,
+        key=lambda c: (c["precision"] if c["precision"] is not None else -1, c["max_anon_share"]),
+    )
+    return {"chosen": best["max_anon_share"], "candidates": candidates}
+
+
+def folds(start: datetime, split: datetime, end: datetime) -> list[dict[str, Any]]:
+    """Two halves of the lake, each used once to choose and once to check.
+
+    The first fold chooses on the earlier half and checks on the later one, as a real
+    deployment would (choose on the past, run on the future): its value is the one used.
+    The second, reversed, fold shows whether the other half would choose the same.
+    """
+    return [
+        {"name": "earlier -> later", "choose": (start, split), "evaluate": (split, end)},
+        {"name": "later -> earlier", "choose": (split, end), "evaluate": (start, split)},
+    ]
+
+
+def compact_rows(rows: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """`rule_results` rows without the lists of dropped bursts (for the fold tables)."""
+    return [
+        {
+            **row,
+            "sets": {
+                name: {k: v for k, v in s.items() if k != "dropped"}
+                for name, s in row["sets"].items()
+            },
+        }
+        for row in rows
+    ]
+
+
+def held_out(
+    runs: dict[float, list[SpikeRecord]],
+    sets: dict[str, list[LabeledBurst]],
+    periods: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    """Each fold's choice (on its `choose` half) and every value's numbers on its other
+    half; pooled over the folds, the held-out numbers of the value each fold chose."""
+    reports = []
+    pooled = {"news": 0, NOT_NEWS: 0, "news_found_before": 0, "news_found": 0}
+    for fold in periods:
+        choice = choose_value(rule_results(runs, sets, *fold["choose"]))
+        evaluated = compact_rows(rule_results(runs, sets, *fold["evaluate"]))
+        chosen = next(r for r in evaluated if r["max_anon_share"] == choice["chosen"])
+        for key in pooled:
+            pooled[key] += chosen["sets"]["human"][key]
+        reports.append({**fold, "choice": choice, "evaluated": evaluated})
+    n = pooled["news"] + pooled[NOT_NEWS]
+    interval = wilson(pooled["news"], n)
+    return {
+        "folds": reports,
+        "chosen": reports[0]["choice"]["chosen"],
+        "pooled_human": {
+            **pooled,
+            "n": n,
+            "precision": share(pooled["news"], n) if n else None,
+            "interval": list(interval) if interval else None,
+        },
+    }
 
 
 # --- The analysis ---------------------------------------------------------------------
@@ -564,9 +699,15 @@ def analyse(inputs: Inputs, settings: Settings) -> dict[str, Any]:
             for name, bursts in sets.items()
             if not name.startswith("gate")
         }
+        end = hours[-1] + timedelta(hours=1)
+        lake = rule_results(by_value, lake_sets, scored_from)
         report["rules"] = {
             "scored_from": scored_from,
-            "lake": rule_results(by_value, lake_sets, scored_from),
+            "scored_to": end,
+            "max_p90_delay_min": MAX_P90_DELAY_MIN,
+            "lake": lake,
+            "in_sample_choice": choose_value(lake)["chosen"],
+            "held_out": held_out(by_value, lake_sets, folds(scored_from, SPLIT_AT, end)),
             "gate": gate_results(inputs.fixture, inputs.gate_labels),
         }
     return report
@@ -606,6 +747,14 @@ def render_sets(report: dict[str, Any]) -> Iterable[str]:
         )
 
 
+def resamples_note(row: dict[str, Any]) -> str:
+    """Says how many bootstrap resamples an interval rests on, when some were left out."""
+    used, wanted = row.get("resamples_used"), row.get("resamples")
+    if used is None or wanted is None or used >= wanted:
+        return ""
+    return f" ({used} of {wanted} resamples had both classes)"
+
+
 def render_signals(name: str, table: Sequence[dict[str, Any]]) -> Iterable[str]:
     yield f"### {name}"
     yield ""
@@ -615,7 +764,8 @@ def render_signals(name: str, table: Sequence[dict[str, Any]]) -> Iterable[str]:
         yield (
             f"| {row['signal']} | {row['moment']} | {row['n_news']} / {row['n_not_news']} | "
             f"{num(row['mean_news'])} | {num(row['mean_not_news'])} | {num(row['auc'])} "
-            f"[{num(row['auc_low'])}, {num(row['auc_high'])}] | {row['verdict']} |"
+            f"[{num(row['auc_low'])}, {num(row['auc_high'])}] | {row['verdict']}"
+            f"{resamples_note(row)} |"
         )
     yield ""
 
@@ -670,6 +820,79 @@ def render_rules(rules: dict[str, Any], current: float) -> Iterable[str]:
             f"| {row['max_anon_share']} | {row['spikes']} | {num(row['precision'], 3)} | "
             f"{num(row['recall'], 3)} ({row['found']} of {row['news_bursts']}) |"
         )
+    yield ""
+
+
+def fold_cells(row: dict[str, Any], name: str) -> str:
+    """Precision (n) and news bursts lost for one label set, as two table cells."""
+    s = row["sets"][name]
+    lost = s["news_found_before"] - s["news_found"]
+    return (
+        f" {pct(s['precision'])}{interval_text(s['interval'])} ({s['n']}) |"
+        f" {lost} of {s['news_found_before']} |"
+    )
+
+
+def render_fold(fold: dict[str, Any]) -> Iterable[str]:
+    (c_from, c_to), (e_from, e_to) = fold["choose"], fold["evaluate"]
+    choice = fold["choice"]
+    yield (
+        f"#### Fold {fold['name']}: choose on {c_from:%Y-%m-%d %H:%M} to {c_to:%Y-%m-%d %H:%M}"
+        f", check on {e_from:%Y-%m-%d %H:%M} to {e_to:%Y-%m-%d %H:%M} UTC"
+    )
+    yield ""
+    yield f"Chosen on the first period: **{choice['chosen']}**."
+    yield ""
+    yield (
+        "| `max_anon_share` | Choose: precision, human (n) | Choose: human news lost | "
+        "Choose: p90 delay (min) | Eligible | Check: spikes | Check: precision, human (n) | "
+        "Check: human news lost | Check: precision, llm (n) | Check: llm news lost | "
+        "Check: delay median / p90 (min) |"
+    )
+    yield "|---|---|---:|---:|---|---:|---|---:|---|---:|---|"
+    for candidate, row in zip(choice["candidates"], fold["evaluated"], strict=True):
+        mark = " (chosen)" if candidate["max_anon_share"] == choice["chosen"] else ""
+        n = candidate["n"]
+        st = row["starts"]
+        eligible = "yes" if candidate["eligible"] else "no: " + "; ".join(candidate["reasons"])
+        yield (
+            f"| {candidate['max_anon_share']}{mark} | {pct(candidate['precision'])} ({n}) | "
+            f"{candidate['news_lost']} | {num(candidate['p90_delay_min'], 1)} | {eligible} | "
+            f"{row['spikes']} |" + fold_cells(row, "human") + fold_cells(row, "llm") + " "
+            f"{num(st['later_median_min'], 1)} / {num(st['later_p90_min'], 1)} |"
+        )
+    yield ""
+
+
+def render_held_out(rules: dict[str, Any]) -> Iterable[str]:
+    held = rules["held_out"]
+    yield "### Choosing on one half, checking on the other"
+    yield ""
+    yield (
+        "The choosing rule (`choose_value`): of the values that lose none of the period's "
+        "human-labeled news bursts and whose held-back spikes start at most "
+        f"{rules['max_p90_delay_min']:g} minutes late (p90), the one with the highest human "
+        "precision; on a tie, the looser value. It is applied to one half of the lake and "
+        "the value it picks is checked on the other half, which played no part in the "
+        "choice. The first fold (choose on the past, check on the future) gives the value "
+        "used; the second shows whether the other half agrees. 'News lost' counts labeled "
+        "news bursts the rule-off run found and this value's run doesn't."
+    )
+    yield ""
+    for fold in held["folds"]:
+        yield from render_fold(fold)
+    pooled = held["pooled_human"]
+    yield (
+        "Held out, pooled over both folds (each half judged with the value the other half "
+        f"chose), human labels: precision {pct(pooled['precision'])}"
+        f"{interval_text(pooled['interval'])} (n = {pooled['n']}), news bursts lost "
+        f"{pooled['news_found_before'] - pooled['news_found']} of {pooled['news_found_before']}."
+    )
+    yield ""
+    yield (
+        f"For comparison, the same rule applied to the whole period (in sample) picks "
+        f"{rules['in_sample_choice']}."
+    )
     yield ""
 
 
@@ -741,10 +964,13 @@ def render_markdown(report: dict[str, Any]) -> str:
     ]
     rules = report.get("rules")
     if rules:
-        current = report["current_max_anon_share"]
+        chosen = rules["held_out"]["chosen"] if "held_out" in rules else None
+        chosen = report["current_max_anon_share"] if chosen is None else chosen
         lines += ["## Candidate rule: `max_anon_share` in the detector", ""]
-        lines += list(render_rules(rules, current))
-        lines += list(render_dropped(rules, current))
+        lines += list(render_rules(rules, chosen))
+        if "held_out" in rules:
+            lines += list(render_held_out(rules))
+        lines += list(render_dropped(rules, chosen))
     return "\n".join(lines).rstrip() + "\n"
 
 

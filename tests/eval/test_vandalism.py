@@ -280,3 +280,118 @@ def test_the_markdown_report_has_every_section(tmp_path: Path) -> None:
     assert "- Vandal (2026-11-07 02:00 UTC): not news" in text
     json_path, md_path = vandalism.write_report(report, tmp_path, at(16).date())
     assert md_path.name == "2026-11-16_vandalism.md" and json_path.exists()
+
+
+# --- Choosing on one half, checking on the other ---
+
+
+def candidate_row(value: float, news: int, not_news: int, lost: int, p90: float | None) -> dict:
+    """A `rule_results` row with only what `choose_value` reads."""
+    human = {
+        "precision": news / (news + not_news),
+        "n": news + not_news,
+        "news_found_before": 5,
+        "news_found": 5 - lost,
+    }
+    return {"max_anon_share": value, "starts": {"later_p90_min": p90}, "sets": {"human": human}}
+
+
+def test_the_choosing_rule_needs_no_news_lost_and_a_short_delay() -> None:
+    rows = [
+        candidate_row(1.0, 5, 15, 0, None),
+        candidate_row(0.6, 5, 10, 0, 4.0),
+        candidate_row(0.5, 5, 8, 1, 3.0),  # loses a news burst
+        candidate_row(0.4, 5, 5, 0, 30.0),  # holds spikes back too long
+    ]
+    choice = vandalism.choose_value(rows, max_p90_delay=10)
+    assert choice["chosen"] == 0.6
+    reasons = {c["max_anon_share"]: c["reasons"] for c in choice["candidates"]}
+    assert reasons[0.5] == ["loses 1 human news burst(s)"]
+    assert reasons[0.4] == ["p90 delay 30.0 min > 10"]
+    assert reasons[1.0] == reasons[0.6] == []
+
+
+def test_the_choosing_rule_takes_the_looser_value_on_a_tie() -> None:
+    rows = [candidate_row(1.0, 5, 15, 0, None), candidate_row(0.5, 5, 5, 0, 2.0)]
+    rows.append(candidate_row(0.4, 5, 5, 0, 2.0))
+    assert vandalism.choose_value(rows)["chosen"] == 0.5
+
+
+def test_the_rule_switched_off_is_chosen_when_nothing_else_qualifies() -> None:
+    rows = [candidate_row(1.0, 5, 15, 0, None), candidate_row(0.5, 5, 5, 2, 2.0)]
+    assert vandalism.choose_value(rows)["chosen"] == 1.0
+
+
+def test_rule_results_can_score_one_period_only() -> None:
+    bursts = [burst("Early", 1, "news"), burst("Late", 5, "not news")]
+    off = [spike("Early", at(7, 1.1)), spike("Late", at(7, 5.1))]
+    rows = vandalism.rule_results({1.0: off}, {"human": bursts}, at(7, 0), at(7, 3))
+    human = rows[0]["sets"]["human"]
+    assert rows[0]["spikes"] == 1 and (human["news"], human["not news"]) == (1, 0)
+    assert rows[0]["starts"]["same_start"] == 1
+
+
+def test_the_folds_swap_the_two_halves() -> None:
+    first, second = vandalism.folds(at(3), at(6), at(11))
+    assert (first["choose"], first["evaluate"]) == ((at(3), at(6)), (at(6), at(11)))
+    assert (second["choose"], second["evaluate"]) == ((at(6), at(11)), (at(3), at(6)))
+
+
+def test_held_out_judges_each_half_by_the_value_the_other_half_chose() -> None:
+    # Early half: the rule (0.5) drops a not-news burst and keeps the news one.
+    # Late half: the rule drops a news burst, so that half would keep it off.
+    human = [
+        burst("Early news", 1, "news"),
+        burst("Early vandal", 2, "not news"),
+        burst("Late news", 7, "news"),
+        burst("Late vandal", 8, "not news"),
+    ]
+    off = [spike(b.title, b.first_edit_at + timedelta(minutes=6)) for b in human]
+    on = [off[0], off[3]]
+    periods = vandalism.folds(at(7, 0), at(7, 6), at(7, 12))
+    result = vandalism.held_out({1.0: off, 0.5: on}, {"human": human, "llm": []}, periods)
+    assert [f["choice"]["chosen"] for f in result["folds"]] == [0.5, 1.0]
+    assert result["chosen"] == 0.5
+    # The late half judged with 0.5 (chosen early): 0 news of 1 spike, 1 news burst lost.
+    # The early half judged with 1.0 (chosen late): 1 news of 2 spikes, none lost.
+    pooled = result["pooled_human"]
+    assert (pooled["news"], pooled["not news"]) == (1, 2)
+    assert (pooled["news_found_before"], pooled["news_found"]) == (2, 1)
+    assert "dropped" not in result["folds"][0]["evaluated"][0]["sets"]["human"]
+
+
+def test_the_bootstrap_says_how_many_resamples_it_used() -> None:
+    rows = [(True, 0.0)] + [(False, 1.0)] * 9  # one news burst: many resamples lack it
+    low, high, used = vandalism.auc_interval(rows, resamples=200, seed=1)
+    assert low == high == 1.0
+    assert 0 < used < 200
+    assert vandalism.auc_interval([(True, 0.0), (False, 1.0)] * 20, 50, 1)[2] == 50
+
+
+def test_the_report_shows_both_folds_and_the_held_out_numbers() -> None:
+    human = [burst("Early news", 1, "news"), burst("Early vandal", 2, "not news")]
+    human.append(burst("Late news", 7, "news"))
+    off = [spike(b.title, b.first_edit_at + timedelta(minutes=6)) for b in human]
+    runs = {1.0: off, 0.5: [off[0], off[2]]}
+    sets = {"human": human, "llm": []}
+    periods = vandalism.folds(at(7, 0), at(7, 6), at(7, 12))
+    report = {
+        "lake": {"prefix": "history/edits", "from": at(3), "to": at(10)},
+        "sets": {},
+        "signals": {},
+        "current_max_anon_share": 1.0,
+        "rules": {
+            "scored_from": at(7, 0),
+            "max_p90_delay_min": 10.0,
+            "lake": vandalism.rule_results(runs, sets, at(7, 0)),
+            "in_sample_choice": 0.5,
+            "held_out": vandalism.held_out(runs, sets, periods),
+            "gate": [],
+        },
+    }
+    text = vandalism.render_markdown(report)
+    assert "### Choosing on one half, checking on the other" in text
+    assert "#### Fold earlier -> later" in text and "#### Fold later -> earlier" in text
+    assert "| 0.5 (chosen) |" in text
+    assert "Held out, pooled over both folds" in text
+    assert "### Labeled bursts the rule drops (`max_anon_share` = 0.5)" in text
