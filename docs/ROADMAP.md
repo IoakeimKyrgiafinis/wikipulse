@@ -65,7 +65,7 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 09c | Full CI/CD pipeline | done |
 | 10 | Polish and presentation | done |
 | 11a | Fix the classifier's training/serving skew | done |
-| 11b | Fresh labels for weekly retraining | ready |
+| 11b | Fresh labels for weekly retraining | done |
 | 11c | A vandalism signal for spike detection | ready |
 | 12a | Better Cypher generation for question answering | ready |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
@@ -102,23 +102,6 @@ Known problems that were too large for the spec that found them. Each needs its 
   on the test days isn't flagged as having an unfair advantage. *Proposed fix:* match on
   the page and an overlap of the bursts (`first_edit_at` to the end) instead of the id,
   or ignore it once the champion is a serving-mode model (then the ids agree).
-- **Weekly retraining needs fresh labels** (found while fixing 07c). The retraining DAG
-  now extends the history lake every week (`extend_history`), but the newest spikes have
-  no LLM labels and their portal days are not final yet, so most new rows have an unknown
-  label and the test split (the newest days) shrinks (dataset v4: 68 labeled and 105
-  unknown test rows). *Impact:* a weekly run can reject
-  for "too few labeled test rows" although the data is new. *Proposed fix:* a labeling
-  task in the DAG before `build_dataset` (`wikipulse.eval.label` on the new spikes of
-  run `07a-default`, which serving-mode datasets use since 11a, within an LLM budget),
-  and a label delay. Part of the delay exists since 11a: in serving mode the test split
-  is the newest days whose portal is final at the as-of moment, and later days wait
-  (`assign_final_splits`); "and whose spikes are labeled" is still to do. *Labeler
-  model:* every LLM spike label so far (640) is `ollama:qwen3:4b`, but the default
-  `EVAL_LABEL_MODEL` is `ollama:qwen3:8b`, and it is shared with the extraction judge
-  and the grouping labeler, whose labels are `qwen3:8b`; so 11a left the default alone.
-  The DAG task should pass `--model ollama:qwen3:4b` (or get its own setting), or the
-  weekly labels will come from another model than the existing ones.
-
 - **The detection eval gate's labels are unreviewed** (found in the 09c review; *checked,
   not fixed* by spec 12b). The CI gate (`wikipulse.eval.gate`) scores against
   `evals/labels/detection_gate_labels.jsonl`: 167 of its 180 labels are `qwen3:8b` labels
@@ -145,7 +128,11 @@ Known problems that were too large for the spec that found them. Each needs its 
   pairs). *Impact:* every LLM-label precision in 02b reads about 20 points too high, and
   the news classifier (07b onward) is trained and tested on these labels. *Proposed fix:*
   a labeler prompt change (out of scope for 12b) measured with `wikipulse.eval.audit`
-  against the human labels, then relabeling.
+  against the human labels, then relabeling. Since spec 11b the weekly retraining adds
+  `qwen3:4b` labels itself (`label_new_spikes`, `ML_RETRAIN_LABEL_MODEL`), so the biased
+  labels grow every week until the prompt is fixed; a new prompt would also need its
+  own model setting value or a way to relabel (the task skips any spike some label
+  already covers).
 - **No human QA judgements, and no paid-judge step** (found by spec 12b). The audit
   counts 0 human correctness or faithfulness judgements, so the QA numbers are judge-only.
   The spec's optional stronger judge (the `anthropic` backend, allowed only with
