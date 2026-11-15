@@ -18,6 +18,8 @@ A live system that detects breaking news from Wikipedia's edit stream, builds a 
 | 8. Kubernetes, Helm, Terraform | Cluster deployment, Helm chart, Terraform | Whole system runs on a local cluster |
 | 9. Observability and CI/CD | Prometheus, Grafana, Loki, full pipeline | Dashboards live; pipeline goes from commit to deployment |
 | 10. Polish | Cleanup, one-command setup | A stranger can run it and understand it |
+| 11. Model quality | Skew fix, fresh labels in retraining, vandalism signal | Classifier trained the way it serves; precision up on the gate |
+| 12. AI quality | Better Cypher, judge audit, fine-tuned extractor | Numbers checked against human labels; failures down |
 
 Your 16 GB laptop won't run every component at once, and doesn't need to: each stage can be run and demonstrated on its own.
 
@@ -31,7 +33,7 @@ While it runs, read the learning notes as they appear. That's where you learn th
 
 ## Specs
 
-All specs are ready. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
+Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are ready. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
 
 | # | Spec | Status |
 |---|---|---|
@@ -62,6 +64,12 @@ All specs are ready. Agents adapt later specs to what earlier stages actually bu
 | 09b | Logging and LLM tracing | done |
 | 09c | Full CI/CD pipeline | done |
 | 10 | Polish and presentation | done |
+| 11a | Fix the classifier's training/serving skew | ready |
+| 11b | Fresh labels for weekly retraining | ready |
+| 11c | A vandalism signal for spike detection | ready |
+| 12a | Better Cypher generation for question answering | ready |
+| 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | ready |
+| 12c | Fine-tune a small extraction model | ready |
 
 ## Follow-ups
 
