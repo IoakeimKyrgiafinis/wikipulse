@@ -19,12 +19,15 @@ uv run python -m wikipulse.ml.drift --run-id 07a-default --since 2026-11-08 --un
 
 | File | Role |
 |------|------|
-| `wikipulse/ml/cutoff.py` (new) | The one feature path both sides use: `at_cutoff()` (the `SpikeWindow` and the page's revision at the cutoff), `features_at_cutoff()` (leakage-checked features with the snapshot), `revision_at()` (moved here from `dataset.py`). |
-| `wikipulse/ml/serve.py` | `score_spikes()` and `model_inputs()` call `at_cutoff()` / `features_at_cutoff()`; `Prepared` now holds an `AtCutoff`. |
-| `wikipulse/ml/dataset.py` | `build_row()` and `fetch_snapshots()` call the same functions. New *mode* (`--mode`, `ML_DATASET_MODE`): `serving` (default) takes the rows from the default detector; `candidates` is the 07a behaviour. In serving mode, `final_days()` and `assign_final_splits()` make the test split from the newest days whose portal is final. The manifest records `mode`, `rows_from_run` and `split.delayed_days`. |
-| `wikipulse/ml/drift.py` | `--reference-dataset vN`: compare live scores with another dataset's training rows (here the new v5, before any model trained on it is champion). |
+| `wikipulse/ml/cutoff.py` (new) | The one feature path both sides use: `page_edit()` (a lake row or a stream event as a `PageEdit`), `spike_window()` and `at_cutoff()` (the `SpikeWindow` and the page's revision at the cutoff), `features_at_cutoff()` (leakage-checked features with the snapshot), `revision_at()` (moved here from `dataset.py`). |
+| `wikipulse/ml/pages.py` | `WikiPages` (moved here from `serve.py` after the review): the one way both sides fetch page snapshots. |
+| `wikipulse/ml/serve.py` | `score_spikes()` and `model_inputs()` call `at_cutoff()` / `features_at_cutoff()`; `Prepared` now holds an `AtCutoff`; `EditBuffer` converts edits with `cutoff.page_edit()`. |
+| `wikipulse/ml/dataset.py` | `build_row()`, `select_spikes()`, `page_edits()` and `fetch_snapshots()` call the same functions. New *mode* (`--mode`, `ML_DATASET_MODE`): `serving` (default) takes the rows from the default detector; `candidates` is the 07a behaviour. In serving mode, `final_days()` and `assign_final_splits()` make the test split from the newest days whose portal is final. The manifest records `mode`, `rows_from_run` and `split.delayed_days`. |
+| `wikipulse/ml/drift.py` | `--reference-dataset vN`: compare live scores with another dataset's training rows (here the new v5, before any model trained on it is champion). Stored under its own key (`drift_reports.reference_dataset`, migration 0010), never in place of the model's own report. |
+| `wikipulse/jobs/retrain.py`, `dags/retrain.py` | `step_build` turns a lake too short for serving mode (`dataset.NotEnoughData`) into a clear message and exit code `NO_DATASET`. |
 | `wikipulse/config.py`, `.env.example`, `docs/usage.md` | `ML_DATASET_MODE` (`serving` / `candidates`). |
-| `tests/ml/test_cutoff.py` (new) | The shared-features test, the impossible-values test (and its control in candidates mode), the final-days split, and the delay of days whose portal isn't final. |
+| `tests/ml/test_cutoff.py` (new) | The shared-features test, the end-to-end test (lake build vs. `LiveScorer` on a stream), the impossible-values test (and its control in candidates mode), the final-days split, and the delay of days whose portal isn't final. |
+| `tests/ml/test_dataset_s3.py`, `tests/jobs/test_retrain.py`, `tests/db/test_scores_db.py` | Review fixes: the S3 build in both modes, the too-short lake, drift comparisons stored apart. |
 | `tests/ml/test_drift.py` | The `--reference-dataset` option. |
 | `evals/labels/spike_labels.jsonl` | 186 new LLM labels (appended with `append_record` through `wikipulse.eval.label`; no line rewritten, no human label touched). |
 
@@ -87,6 +90,19 @@ no feature store; `wikipulse/ml/cutoff.py` is its small version: `at_cutoff()` a
 same page snapshot) and checks that all 43 features, the rule column and the model input
 table are equal. `test_both_sides_call_the_shared_functions` replaces
 `features_at_cutoff` with a spy and checks that both sides go through it.
+
+Those two tests hand both sides the *same* edits list and snapshot dict, so they can't
+see a difference in how each side *gets* its edits and pages (the 11a review). The live
+scorer reads edits from the Redis stream into an `EditBuffer` that forgets edits older
+than 26 hours; the dataset reads them from the lake. Both now convert edits with
+`cutoff.page_edit()` and fetch pages with `pages.WikiPages`, and
+`test_lake_dataset_and_stream_scorer_agree_end_to_end` runs the real production paths
+from their real inputs: `build()` on a local lake (a week of daily bursts, one page
+bursting every day so its 24-hour history matters) with a mocked MediaWiki API
+(`httpx.MockTransport`), and a `LiveScorer` reading the same edits from a fake stream
+that grows an hour at a time, polling a fake spikes table, pruning its buffer. Every
+row's features, cutoff and revision must equal the served ones. Shrinking the buffer to
+3 hours makes it fail, so it does watch the history.
 
 Sharing code alone wasn't enough, because the code was mostly shared already: 07a and
 07c both called `SpikeWindow(...)` and `check_no_leakage(...)`. The skew was in the
@@ -256,15 +272,66 @@ against two references:
 `detect_delay_min` and `edits_after_start`: all four were window features skewed by the
 earlier start. Two features still drift against v5: `page_age_days` (PSI 0.40) and
 `bytes_added` (0.26). They describe *which pages* spiked on 8 to 10 Nov (older pages,
-smaller edits), a real change in the news, not in how rows are made. The report against
-v5 is stored in `drift_reports`.
+smaller edits), a real change in the news, not in how rows are made.
+
+The report against v5 was first stored in `drift_reports` under the same key as v3's own
+monitoring report for that period, and replaced it: the drift metrics then showed v3 as
+`ok`. Fixed after the review (migration 0010, `reference_dataset` in the key; the metrics
+read only `reference_dataset = ''`). v3's own 8 to 11 Nov report was recomputed (`drift`,
+11 features, `edits_before_start` PSI 2.951, as before) and the v5 comparison is stored
+next to it under `reference_dataset = 'v5'`.
 
 On 02b-baseline (202 scores, 4 to 7 Nov) the PSI of `edits_before_start` drops from
 2.855 to 0.047 and the drifted features from 3 to 0. Those days overlap v5's training
 days, so this sample is partly in-sample and shows less than the 8 to 10 Nov one.
 
-**Checks**: `uv run pytest` passed: 1,325 passed, 1 skipped, 79 deselected. `ruff check
-.` and `ruff format --check .` are clean.
+**Checks** (after the review fixes): `uv run pytest`, `uv run pytest -m integration
+tests/ml`, `ruff check .` and `ruff format --check .` all pass: 1,328 passed, 1 skipped, 81
+deselected; the 3 integration tests of `tests/ml` pass (and `tests/db`, `tests/metrics`
+with `-m integration`).
+
+## Fixes after the review
+
+- **CI was red.** `tests/ml/test_dataset_s3.py` built in the new default mode, and its
+  days had no final portal at the default as-of. The test now pins `mode="candidates"`
+  (it tests the 07a behaviour, unchanged), and a new
+  `test_serving_build_on_s3_and_postgres` builds in serving mode with `--as-of` late
+  enough for final test days, against the real S3 server and Postgres.
+- **The cost of the serving default for the weekly DAG.** A day is a test day only once
+  every portal day its spikes depend on (up to 48 h later) is final, 3 days after it
+  begins: about 5 days after the day starts (`FINAL_LAG_DAYS`). The weekly build is as of
+  the end of the lake, so the newest ~5 days are delayed and **the test split lags the
+  lake by about a week**. And the lake's last contiguous stretch must be at least about
+  10 days (`minimum_days()`: warm-up, 1 training, `ML_VALID_DAYS`, `ML_TEST_DAYS`, plus
+  the lag). Before, a shorter lake crashed `build_dataset` with a bare `ValueError`. Now
+  `assign_final_splits` raises `NotEnoughData`, `build` adds the stretch, the minimum and
+  what to do (fill the gap with `wikipulse.lake.backfill`, wait, or `--mode candidates`),
+  and `step_build` logs it and exits with `NO_DATASET` (3). I chose to *fail* rather than
+  fall back to candidates mode: a fallback would silently train a skewed model again,
+  and a failed task is visible in Airflow; the champion simply stays for that week.
+  Tests: a 7-day lake fails with the message, an 11-day lake builds with 4 delayed days.
+- **Drift reports overwrote each other** (see Results, Drift).
+- **Edit conversion and snapshot fetching were still two copies** (`serve.page_edit` vs.
+  `dataset.page_edits`, `WikiPages.snapshots` vs. `fetch_snapshots`). Now one each
+  (`cutoff.page_edit`, `pages.WikiPages`), and `select_spikes` uses
+  `cutoff.spike_window` instead of a private `window_of`. One small change in the shared
+  code: `revision_at` breaks same-second ties by revision id, so the stream's order and
+  the lake's order can't pick different revisions.
+- **The labeler default stays `qwen3:8b`.** All spike labels are `qwen3:4b`, but
+  `EVAL_LABEL_MODEL` is also the extraction judge's and the grouping labeler's model,
+  whose labels are `qwen3:8b`; changing it would switch those. The ROADMAP 11b follow-up
+  now says the DAG's labelling task must pass `--model ollama:qwen3:4b` (or get its own
+  setting).
+- **v6's provenance.** Its tags said `trigger=weekly retraining`, `retrain_key=
+  retrain-2026-11-09`, but it was a manual run on 15 Nov. The tags on the version, its
+  training run and its evaluation run now say `retrain_key=manual-11a-2026-11-15` and a
+  manual trigger, so a later weekly run for that week won't mistake v6 for its own
+  challenger (`existing_challenger` matches on `retrain_key`).
+- **`rows_seen_by` matching on spike ids** is now a ROADMAP follow-up.
+- Not fixed (low, not in the list): v5's labels hash matches no commit (it was built
+  from a working tree with the human's uncommitted labels), and the drift reference
+  description "training rows the live default detector also found" is redundant in
+  serving mode.
 
 ## Open points
 

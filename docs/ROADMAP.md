@@ -86,7 +86,22 @@ Known problems that were too large for the spec that found them. Each needs its 
   Until a model trained in serving mode is promoted, weekly drift reports (which compare
   with the champion's own training data) keep flagging `edits_before_start`. *Proposed
   fix:* nothing to build; the next weekly retraining trains on serving-mode data, and
-  this item can be removed once such a model is champion.
+  this item can be removed once such a model is champion. *Cost of the serving default:*
+  a day becomes a test day only once its portal days are final, about 5 days after it
+  ends, so the weekly build's test split lags the end of the lake by about a week (the
+  newest ~5 days are `delayed_days` in the manifest), and a lake whose last contiguous
+  stretch is shorter than about 10 days makes no dataset at all: `build_dataset` then
+  fails with a message saying what to do (fill the gap, wait, or `--mode candidates`),
+  and nothing is retrained that week.
+- **The champion overlap guard can't see serving-mode rows** (found in the 11a review).
+  `rows_seen_by` (`wikipulse/jobs/retrain.py`) counts the challenger's test rows the
+  champion trained or validated on by `spike_id` (`title|started_at`). A candidates-mode
+  champion (v3, dataset v2) has ids with the candidate detector's start times, which
+  differ from the default detector's, so the guard reports 0 for any serving-mode test
+  split even where the champion saw the same burst. *Impact:* a champion that trained
+  on the test days isn't flagged as having an unfair advantage. *Proposed fix:* match on
+  the page and an overlap of the bursts (`first_edit_at` to the end) instead of the id,
+  or ignore it once the champion is a serving-mode model (then the ids agree).
 - **Weekly retraining needs fresh labels** (found while fixing 07c). The retraining DAG
   now extends the history lake every week (`extend_history`), but the newest spikes have
   no LLM labels and their portal days are not final yet, so most new rows have an unknown
@@ -97,7 +112,12 @@ Known problems that were too large for the spec that found them. Each needs its 
   run `07a-default`, which serving-mode datasets use since 11a, within an LLM budget),
   and a label delay. Part of the delay exists since 11a: in serving mode the test split
   is the newest days whose portal is final at the as-of moment, and later days wait
-  (`assign_final_splits`); "and whose spikes are labeled" is still to do.
+  (`assign_final_splits`); "and whose spikes are labeled" is still to do. *Labeler
+  model:* every LLM spike label so far (640) is `ollama:qwen3:4b`, but the default
+  `EVAL_LABEL_MODEL` is `ollama:qwen3:8b`, and it is shared with the extraction judge
+  and the grouping labeler, whose labels are `qwen3:8b`; so 11a left the default alone.
+  The DAG task should pass `--model ollama:qwen3:4b` (or get its own setting), or the
+  weekly labels will come from another model than the existing ones.
 
 - **The detection eval gate's labels are unreviewed** (found in the 09c review). The CI
   gate (`wikipulse.eval.gate`) scores against `evals/labels/detection_gate_labels.jsonl`:
