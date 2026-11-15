@@ -17,7 +17,10 @@
    every week would rebuild the same dataset from the same edits. Skipped for the live
    archive (`LAKE_PREFIX`), which the archiver extends itself.
 3. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
-   line printed is its name, which the DAG hands to the next steps.
+   line printed is its name, which the DAG hands to the next steps. In serving mode (the
+   default) the test split is the newest days whose portal is final, so it lags the
+   end of the lake by about a week; a lake whose last contiguous stretch is shorter than
+   about 10 days makes no dataset, and the step fails with a message saying what to do.
 4. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
    same fixed rule (`ML_SELECT_RULE`) but on the *validation* split, so the test split
    is not used to pick the challenger and stays a fair ground for step 4. The chosen one
@@ -225,12 +228,27 @@ def step_extend(settings: Settings, lake_prefix: str | None) -> int:
     return 0
 
 
-def step_build(settings: Settings, lake_prefix: str | None) -> int:
-    """The `build_dataset` task: build a dataset version; returns the exit code."""
-    from wikipulse.ml.dataset import BuildOptions, build
+NO_DATASET = 3  # step_build's exit code when the lake is too short for a dataset
+
+
+def step_build(settings: Settings, lake_prefix: str | None, options: Any = None) -> int:
+    """The `build_dataset` task: build a dataset version; returns the exit code.
+
+    In serving mode (the default since spec 11a) the test split is the newest days whose
+    portal is final, about 5 days after they end, so the lake's last contiguous stretch
+    must be about 10 days long. When it is shorter (a new lake, or a gap in it) no
+    dataset can be built: the step logs why and what to do, and exits with `NO_DATASET`,
+    which fails the task, so the week's training, evaluation and promotion don't run and
+    the champion stays. `options` (a `BuildOptions`) is for tests.
+    """
+    from wikipulse.ml.dataset import BuildOptions, NotEnoughData, build
 
     logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)  # a line per spike
-    version = build(BuildOptions(lake_prefix=lake_prefix or None), settings)
+    try:
+        version = build(options or BuildOptions(lake_prefix=lake_prefix or None), settings)
+    except NotEnoughData as error:
+        logger.error("No dataset built, nothing retrained this week: %s", error)
+        return NO_DATASET
     print(version, flush=True)  # the last line: the DAG passes it on (XCom)
     return 0
 

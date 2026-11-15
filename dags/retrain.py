@@ -14,6 +14,12 @@ One run per week (Monday 00:00 to Monday 00:00 UTC), started after the week ends
   stream's retained history, so each week's dataset includes the newest edits. It is
   a no-op when the lake is current, or when `lake_prefix` is the live archive.
 - `build_dataset` builds a new dataset version from the lake and hands its name on.
+  Its rows are the live detector's spikes (serving mode, spec 11a); the test split is
+  the newest days whose "Current events" portal is final (about 5 days after a day
+  ends), so it lags the lake by about a week. If the lake's last contiguous stretch is
+  shorter than about 10 days (a new lake, or a gap), the task fails with a message
+  saying what to do (fill the gap, wait, or build in candidates mode) and nothing
+  downstream runs: the champion stays.
 - `train_challenger` trains the models of spec 07b on it and registers the chosen one as
   a new version with the alias `@challenger`.
 - `evaluate_against_champion` scores champion and challenger on the same labeled test

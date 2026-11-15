@@ -2,7 +2,7 @@
 champion/challenger comparison on the same rows, and the command line."""
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import numpy as np
@@ -201,3 +201,70 @@ def test_extend_backfills_the_missing_hours_and_skips_the_live_archive(monkeypat
     assert prefix == "history/edits" and since == utc(9, 22).isoformat()
     assert step_extend(settings, "edits") == 0  # the archiver's lake: not touched
     assert len(calls) == 1
+
+
+def short_lake_build(tmp_path, days: int, as_of: datetime | None = None):
+    """BuildOptions for a local lake of `days` days (1 Nov on), with a portal for all."""
+    import pyarrow.fs as pafs
+
+    from tests.lake.helpers import local_store
+    from tests.ml.test_dataset import burst, ticks
+    from wikipulse.eval.ground_truth import PortalDay
+    from wikipulse.lake.table import events_to_table
+    from wikipulse.ml.dataset import BuildOptions, DatasetStore
+
+    lake = local_store(tmp_path / "lake")
+    events = [e for d in range(1, days + 1) for e in ticks(d)]
+    events += [e for d in range(2, days + 1) for e in burst(d, f"News {d}", editors=6)]
+    by_hour: dict = {}
+    for event in events:
+        by_hour.setdefault(event.event_time.replace(minute=0, second=0), []).append(event)
+    for hour, rows in by_hour.items():
+        lake.write_hour(hour, events_to_table(rows))
+    start = date(2026, 10, 25)
+    return BuildOptions(
+        labels=tmp_path / "labels.jsonl",
+        use_db=False,
+        use_pages=False,
+        lake=lake,
+        datasets=DatasetStore(pafs.LocalFileSystem(), (tmp_path / "datasets").as_posix()),
+        portal=[PortalDay(start + timedelta(days=d), [], []) for d in range(20)],
+        as_of=as_of,
+    )
+
+
+BUILD_SETTINGS = {"ml_valid_days": 1, "ml_test_days": 2, "ml_warmup_hours": 24}
+
+
+def test_a_lake_too_short_for_final_test_days_fails_the_build_with_a_clear_message(
+    tmp_path, caplog, capsys
+):
+    """Serving mode, a 7-day lake as of its end: only 2 and 3 Nov are final, so there is
+    no validation or training day before the test days. No bare ValueError: the step
+    explains and exits with NO_DATASET (the DAG's training doesn't run)."""
+    from wikipulse.jobs.retrain import NO_DATASET, step_build
+
+    settings = Settings(_env_file=None, **BUILD_SETTINGS)
+    with caplog.at_level("ERROR"):
+        assert step_build(settings, None, short_lake_build(tmp_path, days=7)) == NO_DATASET
+    message = caplog.text
+    assert "No dataset built" in message
+    assert "last contiguous stretch is 7.0 days" in message
+    assert "needs about 10 days" in message
+    assert "lags the end of the lake by about a week" in message
+    assert "--mode candidates" in message
+    assert capsys.readouterr().out == ""  # no version name for the next task
+
+
+def test_a_long_enough_lake_builds_and_leaves_the_newest_days_for_later(tmp_path, capsys):
+    """The same lake, 11 days long: test days are the newest final ones (the ~5 newest
+    days are delayed), and the step prints the version for the next task."""
+    from wikipulse.jobs.retrain import step_build
+
+    settings = Settings(_env_file=None, **BUILD_SETTINGS)
+    options = short_lake_build(tmp_path, days=11)
+    assert step_build(settings, None, options) == 0
+    assert capsys.readouterr().out.strip().splitlines()[-1] == "v1"
+    manifest = options.datasets.manifest("v1")
+    assert manifest["splits"]["test"]["days"] == ["2026-11-06", "2026-11-07"]
+    assert manifest["split"]["delayed_days"] == [f"2026-11-{d:02d}" for d in range(8, 12)]

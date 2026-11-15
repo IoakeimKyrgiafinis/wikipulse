@@ -88,6 +88,47 @@ MODES = {
     CANDIDATES: "rows are the looser candidate detector's spikes (ML_CANDIDATE_DETECTOR)",
 }
 PORTAL_MARGIN_DAYS = 2  # portal days fetched around the data (the weak label's 48 h)
+# In serving mode a day can only be a test day once every portal day its spikes' weak
+# label depends on (up to 48 h after the spike, so up to 2 days later) is final, 3 days
+# after it began: about 5 days after the spike's day began. A build as of the end of the
+# data leaves the newest ~5 days out (delayed), so the test split lags the lake by about
+# a week, and the lake must be longer than that to make a dataset at all.
+FINAL_LAG_DAYS = 5
+
+
+class NotEnoughData(ValueError):
+    """The lake can't make the splits (too short, or no day with a final portal yet)."""
+
+
+def minimum_days(settings: Settings, mode: str) -> int:
+    """About how many days the lake's last contiguous stretch needs for a build."""
+    warmup = math.ceil(settings.ml_warmup_hours / 24)
+    splits = 1 + settings.ml_valid_days + settings.ml_test_days  # at least one training day
+    return warmup + splits + (FINAL_LAG_DAYS if mode == SERVING else 0)
+
+
+def not_enough_data(
+    reason: str, settings: Settings, mode: str, hours: Sequence[datetime], gaps: Sequence[datetime]
+) -> NotEnoughData:
+    """The error for a lake too short to build from, with what to do about it."""
+    days = len(hours) / 24
+    stretch = f"{hours[0]:%Y-%m-%d %H:00} to {hours[-1] + timedelta(hours=1):%Y-%m-%d %H:00}"
+    gap_text = f"; the gap before it ends at {gaps[-1]:%Y-%m-%d %H:00}" if gaps else ""
+    lag = (
+        f" In {SERVING} mode the newest ~{FINAL_LAG_DAYS} days wait for their portal to be "
+        "final, so the test split lags the end of the lake by about a week."
+        if mode == SERVING
+        else ""
+    )
+    return NotEnoughData(
+        f"{reason}. The lake's last contiguous stretch is {days:.1f} days ({stretch}"
+        f"{gap_text}); a {mode}-mode build needs about {minimum_days(settings, mode)} days "
+        f"(warm-up, {settings.ml_valid_days} validation, {settings.ml_test_days} test and at "
+        f"least one training day).{lag} To fix: fill the gap in the lake "
+        "(`python -m wikipulse.lake.backfill`, within the stream's retention), wait until "
+        "the lake has grown, or build with `--mode candidates` (skewed rows, see spec 11a)."
+    )
+
 
 # --- 1. edits from the lake -------------------------------------------------------------
 
@@ -364,7 +405,7 @@ def assign_splits(days: Iterable[str], valid_days: int, test_days: int) -> dict[
     """
     ordered = sorted(set(days))
     if len(ordered) <= valid_days + test_days:
-        raise ValueError(
+        raise NotEnoughData(
             f"{len(ordered)} days of spikes can't make {valid_days} validation and "
             f"{test_days} test days plus at least one training day"
         )
@@ -404,7 +445,7 @@ def assign_final_splits(
     ordered = sorted(set(days))
     finals = [day for day in ordered if day in final]
     if len(finals) < test_days:
-        raise ValueError(
+        raise NotEnoughData(
             f"only {len(finals)} days with a final portal ({finals}); the test split needs "
             f"{test_days}. Build later, or with a later --as-of"
         )
@@ -412,7 +453,7 @@ def assign_final_splits(
     delayed = [day for day in ordered if day > test[0] and day not in test]
     earlier = [day for day in ordered if day < test[0]]
     if len(earlier) <= valid_days:
-        raise ValueError(
+        raise NotEnoughData(
             f"{len(earlier)} days before the test days {test} can't make {valid_days} "
             "validation days plus at least one training day"
         )
@@ -823,7 +864,7 @@ def build(options: BuildOptions, settings: Settings) -> str:
     )
     hours, missing = contiguous_hours(lake.hours())
     if not hours:
-        raise ValueError(f"no edits in the lake at {lake.root}")
+        raise NotEnoughData(f"no edits in the lake at {lake.root}")
     if missing:
         logger.warning(
             "Gaps in the lake; using the hours from %s on (gaps at %s)", hours[0], missing
@@ -861,16 +902,19 @@ def build(options: BuildOptions, settings: Settings) -> str:
         portal = fetch_portal(settings, first, last, as_of)
     days = [day_of(s) for s in selected]
     delayed: list[str] = []
-    if mode == SERVING:  # the test split: the newest days whose portal is final
-        final = final_days(selected, portal, as_of)
-        split_of, delayed = assign_final_splits(
-            days, final, settings.ml_valid_days, settings.ml_test_days
-        )
-        if delayed:
-            logger.info("Delayed (portal not final at %s): %s", as_of, delayed)
-        selected = [s for s in selected if day_of(s) in split_of]
-    else:
-        split_of = assign_splits(days, settings.ml_valid_days, settings.ml_test_days)
+    try:
+        if mode == SERVING:  # the test split: the newest days whose portal is final
+            final = final_days(selected, portal, as_of)
+            split_of, delayed = assign_final_splits(
+                days, final, settings.ml_valid_days, settings.ml_test_days
+            )
+            if delayed:
+                logger.info("Delayed (portal not final at %s): %s", as_of, delayed)
+            selected = [s for s in selected if day_of(s) in split_of]
+        else:
+            split_of = assign_splits(days, settings.ml_valid_days, settings.ml_test_days)
+    except NotEnoughData as error:
+        raise not_enough_data(str(error).rstrip("."), settings, mode, hours, missing) from error
     split_as_of = split_label_as_of(split_of, as_of)
     gap = timedelta(hours=settings.ml_split_gap_hours)
     spikes, purged = purge_boundaries(selected, split_of, split_as_of, gap)
@@ -1071,7 +1115,11 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
             as_of=args.as_of,
         )
-        version = build(options, settings)
+        try:
+            version = build(options, settings)
+        except NotEnoughData as error:
+            logger.error("No dataset built: %s", error)
+            return 1
         if not options.dry_run:
             print(summary(DatasetStore.from_settings(settings).manifest(version)))
         return 0
