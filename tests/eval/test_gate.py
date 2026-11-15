@@ -10,7 +10,7 @@ import pytest
 
 from tests.eval.helpers import at, spike
 from wikipulse.config import DetectorConfig, Settings
-from wikipulse.detect.detector import is_revert
+from wikipulse.detect.detector import is_anonymous, is_revert
 from wikipulse.eval import gate
 from wikipulse.eval.label_store import load_labels, load_records
 from wikipulse.eval.metrics import Label
@@ -54,6 +54,27 @@ def test_a_fixture_round_trips_and_keeps_the_revert_flag(tmp_path: Path) -> None
     assert [e.user for e in events] == ["user-1", "user-2"]
     assert [is_revert(e.comment) for e in events] == [False, True]
     assert not any(e.is_bot for e in events)
+
+
+def test_a_fixture_keeps_whether_a_user_was_anonymous_but_not_who(tmp_path: Path) -> None:
+    info = gate.FixtureInfo("rec.jsonl", at(7, 0), at(7, 1), at(7, 2), 3, "note")
+    users = ["~2026-12345-67", "192.0.2.1", "Alice"]
+    lines = [
+        gate.compact_edit(edit("A", i, user=u), i + 1, revert=False) for i, u in enumerate(users)
+    ]
+    assert [line["a"] for line in lines] == [1, 1, 0]
+    path = tmp_path / "edits.jsonl.gz"
+    gate.write_fixture(path, info, lines)
+    text = gzip.open(path, "rt", encoding="utf-8").read()
+    assert not any(user in text for user in users)
+    _, events = gate.read_fixture(path)
+    assert [is_anonymous(e.user) for e in events] == [True, True, False]
+    assert [e.user for e in events] == ["~0000-1-0", "~0000-2-0", "user-3"]
+
+
+def test_a_fixture_line_without_the_flag_is_a_registered_user() -> None:
+    event = gate.edit_from_compact(0, {"t": at(7, 1).timestamp(), "p": "A", "u": 4, "r": 0})
+    assert event.user == "user-4" and not is_anonymous(event.user)
 
 
 def test_the_same_fixture_gives_the_same_bytes(tmp_path: Path) -> None:
@@ -208,7 +229,7 @@ def test_the_fixture_is_small_and_has_no_user_names() -> None:
     with gzip.open(FIXTURE, "rt", encoding="utf-8") as lines:
         next(lines)
         first = json.loads(next(lines))
-    assert set(first) == {"t", "p", "u", "r"} and isinstance(first["u"], int)
+    assert set(first) == {"t", "p", "u", "r", "a"} and isinstance(first["u"], int)
 
 
 def test_the_baseline_matches_the_committed_inputs(committed: tuple) -> None:

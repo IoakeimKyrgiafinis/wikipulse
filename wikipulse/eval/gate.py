@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 
 from wikipulse.config import DetectorConfig, get_settings
-from wikipulse.detect.detector import SpikeDetector, SpikeRecord
+from wikipulse.detect.detector import SpikeDetector, SpikeRecord, is_anonymous
 from wikipulse.eval.label_store import load_labels
 from wikipulse.eval.metrics import Label, pick_label, ratio
 from wikipulse.logging_setup import setup_logging
@@ -109,13 +109,26 @@ class FixtureInfo:
 
 
 def compact_edit(event: EditEvent, user_number: int, revert: bool) -> dict[str, Any]:
-    """One fixture line: event time, title, a numbered user, and the revert flag."""
+    """One fixture line: event time, title, a numbered user, the revert flag, and whether
+    the user was anonymous (a flag, never the IP address or account name)."""
     return {
         "t": round(event.event_time.timestamp(), 3),
         "p": event.title,
         "u": user_number,
         "r": int(revert),
+        "a": int(is_anonymous(event.user)),
     }
+
+
+def fixture_user(data: dict[str, Any]) -> str:
+    """The user name the detector sees for a fixture line.
+
+    Registered editors become `user-17`. Anonymous ones get a name shaped like a
+    temporary account (`~0000-17-0`), so `is_anonymous` recognises them as it does
+    live; lines of fixtures made before spec 11c have no flag and count as registered.
+    """
+    number = data["u"]
+    return f"~0000-{number}-0" if data.get("a") else f"user-{number}"
 
 
 def edit_from_compact(number: int, data: dict[str, Any]) -> EditEvent:
@@ -127,7 +140,7 @@ def edit_from_compact(number: int, data: dict[str, Any]) -> EditEvent:
         received_at=moment,
         title=data["p"],
         type="edit",
-        user=f"user-{data['u']}",
+        user=fixture_user(data),
         is_bot=False,
         is_minor=False,
         rev_old=None,
