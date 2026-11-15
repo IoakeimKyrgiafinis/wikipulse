@@ -249,15 +249,20 @@ def test_the_settings_defaults_reproduce_the_baseline(committed: tuple) -> None:
 
 
 def test_a_looser_threshold_fails_on_precision(committed: tuple) -> None:
-    config = DetectorConfig(min_edits=4, long_min_edits=8, long_min_editors=3)
+    # Spec 02b's loose thresholds. (Its medium ones, 4 edits and 8 / 3 on the long
+    # window, failed here before spec 11c; with the vandalism rule they stay within the
+    # 2-spike margin of the 15-spike baseline: see docs/learning/11c-vandalism-signal.md.)
+    config = DetectorConfig(min_edits=3, min_editors=2, long_min_edits=6, long_min_editors=2)
     result, failures = run_gate(committed, config)
     assert result.recall >= committed[3]["recall"]  # it finds more ...
     assert [f.split(" ")[0] for f in failures] == ["precision"]  # ... but mostly noise
 
 
 def test_lowering_min_edits_to_3_fails_on_precision(committed: tuple) -> None:
-    """The demonstration pull request of spec 09c: DETECT_MIN_EDITS 5 -> 3."""
-    _, failures = run_gate(committed, DetectorConfig(min_edits=3))
+    """The demonstration pull request of spec 09c: DETECT_MIN_EDITS 5 -> 3, on the
+    detector it was made for (before spec 11c's vandalism rule; with the rule, this
+    change alone stays within the margin, see docs/learning/11c-vandalism-signal.md)."""
+    _, failures = run_gate(committed, DetectorConfig(min_edits=3, max_anon_share=1.0))
     assert [f.split(" ")[0] for f in failures] == ["precision"]
 
 
@@ -289,4 +294,4 @@ def test_the_cli_passes_on_the_committed_baseline(
     summary = tmp_path / "summary.md"
     assert gate.main(["--markdown", str(summary)]) == 0
     assert "Detection eval gate: PASS" in summary.read_text("utf-8")
-    assert gate.main(["--set", "count_reverts=true"]) == 1
+    assert gate.main(["--set", "min_edits=3,min_editors=2"]) == 1
