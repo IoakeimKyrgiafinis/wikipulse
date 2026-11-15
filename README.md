@@ -11,6 +11,10 @@ Around that sits a full MLOps platform: a data lake, scheduled jobs, a news clas
 with a model lifecycle, Kubernetes, Helm, Terraform, monitoring and CI/CD. Everything
 runs on a laptop, for free.
 
+**Live demo:** [ioakeimkyrgiafinis.github.io/wikipulse](https://ioakeimkyrgiafinis.github.io/wikipulse/)
+replays the recorded 5 November 2026 in your browser (a static page from `site/`, no
+server; see `scripts/export_demo.py`).
+
 ![The live page while the quickstart replays 5 November 2026](docs/images/quickstart.gif)
 
 *The live page during the quickstart (pages filter set to 1+): events appear over the
@@ -269,5 +273,6 @@ Blog drafts built from the notes: [docs/blog/](docs/blog/).
 | `tests/` | Unit tests (no network, no Docker) and `integration`/`live` tests (opt in) |
 | `evals/` | Evaluation results, labels and the CI gate's baseline |
 | `demo/sample/` | The quickstart's recording |
+| `site/` | The static GitHub Pages demo: one recorded day replayed in the browser (`scripts/export_demo.py` writes its data) |
 | `charts/`, `k8s/`, `infra/`, `observability/`, `dags/`, `docker/` | Helm chart, raw manifests, Terraform, dashboards and alerts, Airflow DAGs, service images |
 | `docs/` | Roadmap, specs, reviews, learning notes, architecture, usage, blog drafts |
