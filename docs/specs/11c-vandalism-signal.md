@@ -1,6 +1,6 @@
 # Spec 11c: A vandalism signal for spike detection
 
-Status: blocked (owner decision: chosen on held-out data with a delay cap, the vandalism rule stays off, so gate precision does not rise; see docs/learning/11c-vandalism-signal.md)
+Status: blocked (the owner decided on 2026-11-16 to keep the vandalism rule off, as chosen on held-out data with a delay cap; gate precision therefore does not rise. Unblocks with human labels on the news bursts the rule drops and a delay measured on news bursts only; see docs/learning/11c-vandalism-signal.md)
 Stage: 11. Model quality
 Owner: agent
 Depends on: 11a
