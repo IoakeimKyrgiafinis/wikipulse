@@ -288,6 +288,11 @@ class FakeSpikesTable:
         return len(scores)
 
 
+def human_titles(events: list[EditEvent]) -> list[str]:
+    """Every page humans edited: a portal linking them all labels every spike (news)."""
+    return sorted({e.title for e in events if not e.is_bot})
+
+
 def e2e_settings(folder) -> Settings:
     return Settings(
         _env_file=None,
@@ -319,7 +324,11 @@ def test_lake_dataset_and_stream_scorer_agree_end_to_end(tmp_path, monkeypatch):
         use_db=False,
         lake=lake,
         datasets=store,
-        portal=[PortalDay(date(2026, 10, 29) + timedelta(days=d), [], []) for d in range(14)],
+        # every page linked, so every day counts as labeled (spec 11b's label delay)
+        portal=[
+            PortalDay(date(2026, 10, 29) + timedelta(days=d), human_titles(events), [])
+            for d in range(14)
+        ],
         as_of=datetime(2026, 11, 13, tzinfo=UTC),
         pages=WikiPages(settings, api),
     )
@@ -442,7 +451,8 @@ def synthetic_lake(tmp_path):
         )
     for h, rows in by_hour.items():
         lake.write_hour(h, events_to_table(rows))
-    portal = [PortalDay(date(2026, 11, d), [], []) for d in range(1, 11)]
+    # every page linked, so every day counts as labeled (spec 11b's label delay)
+    portal = [PortalDay(date(2026, 11, d), human_titles(events), []) for d in range(1, 11)]
     return lake, portal, tmp_path
 
 

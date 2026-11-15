@@ -203,8 +203,11 @@ def test_extend_backfills_the_missing_hours_and_skips_the_live_archive(monkeypat
     assert len(calls) == 1
 
 
-def short_lake_build(tmp_path, days: int, as_of: datetime | None = None):
-    """BuildOptions for a local lake of `days` days (1 Nov on), with a portal for all."""
+def short_lake_build(tmp_path, days: int, as_of: datetime | None = None, linked: bool = True):
+    """BuildOptions for a local lake of `days` days (1 Nov on), with a portal for all.
+
+    One "News <day>" burst a day from the 2nd. `linked`: the portal links every burst (so
+    every spike is labeled news); otherwise nothing is linked and the spikes need labels."""
     import pyarrow.fs as pafs
 
     from tests.lake.helpers import local_store
@@ -222,13 +225,15 @@ def short_lake_build(tmp_path, days: int, as_of: datetime | None = None):
     for hour, rows in by_hour.items():
         lake.write_hour(hour, events_to_table(rows))
     start = date(2026, 10, 25)
+    links = [f"News {d}" for d in range(2, days + 1)] if linked else []
     return BuildOptions(
         labels=tmp_path / "labels.jsonl",
         use_db=False,
         use_pages=False,
         lake=lake,
         datasets=DatasetStore(pafs.LocalFileSystem(), (tmp_path / "datasets").as_posix()),
-        portal=[PortalDay(start + timedelta(days=d), [], []) for d in range(20)],
+        # linked: the News bursts count as labeled (spec 11b's label delay)
+        portal=[PortalDay(start + timedelta(days=d), links, []) for d in range(20)],
         as_of=as_of,
     )
 
