@@ -245,12 +245,12 @@ A model that scores each spike ten minutes after it starts: "is this real news?"
 
 | Command | What it does |
 |---------|--------------|
-| `uv run python -m wikipulse.ml.dataset build` | Builds the next versioned, labeled dataset from the lake (`--dry-run` only reports; `list` shows the versions). |
+| `uv run python -m wikipulse.ml.dataset build` | Builds the next versioned, labeled dataset from the lake (`--dry-run` only reports; `list` shows the versions). `--mode serving` (default, `ML_DATASET_MODE`) uses the default detector's spikes, as served; `--mode candidates` the looser 07a candidates. |
 | `docker compose --profile mlflow up -d` | The MLflow tracking server and model registry at http://localhost:5000. |
 | `uv run python -m wikipulse.ml.train` | Trains and compares the four models on the newest dataset, tracked in MLflow, and registers the chosen one. |
 | `uv run python -m wikipulse.ml.registry show` | Model versions and aliases; `promote <version>` and `rollback` move the `champion` alias. |
 | `uv run python -m wikipulse.ml.serve` | Scores the live run's spikes with the champion (`backfill --run-id <run>` scores past ones). |
-| `uv run python -m wikipulse.ml.drift --run-id <run> --week-of <day>` | Compares a week's scored spikes with the training data (PSI with a noise floor). |
+| `uv run python -m wikipulse.ml.drift --run-id <run> --week-of <day>` | Compares a week's scored spikes with the training data (PSI with a noise floor). `--reference-dataset v5` compares with another dataset version's training rows (stored apart from the model's own report; the drift metrics read only the own one). |
 
 ## Stage 8: Kubernetes and Helm
 

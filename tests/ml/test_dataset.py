@@ -15,6 +15,7 @@ from wikipulse.eval.label_store import append_record, record_for
 from wikipulse.eval.metrics import Label
 from wikipulse.lake.table import events_to_table
 from wikipulse.ml import dataset as dataset_module
+from wikipulse.ml.cutoff import revision_at
 from wikipulse.ml.dataset import (
     DATASET_SCHEMA,
     BuildOptions,
@@ -30,7 +31,6 @@ from wikipulse.ml.dataset import (
     portal_status,
     purge_boundaries,
     resolve_as_of,
-    revision_at,
     rule_fired,
     select_spikes,
     split_label_as_of,
@@ -315,6 +315,7 @@ def offline_build(tmp_path):
     append_record(labels, record_for(labeled, "x", "news", "llm", at(9), model="ollama:test"))
     portal = [PortalDay(date(2026, 11, d), [f"News {d}"], [f"News {d}"]) for d in range(1, 9)]
     options = BuildOptions(
+        mode="candidates",  # these tests pin the 07a mode; serving mode: test_cutoff.py
         labels=labels,
         use_db=False,
         use_pages=False,

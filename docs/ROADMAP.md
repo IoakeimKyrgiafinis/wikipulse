@@ -64,7 +64,7 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 09b | Logging and LLM tracing | done |
 | 09c | Full CI/CD pipeline | done |
 | 10 | Polish and presentation | done |
-| 11a | Fix the classifier's training/serving skew | ready |
+| 11a | Fix the classifier's training/serving skew | done |
 | 11b | Fresh labels for weekly retraining | ready |
 | 11c | A vandalism signal for spike detection | ready |
 | 12a | Better Cypher generation for question answering | ready |
@@ -76,26 +76,48 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 Known problems that were too large for the spec that found them. Each needs its own spec
 (or a place in a later one) before it is fixed.
 
-- **Training/serving skew of the news classifier** (found in the 07c review). Training
-  rows are spikes of the looser *candidate* detector, with the feature window and cutoff
-  anchored at the candidate's start; serving scores spikes of the *default* detector,
-  which start later. Every window-based feature is measured at a different moment, and
-  values like `edits_before_start == 4` (46 of 152 default-rule training rows in dataset
-  v2) never occur when serving. *Impact:* the live news scores come from a distribution
-  the model wasn't trained on; drift monitoring flags `edits_before_start` every week.
-  *Proposed fix:* build training rows from the default detector's spikes (or score
-  candidate-detector spikes live), anchored and cut off exactly as `wikipulse.ml.serve`
-  does, as a new dataset version; retrain, compare with the champion, and re-check drift.
-  Labels for the new rows need the 02b labeler (`wikipulse.eval.label`) run on them.
+- **Training/serving skew of the news classifier** (found in the 07c review; *partly
+  fixed* by spec 11a). Fixed: training and serving compute features through one code
+  path (`wikipulse.ml.cutoff`), and datasets are now built from the default detector's
+  spikes (`ML_DATASET_MODE=serving`, dataset v5); on v5 as reference, the drift of
+  `edits_before_start` is gone (PSI 2.95 -> 0.08 on the 8-10 Nov scores). *Still open:*
+  the champion (v3) was trained on the skewed dataset v2; the serving-mode challenger
+  (v6) was rejected by the promotion rule (test AP 0.967 vs. 0.971 on the same 72 rows).
+  Until a model trained in serving mode is promoted, weekly drift reports (which compare
+  with the champion's own training data) keep flagging `edits_before_start`. *Proposed
+  fix:* nothing to build; the next weekly retraining trains on serving-mode data, and
+  this item can be removed once such a model is champion. *Cost of the serving default:*
+  a day becomes a test day only once its portal days are final, about 5 days after it
+  ends, so the weekly build's test split lags the end of the lake by about a week (the
+  newest ~5 days are `delayed_days` in the manifest), and a lake whose last contiguous
+  stretch is shorter than about 10 days makes no dataset at all: `build_dataset` then
+  fails with a message saying what to do (fill the gap, wait, or `--mode candidates`),
+  and nothing is retrained that week.
+- **The champion overlap guard can't see serving-mode rows** (found in the 11a review).
+  `rows_seen_by` (`wikipulse/jobs/retrain.py`) counts the challenger's test rows the
+  champion trained or validated on by `spike_id` (`title|started_at`). A candidates-mode
+  champion (v3, dataset v2) has ids with the candidate detector's start times, which
+  differ from the default detector's, so the guard reports 0 for any serving-mode test
+  split even where the champion saw the same burst. *Impact:* a champion that trained
+  on the test days isn't flagged as having an unfair advantage. *Proposed fix:* match on
+  the page and an overlap of the bursts (`first_edit_at` to the end) instead of the id,
+  or ignore it once the champion is a serving-mode model (then the ids agree).
 - **Weekly retraining needs fresh labels** (found while fixing 07c). The retraining DAG
   now extends the history lake every week (`extend_history`), but the newest spikes have
   no LLM labels and their portal days are not final yet, so most new rows have an unknown
   label and the test split (the newest days) shrinks (dataset v4: 68 labeled and 105
   unknown test rows). *Impact:* a weekly run can reject
   for "too few labeled test rows" although the data is new. *Proposed fix:* a labeling
-  task in the DAG before `build_dataset` (`wikipulse.eval.label` on the new candidate
-  spikes, within an LLM budget), and a label delay: build the test split from days whose
-  portal is final.
+  task in the DAG before `build_dataset` (`wikipulse.eval.label` on the new spikes of
+  run `07a-default`, which serving-mode datasets use since 11a, within an LLM budget),
+  and a label delay. Part of the delay exists since 11a: in serving mode the test split
+  is the newest days whose portal is final at the as-of moment, and later days wait
+  (`assign_final_splits`); "and whose spikes are labeled" is still to do. *Labeler
+  model:* every LLM spike label so far (640) is `ollama:qwen3:4b`, but the default
+  `EVAL_LABEL_MODEL` is `ollama:qwen3:8b`, and it is shared with the extraction judge
+  and the grouping labeler, whose labels are `qwen3:8b`; so 11a left the default alone.
+  The DAG task should pass `--model ollama:qwen3:4b` (or get its own setting), or the
+  weekly labels will come from another model than the existing ones.
 
 - **The detection eval gate's labels are unreviewed** (found in the 09c review). The CI
   gate (`wikipulse.eval.gate`) scores against `evals/labels/detection_gate_labels.jsonl`:

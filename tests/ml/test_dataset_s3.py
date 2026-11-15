@@ -7,7 +7,7 @@ the real spike runs are never touched.
 
 import uuid
 from collections.abc import Iterator
-from datetime import date
+from datetime import UTC, date, datetime
 
 import psycopg
 import pytest
@@ -50,7 +50,9 @@ def run_ids(settings) -> Iterator[tuple[str, str]]:
             delete_run(conn, run_id)
 
 
-def test_build_on_s3_and_postgres(settings, prefix, run_ids, tmp_path) -> None:
+def write_lake(settings, prefix: str) -> LakeStore:
+    """1 to 6 Nov: each day from the 2nd a News burst (6 editors, the default detector
+    fires) and a Quiet burst (4 editors, only the candidate detector fires)."""
     lake = LakeStore.from_settings(settings, f"{prefix}/edits")
     events = [e for d in DAYS for e in ticks(d)]
     for d in range(2, 7):
@@ -60,8 +62,15 @@ def test_build_on_s3_and_postgres(settings, prefix, run_ids, tmp_path) -> None:
         by_hour.setdefault(hour_of(event.event_time), []).append(event)
     for hour, rows in by_hour.items():
         lake.merge_hour(hour, events_to_table(rows))
+    return lake
+
+
+def test_build_on_s3_and_postgres(settings, prefix, run_ids, tmp_path) -> None:
+    """The candidates mode (datasets v1 to v4): the test split is the last days."""
+    lake = write_lake(settings, prefix)
     datasets = DatasetStore(lake.fs, f"{TEST_BUCKET}/{prefix}/datasets")
     options = BuildOptions(
+        mode="candidates",
         run_id=run_ids[0],
         rule_run_id=run_ids[1],
         labels=tmp_path / "no-labels.jsonl",
@@ -83,3 +92,36 @@ def test_build_on_s3_and_postgres(settings, prefix, run_ids, tmp_path) -> None:
     with psycopg.connect(settings.postgres_dsn) as conn:
         assert len(spikes_for_run(conn, run_ids[0])) == 10
         assert len(spikes_for_run(conn, run_ids[1])) == 5  # only the News bursts
+
+
+def test_serving_build_on_s3_and_postgres(settings, prefix, run_ids, tmp_path) -> None:
+    """The serving mode (the default since 11a): rows are the default detector's spikes,
+    and the test split is the newest days whose portal is final at the as-of moment."""
+    lake = write_lake(settings, prefix)
+    datasets = DatasetStore(lake.fs, f"{TEST_BUCKET}/{prefix}/datasets")
+    options = BuildOptions(
+        run_id=run_ids[0],
+        rule_run_id=run_ids[1],
+        labels=tmp_path / "no-labels.jsonl",
+        use_db=True,
+        use_pages=False,
+        lake=lake,
+        datasets=datasets,
+        portal=[PortalDay(date(2026, 11, d), [f"News {d}"], []) for d in range(1, 11)],
+        as_of=datetime(2026, 11, 13, tzinfo=UTC),  # every portal day of 6 Nov's spike final
+    )
+
+    assert build(options, settings) == "v1"
+
+    manifest = datasets.manifest("v1")
+    assert manifest["mode"] == "serving"
+    assert manifest["rows"] == 5  # only the News bursts: the Quiet ones never fire live
+    assert manifest["split"]["delayed_days"] == []
+    assert manifest["splits"]["test"]["days"] == ["2026-11-05", "2026-11-06"]
+    assert manifest["splits"]["valid"]["days"] == ["2026-11-04"]
+    train = datasets.read("v1", "train").to_pylist()
+    assert sorted(r["title"] for r in train) == ["News 2", "News 3"]
+    assert all(r["label"] == 1 for r in train)  # linked from the portal
+    with psycopg.connect(settings.postgres_dsn) as conn:
+        assert spikes_for_run(conn, run_ids[0]) == []  # no candidate run in serving mode
+        assert len(spikes_for_run(conn, run_ids[1])) == 5

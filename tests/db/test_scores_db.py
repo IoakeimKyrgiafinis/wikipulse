@@ -136,3 +136,20 @@ def test_a_drift_report_is_stored_once_per_period(conn, run_id):
         )
     [report] = drift_reports(conn, "news-classifier", run_id)
     assert report["status"] == "drift" and report["rows"] == 40 and report["report"] == {"x": 1}
+
+
+def test_a_comparison_with_another_dataset_never_replaces_the_monitoring_report(conn, run_id):
+    """`drift --reference-dataset v5` is stored next to the model's own report, and the
+    drift metrics keep reading the model's own (the 11a review: v3's status was replaced)."""
+    from wikipulse.metrics.models import LATEST_DRIFT_REPORTS
+
+    period = (T, T + timedelta(days=3))
+    save_drift_report(conn, "news-classifier", "3", run_id, period, "v2 train", 40, "drift", {})
+    save_drift_report(conn, "news-classifier", "3", run_id, period, "v5 train", 40, "ok", {}, "v5")
+    reports = drift_reports(conn, "news-classifier", run_id)
+    assert [(r["reference_dataset"], r["status"]) for r in reports] == [("", "drift"), ("v5", "ok")]
+    latest = [
+        r for r in conn.execute(LATEST_DRIFT_REPORTS).fetchall() if r[2] == run_id
+    ]  # (model_name, model_version, run_id, status, ...)
+    assert [r[3] for r in latest] == ["drift"]
+    conn.execute("DELETE FROM drift_reports WHERE run_id = %s", (run_id,))
