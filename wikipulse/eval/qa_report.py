@@ -122,6 +122,8 @@ def question_row(
         "channels": sorted({f.channel for f in record.facts}),
         "cypher": record.cypher,
         "cypher_rows": record.cypher_rows,
+        "cypher_outcome": score.cypher,
+        "cypher_failures": record.cypher_failures,
         "seconds": record.seconds,
         "error": record.error,
     }
@@ -213,7 +215,18 @@ def _metrics_row(label: str, m: dict[str, Any]) -> str:
         f"| {label} | {m['questions']} | {pct(m['entity_recall'])} | {pct(m['event_recall'])} "
         f"| {num(m['correctness'])} | {pct(m['fully_correct'])} | {pct(m['faithfulness'])} "
         f"({m['claims']}) | {pct(m['correct_refusals'])} | {pct(m['false_refusals'])} "
+        f"| {m.get('cypher_failed', 'n/a')} "
         f"| {num(m['latency_median_s'], 1)} / {num(m['latency_p90_s'], 1)} |"
+    )
+
+
+def cypher_line(m: dict[str, Any]) -> str:
+    """How the generated queries fared, in one sentence."""
+    failed = m.get("cypher_failed_ids") or []
+    return (
+        f"Generated Cypher: {m.get('cypher_ran', 0)} queries ran "
+        f"({m.get('cypher_repaired', 0)} of them after a repair); "
+        f"{len(failed)} never ran ({', '.join(failed) or 'none'})."
     )
 
 
@@ -271,17 +284,20 @@ def render_markdown(report: dict[str, Any]) -> str:
         "Recall: share of a question's expected entities (events) found in the retrieved "
         "facts, averaged over the questions that have any. Correctness: primary judge, 0 to "
         "2. Faithfulness: supported claims / judged claims (number of claims). Latency: "
-        "median / 90th percentile seconds per question.",
+        "median / 90th percentile seconds per question. Failed queries: questions whose "
+        "generated Cypher query never ran (rejected by the validator or failed in Neo4j).",
         "",
         "| | Questions | Entity recall | Event recall | Correctness | Fully correct "
-        "| Faithfulness | Correct refusals | False refusals | Latency (s) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Faithfulness | Correct refusals | False refusals | Failed queries | Latency (s) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         _metrics_row("**all**", m),
     ]
     lines += [_metrics_row(t, tm) for t, tm in report["by_type"].items()]
     lines += [
         "",
         f"Errors: {m['errors']}. Slowest question: {num(m['latency_max_s'], 1)} s.",
+        "",
+        cypher_line(m),
         "",
         "## Retrieval or generation?",
         "",

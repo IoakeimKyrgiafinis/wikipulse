@@ -4,10 +4,14 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from tests.llm.helpers import ScriptedClient
+from wikipulse.config import get_settings
 from wikipulse.eval.qa import (
     answer_all,
     answer_claims,
+    eval_settings,
     judge_all,
     judge_text,
     parse_args,
@@ -275,3 +279,40 @@ def test_an_answer_that_is_only_a_cited_list_is_one_claim() -> None:
         "Peña resigned [F1].",
     ]
     assert answer_claims(saved_answers()["q2"]) == []
+
+
+def test_the_cypher_prompt_and_repairs_can_be_chosen_for_a_run() -> None:
+    args = parse_args(["--name", "x", "--cypher-prompt", "cypher_v1", "--cypher-repairs", "0"])
+    chosen = eval_settings(get_settings(), None, args.cypher_prompt, args.cypher_repairs)
+    assert (chosen.qa_cypher_prompt, chosen.qa_cypher_repairs) == ("cypher_v1", 0)
+    assert chosen.neo4j_uri == get_settings().eval_qa_neo4j_uri
+    default = eval_settings(get_settings(), None)
+    assert default.qa_cypher_prompt == get_settings().qa_cypher_prompt
+    with pytest.raises(SystemExit):
+        parse_args(["--name", "x", "--cypher-prompt", "cypher_v9"])
+
+
+def test_the_report_counts_queries_that_never_ran(tmp_path: Path) -> None:
+    questions = [question("q1"), question("q2", answerable=False), question("q3")]
+    answers = saved_answers()
+    answers["q1"] = answers["q1"].model_copy(
+        update={"cypher_ran": False, "cypher_failures": ["rejected: no RETURN"]}
+    )
+    report = build_report("r1", questions, answers, [], ["fake:a"], {}, {}, {})
+    m = report["metrics"]
+    assert m["cypher_failed"] == 1 and m["cypher_failed_ids"] == ["q1"]
+    assert report["questions"][0]["cypher_failures"] == ["rejected: no RETURN"]
+    text = render_markdown(report)
+    assert "| Failed queries |" in text
+    assert "1 never ran (q1)" in text
+
+
+def test_record_answer_keeps_what_happened_to_the_generated_query() -> None:
+    result = answer_for("Ueno Bank collapsed [F1].")
+    assert result.context is not None
+    result.context.cypher_prompt = "cypher_v2"
+    result.context.cypher_ran = True
+    result.context.cypher_failures = ["rejected: no RETURN"]
+    record = record_answer("r1", question("q1"), result)
+    assert record.cypher_prompt == "cypher_v2" and record.cypher_ran
+    assert record.cypher_failures == ["rejected: no RETURN"]

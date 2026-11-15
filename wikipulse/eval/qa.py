@@ -62,7 +62,7 @@ from wikipulse.llm import LLMError, get_client
 from wikipulse.logging_setup import setup_logging
 from wikipulse.qa.answer import PROMPT_VERSION as ANSWER_PROMPT
 from wikipulse.qa.answer import QASession, claims
-from wikipulse.qa.cypher import PROMPT_VERSION as CYPHER_PROMPT
+from wikipulse.qa.cypher import PROMPT_VERSIONS
 from wikipulse.qa.retrieve import ALL_CHANNELS, RetrievalConfig
 from wikipulse.qa.types import Answer, Channel
 
@@ -118,6 +118,9 @@ def record_answer(run: str, question: QAQuestion, result: Answer) -> AnswerRecor
         events=list(context.events) if context else [],
         cypher=context.cypher if context else None,
         cypher_rows=context.cypher_rows if context else None,
+        cypher_prompt=context.cypher_prompt if context else None,
+        cypher_ran=context.cypher_ran if context else None,
+        cypher_failures=list(context.cypher_failures) if context else [],
         notes=list(context.notes) if context else [],
         limits=list(result.limits),
         removed_sentences=list(result.removed_sentences),
@@ -126,9 +129,20 @@ def record_answer(run: str, question: QAQuestion, result: Answer) -> AnswerRecor
     )
 
 
-def eval_settings(settings: Settings, neo4j_uri: str | None) -> Settings:
-    """The settings with the snapshot as the graph that QA reads."""
-    return settings.model_copy(update={"neo4j_uri": neo4j_uri or settings.eval_qa_neo4j_uri})
+def eval_settings(
+    settings: Settings,
+    neo4j_uri: str | None,
+    cypher_prompt: str | None = None,
+    cypher_repairs: int | None = None,
+) -> Settings:
+    """The settings with the snapshot as the graph that QA reads, and the Cypher prompt
+    version and number of repairs to evaluate (default: the settings' own)."""
+    update: dict[str, Any] = {"neo4j_uri": neo4j_uri or settings.eval_qa_neo4j_uri}
+    if cypher_prompt is not None:
+        update["qa_cypher_prompt"] = cypher_prompt
+    if cypher_repairs is not None:
+        update["qa_cypher_repairs"] = cypher_repairs
+    return settings.model_copy(update=update)
 
 
 # --- Step 1: answer -----------------------------------------------------------------------
@@ -172,9 +186,9 @@ def run_answer(args: argparse.Namespace, settings: Settings, questions: list[QAQ
     path = answers_path(settings, args.name)
     if args.force and path.exists():
         path.unlink()
-    with QASession.from_settings(
-        eval_settings(settings, args.neo4j_uri), channels=args.channels, model=args.model
-    ) as session:
+    chosen = eval_settings(settings, args.neo4j_uri, args.cypher_prompt, args.cypher_repairs)
+    logger.info("Cypher prompt %s, %d repair(s)", chosen.qa_cypher_prompt, chosen.qa_cypher_repairs)
+    with QASession.from_settings(chosen, channels=args.channels, model=args.model) as session:
         # Loads the embedding model and the LLM, so the first question's latency is
         # not mostly loading time. Not recorded.
         logger.info("Warm-up: %s", WARM_UP_QUESTION)
@@ -334,7 +348,10 @@ def report_config(
     args: argparse.Namespace, settings: Settings, snapshot: Snapshot, answers: list[AnswerRecord]
 ) -> dict[str, Any]:
     """The settings and snapshot behind a QA report."""
-    retrieval = RetrievalConfig.from_settings(settings)
+    chosen = eval_settings(settings, args.neo4j_uri, args.cypher_prompt, args.cypher_repairs)
+    retrieval = RetrievalConfig.from_settings(chosen)
+    # The prompt that wrote each answer's query is stored with it (since spec 12a).
+    cypher_prompts = sorted({a.cypher_prompt or "cypher prompt not recorded" for a in answers})
     counts = {row["label"]: row["count"] for row in snapshot.rows(SNAPSHOT_COUNTS)}
     models = sorted({a.model for a in answers if a.model})
     return {
@@ -343,10 +360,11 @@ def report_config(
         "snapshot_nodes": counts,
         "questions": str(args.questions),
         "qa_model": models or [args.model or settings.qa_model],
-        "prompts": [CYPHER_PROMPT, ANSWER_PROMPT, CORRECTNESS_PROMPT, FAITHFULNESS_PROMPT],
+        "prompts": [*cypher_prompts, ANSWER_PROMPT, CORRECTNESS_PROMPT, FAITHFULNESS_PROMPT],
         "channels": sorted(args.channels),
         "retrieval": {
             "max_rows": retrieval.max_rows,
+            "cypher_repairs": retrieval.cypher_repairs,
             "top_k": retrieval.top_k,
             "min_cosine": retrieval.min_cosine,
             "max_facts": retrieval.max_facts,
@@ -489,6 +507,15 @@ def parse_args(
         "--channels", type=parse_channels, default=sorted(ALL_CHANNELS), help="graph,cypher,vector"
     )
     parser.add_argument("--neo4j-uri", help="the snapshot (default: EVAL_QA_NEO4J_URI)")
+    parser.add_argument(
+        "--cypher-prompt", choices=PROMPT_VERSIONS, help="Cypher prompt (default: QA_CYPHER_PROMPT)"
+    )
+    parser.add_argument(
+        "--cypher-repairs",
+        type=int,
+        choices=[0, 1],
+        help="tries to fix a failed query (default: QA_CYPHER_REPAIRS)",
+    )
     parser.add_argument("--questions", type=Path, default=DEFAULT_QUESTIONS_PATH)
     parser.add_argument("--judgements", type=Path, default=DEFAULT_JUDGEMENTS_PATH)
     parser.add_argument("--results-dir", type=Path, default=DEFAULT_RESULTS_DIR)
