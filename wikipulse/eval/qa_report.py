@@ -118,6 +118,8 @@ def question_row(
             judge: f[score.id].score for judge, (_, f) in judged.items() if score.id in f
         },
         "judge_reason": score.correctness_reason,
+        "claims_supported": score.claims_supported,  # primary judge
+        "claims_judged": score.claims_judged,
         "facts": len(record.facts),
         "channels": sorted({f.channel for f in record.facts}),
         "cypher": record.cypher,
