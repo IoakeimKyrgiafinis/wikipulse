@@ -1,4 +1,6 @@
 data/
+# The static demo's exported day (scripts/export_demo.py) is meant to be committed.
+!site/data/
 .env
 .venv/
 __pycache__/
