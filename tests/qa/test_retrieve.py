@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+from neo4j.exceptions import Neo4jError
+
 from tests.qa.helpers import CRISIS, DARTS, NOW, FakeEmbedder, FakeGraph, FixedWriter
 from wikipulse.llm import LLMUnavailableError
 from wikipulse.qa.graph import EventHit, PageHit
@@ -206,3 +208,76 @@ def test_events_the_query_already_lists_are_not_listed_twice() -> None:
     )
     assert [(f.kind, f.channel) for f in context.facts] == [("query", "cypher"), ("event", "graph")]
     assert DARTS.key in context.facts[1].text  # only the event the query did not show
+
+
+# --- Repairing a generated query (spec 12a) ---------------------------------------------------
+
+GOOD = "MATCH (ev:Event) RETURN ev.key AS event_key"
+
+
+class FailingOnceGraph(FakeGraph):
+    """Neo4j refuses the first query (a syntax error), then answers."""
+
+    def run_query(self, cypher, params, timeout_s, max_rows):
+        if not self.queries:
+            self.queries.append((cypher, params, timeout_s, max_rows))
+            raise Neo4jError._hydrate_neo4j(
+                code="Neo.ClientError.Statement.SyntaxError", message="Invalid input 'interval'"
+            )
+        return super().run_query(cypher, params, timeout_s, max_rows)
+
+
+def test_a_rejected_query_gets_one_repair_with_the_reason() -> None:
+    graph = FakeGraph(rows=[{"event_key": CRISIS.key}])
+    writer = FixedWriter("MATCH (n) DETACH DELETE n", repairs=[GOOD])
+    context = retriever(graph, cypher_writer=writer, channels=["cypher"]).retrieve("Anything?")
+    assert len(writer.errors) == 1 and "DELETE" in writer.errors[0]
+    assert [q[0] for q in graph.queries] == [GOOD + "\nLIMIT 25"]  # only the fixed one ran
+    assert context.cypher_ran and context.cypher == GOOD + "\nLIMIT 25"
+    assert context.cypher_failures == ["rejected: not a read-only query (uses DELETE, DETACH)"]
+    assert context.cypher_prompt == "fixed"
+    assert "cypher: the corrected query ran." in context.notes
+    assert [f.kind for f in context.facts] == ["query"]
+
+
+def test_a_query_that_neo4j_refuses_gets_one_repair_with_the_error() -> None:
+    graph = FailingOnceGraph(rows=[{"event_key": CRISIS.key}])
+    writer = FixedWriter(
+        "MATCH (ev:Event) WHERE ev.started_at > $now - interval '1 hour' RETURN ev"
+    )
+    writer.repairs = [GOOD]
+    context = retriever(graph, cypher_writer=writer, channels=["cypher"]).retrieve("Anything?")
+    assert writer.errors == [
+        "failed: Neo.ClientError.Statement.SyntaxError: Invalid input 'interval'"
+    ]
+    assert context.cypher_ran and context.cypher_rows == 1
+    assert any(
+        "the query failed (Neo.ClientError.Statement.SyntaxError)" in n for n in context.notes
+    )
+
+
+def test_the_repair_is_bounded_and_an_unsafe_query_still_never_runs() -> None:
+    graph = FakeGraph()
+    writer = FixedWriter("MATCH (n) DETACH DELETE n")  # the repair returns it again
+    context = retriever(graph, cypher_writer=writer, channels=["cypher"]).retrieve("Delete all")
+    assert len(writer.errors) == 1  # one repair, not more
+    assert graph.queries == [] and context.facts == []
+    assert not context.cypher_ran and len(context.cypher_failures) == 2
+
+
+def test_repairs_can_be_switched_off() -> None:
+    graph = FakeGraph()
+    writer = FixedWriter("MATCH (n) DETACH DELETE n", repairs=[GOOD])
+    context = retriever(
+        graph, cypher_writer=writer, channels=["cypher"], config={"cypher_repairs": 0}
+    ).retrieve("Anything?")
+    assert writer.errors == [] and graph.queries == []
+    assert len(context.cypher_failures) == 1 and not context.cypher_ran
+
+
+def test_an_empty_repair_means_no_query() -> None:
+    graph = FakeGraph()
+    writer = FixedWriter("MATCH (n) DETACH DELETE n", repairs=[""])
+    context = retriever(graph, cypher_writer=writer, channels=["cypher"]).retrieve("Anything?")
+    assert graph.queries == [] and not context.cypher_ran
+    assert "cypher: the model wrote no query for this question." in context.notes

@@ -66,8 +66,13 @@ class Context(BaseModel):
     facts: list[Fact] = Field(default_factory=list)
     entities: list[EntityRef] = Field(default_factory=list)
     events: list[str] = Field(default_factory=list)  # keys of the events looked at
-    cypher: str | None = None
+    cypher: str | None = None  # the generated query that ran (or the last one tried)
     cypher_rows: int | None = None
+    cypher_prompt: str | None = None  # the prompt version that wrote the query
+    cypher_ran: bool = False  # a generated query ran (possibly after a repair)
+    # Why each generated query that could not run failed, in order: a validator
+    # rejection or a Neo4j error. With a repair, one entry means it was fixed.
+    cypher_failures: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)  # what went wrong or found nothing
     # Lists in the facts that stopped at a limit, so there may be more than the facts show.
     limits: list[str] = Field(default_factory=list)

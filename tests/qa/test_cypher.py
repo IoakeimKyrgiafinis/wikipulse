@@ -11,6 +11,7 @@ from wikipulse.qa.cypher import (
     TimeParameters,
     UnsafeCypherError,
     blank_out,
+    load_prompt,
     validate_cypher,
 )
 
@@ -231,4 +232,23 @@ def test_the_writer_asks_with_the_time_parameters_and_returns_the_query() -> Non
     assert "2026-11-05T22:54:00+00:00" in message and "at most 15 rows" in message
     assert "What happened today?" in message
     assert "INVOLVED_IN" in request.system  # the schema is in the prompt
+    assert request.json_schema["required"] == ["cypher"]
+
+
+def test_a_repair_shows_the_model_its_query_and_the_error() -> None:
+    client = ScriptedClient(['{"cypher": "MATCH (ev:Event) RETURN ev.key LIMIT 5"}'])
+    now = datetime(2026, 11, 5, 22, 54, tzinfo=UTC)
+    times = TimeParameters(now, now.replace(hour=0, minute=0), now.replace(day=1))
+    writer = CypherWriter(client, "cypher_v1")
+    bad = "MATCH (ev:Event) WHERE ev.started_at > $now - interval '1 hour' RETURN ev.key"
+    error = "failed: Neo.ClientError.Statement.SyntaxError: Invalid input 'interval' " + "x" * 900
+    fixed = writer.repair("What happened lately?", times, 15, bad, error)
+    assert fixed == "MATCH (ev:Event) RETURN ev.key LIMIT 5"
+    request = client.requests[0]
+    first, answer, follow_up = request.messages
+    assert first.role == "user" and "What happened lately?" in first.content
+    assert answer.role == "assistant" and "interval '1 hour'" in answer.content
+    assert follow_up.role == "user" and "Invalid input 'interval'" in follow_up.content
+    assert len(follow_up.content) < 700  # long errors are cut
+    assert request.system == load_prompt("cypher_v1")
     assert request.json_schema["required"] == ["cypher"]
