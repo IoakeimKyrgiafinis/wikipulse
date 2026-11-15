@@ -1,0 +1,56 @@
+# The public demo (site/): a static page that replays one recorded day in the browser,
+# deployed to GitHub Pages. Nothing is built: site/ is uploaded as it is.
+#
+# When: a push to main that changes site/, and by hand (Actions tab, "Run workflow").
+# The data in site/data/ comes from scripts/export_demo.py, run on a laptop with the
+# stores; CI's unit tests (tests/test_demo_site.py) check its schema and privacy.
+#
+# Supply chain: every action is pinned to a full commit SHA (the comment names its
+# version, as in ci.yml), and the checkout leaves no token in .git/config.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+  workflow_dispatch:
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+# One deployment at a time; a newer one waits instead of cancelling one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Upload site/
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/
+
+  deploy:
+    needs: upload
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the artifact
+      id-token: write # prove to Pages that this workflow is who it says
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
