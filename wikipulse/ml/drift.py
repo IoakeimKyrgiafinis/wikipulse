@@ -270,19 +270,23 @@ def compare(
 
 
 def reference_table(
-    settings: Settings, model: Any, which: str = "default-rule"
+    settings: Settings, model: Any, which: str = "default-rule", dataset: str | None = None
 ) -> tuple[pd.DataFrame, str]:
     """The champion's training rows (known labels) with its scores, and a description.
 
     `model` is a `wikipulse.ml.serve.LoadedModel`; its registry tag `dataset_version`
-    says which dataset it was trained on."""
+    says which dataset it was trained on. `dataset` reads another version's training
+    rows instead (still scored by `model`), e.g. to check whether a new dataset matches
+    what serving sees before a model is trained on it."""
     from mlflow import MlflowClient
 
     from wikipulse.ml.dataset import DatasetStore
     from wikipulse.ml.train import add_summary_texts, known_rows
 
-    tags = MlflowClient().get_model_version(model.name, model.version).tags
-    version = tags.get("dataset_version")
+    version = dataset
+    if not version:
+        tags = MlflowClient().get_model_version(model.name, model.version).tags
+        version = tags.get("dataset_version")
     if not version:
         raise LookupError(f"{model.name} version {model.version} has no dataset_version tag")
     frame = DatasetStore.from_settings(settings).read(version, "train").to_pandas()
@@ -328,6 +332,7 @@ def run_drift(
     until: datetime,
     which: str = "default-rule",
     store: bool = True,
+    dataset: str | None = None,
 ) -> DriftReport:
     """Compare one run's scored spikes in [since, until) with the training data, and
     store the report (replacing an earlier one for the same model, run and period)."""
@@ -341,7 +346,7 @@ def run_drift(
     }
     if others:
         logger.info("Left out, scored by other versions: %s", others)
-    reference, description = reference_table(settings, model, which)
+    reference, description = reference_table(settings, model, which, dataset)
     report = compare(
         reference,
         current_table(scored),
@@ -415,6 +420,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--until", type=parse_moment, help="period end (exclusive)")
     parser.add_argument("--version", help="model version (default: the champion)")
     parser.add_argument("--reference", choices=sorted(REFERENCES), default="default-rule")
+    parser.add_argument(
+        "--reference-dataset",
+        help="training rows of this dataset version instead of the model's own (e.g. v5)",
+    )
     parser.add_argument("--no-store", action="store_true", help="print only")
     parser.add_argument("--model-name", help="registered model (default ML_MODEL_NAME)")
     args = parser.parse_args(argv)
@@ -447,6 +456,7 @@ def main(argv: list[str] | None = None) -> int:
             args.until,
             args.reference,
             store=not args.no_store,
+            dataset=args.reference_dataset,
         )
     print(f"{name} v{model.version}, run {run_id}, {args.since:%Y-%m-%d} to {args.until:%Y-%m-%d}")
     print(render(report))

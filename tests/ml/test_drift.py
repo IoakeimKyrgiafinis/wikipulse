@@ -150,3 +150,33 @@ def test_a_small_week_from_the_same_distribution_is_ok():
     for seed in (2, 3, 4):
         report = compare(table(152, seed=1), table(30, seed=seed))
         assert report.status == "ok", (seed, report.drifted_features, report.score)
+
+
+def test_the_reference_can_be_another_datasets_training_rows(monkeypatch):
+    """`--reference-dataset v5`: compare new training data with live scores before a
+    model trained on it exists (spec 11a); the registry tag is not asked for."""
+    import pyarrow as pa
+
+    import wikipulse.ml.dataset as dataset_module
+    from tests.ml.synthetic import synthetic_split
+    from wikipulse.config import Settings
+    from wikipulse.ml.drift import reference_table
+
+    read = []
+
+    class Store:
+        def read(self, version, split):
+            read.append((version, split))
+            return pa.Table.from_pandas(synthetic_split("train", 40, 3), preserve_index=False)
+
+    class Model:
+        name, version, needs_text = "m", "3", False
+
+        def predict(self, frame):
+            return pd.DataFrame({"score": [0.5] * len(frame), "is_news": [True] * len(frame)})
+
+    monkeypatch.setattr(dataset_module.DatasetStore, "from_settings", lambda s: Store())
+    table, description = reference_table(Settings(_env_file=None), Model(), "all", "v9")
+    assert read == [("v9", "train")]
+    assert description.startswith("v9 train")
+    assert list(table.columns) == [*FEATURE_NAMES, "score", "is_news"] and len(table) > 0
