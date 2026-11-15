@@ -27,6 +27,24 @@ committed and then read by `python -m wikipulse.eval.gate`:
    page summary (fetching one would contact Wikimedia). Human labels already in the
    gate's labels file are kept, never overwritten.
 
+Which label a burst gets, first match wins:
+1. a human label already in the gate's file;
+2. a human label in `spike_labels.jsonl`;
+3. the LLM label already in the gate's file (unless `--relabel`);
+4. an LLM label in `spike_labels.jsonl`;
+5. a new LLM label.
+Step 3 is from spec 12b: a rebuild changes only what humans changed. Without it, LLM
+labels added to `spike_labels.jsonl` since (for example spec 11a's `07a-default` labels)
+or a new LLM run would move gate labels, and the baseline, with no human involved.
+
+To fold new human labels into the gate without touching the recording (spec 12b):
+
+    uv run python scripts/make_gate_fixture.py --labels-only --no-llm
+
+`--labels-only` reads the committed fixture (its hours and its edits) instead of the
+recordings in data/, so `--file` and the times aren't needed. With it, `--file` is only
+needed if a burst has no label yet and the LLM should see its edit comments.
+
 After a new fixture or new labels, run `python -m wikipulse.eval.gate --write-baseline`
 and commit the three files together.
 """
@@ -153,6 +171,19 @@ def copied(burst: Burst, record: LabelRecord) -> LabelRecord:
     )
 
 
+def kept_llm_label(burst: Burst, kept: Sequence[LabelRecord]) -> LabelRecord | None:
+    """The LLM label the gate's file already gives exactly this burst (the latest)."""
+    for record in reversed(kept):
+        if (
+            record.labeler == "llm"
+            and record.title == burst.title
+            and record.first_edit_at == burst.first_edit_at
+            and record.end_at == burst.end_at
+        ):
+            return record
+    return None
+
+
 def label_bursts(
     bursts: Sequence[Burst],
     events: Sequence[EditEvent],
@@ -160,18 +191,28 @@ def label_bursts(
     kept: Sequence[LabelRecord],
     labeler: LLMLabeler | None,
     model: str,
+    relabel: bool = False,
 ) -> list[LabelRecord]:
-    """One record per burst: a kept human label, a 02b/07a label, or a new LLM label."""
+    """One record per burst, in the order of the module docstring: a kept human label, a
+    human 02b/07a label, the kept LLM label (unless `relabel`), an LLM 02b/07a label, or
+    a new LLM label."""
     records = []
     for number, burst in enumerate(bursts, start=1):
         human = [r for r in kept if r.labeler == "human" and any(r.is_for(s) for s in burst.spikes)]
         previous = existing_label(burst, sources)
+        kept_llm = None if relabel else kept_llm_label(burst, kept)
         if human:
             record = human[-1]
+        elif previous is not None and previous.labeler == "human":
+            record = copied(burst, previous)
+        elif kept_llm is not None:
+            record = kept_llm
         elif previous is not None:
             record = copied(burst, previous)
         elif labeler is None:
             raise SystemExit(f"{burst.title}: no label yet, and --no-llm was given")
+        elif not events:
+            raise SystemExit(f"{burst.title}: no label yet; give --file so the LLM sees comments")
         else:
             spike = burst.representative()
             context = SpikeContext(spike, comments=comments_for(burst, events))
@@ -198,24 +239,32 @@ def parse_time(text: str) -> datetime:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--file", type=Path, action="append", required=True)
-    parser.add_argument("--start", type=parse_time, required=True)
-    parser.add_argument("--evaluate-from", type=parse_time, required=True)
-    parser.add_argument("--end", type=parse_time, required=True)
+    parser.add_argument("--file", type=Path, action="append", default=[])
+    parser.add_argument("--start", type=parse_time)
+    parser.add_argument("--evaluate-from", type=parse_time)
+    parser.add_argument("--end", type=parse_time)
+    parser.add_argument(
+        "--labels-only",
+        action="store_true",
+        help="keep the committed fixture, rebuild only the labels",
+    )
+    parser.add_argument(
+        "--relabel", action="store_true", help="ask the LLM again instead of keeping its labels"
+    )
     parser.add_argument("--fixture", type=Path, default=gate.DEFAULT_FIXTURE)
     parser.add_argument("--labels", type=Path, default=gate.DEFAULT_LABELS)
     parser.add_argument("--source-labels", type=Path, default=DEFAULT_LABELS_PATH)
     parser.add_argument("--model", help="LLM for new labels (default: EVAL_LABEL_MODEL)")
     parser.add_argument("--no-llm", action="store_true", help="fail instead of asking the LLM")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    times = (args.start, args.evaluate_from, args.end)
+    if not args.labels_only and (not args.file or None in times):
+        parser.error("--file, --start, --evaluate-from and --end are needed without --labels-only")
+    return args
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    setup_logging()
-    logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)
-    settings = get_settings()
-    events = load_events(args.file)
+def write_new_fixture(args: argparse.Namespace, events: Sequence[EditEvent]) -> None:
+    """Cut the fixture's edits out of the recordings and write it."""
     chosen = human_edits(events, args.start, args.end)
     note = (
         f"Human edits of English Wikipedia articles with at least {MIN_PAGE_EDITS} in the "
@@ -226,11 +275,21 @@ def main(argv: list[str] | None = None) -> int:
     gate.write_fixture(args.fixture, info, compact_lines(chosen))
     logger.info("Wrote %d edits to %s", len(chosen), args.fixture)
 
-    _, fixture_events = gate.read_fixture(args.fixture)  # exactly what the gate will see
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    setup_logging()
+    logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)
+    settings = get_settings()
+    events = load_events(args.file) if args.file else []
+    if not args.labels_only:
+        write_new_fixture(args, events)
+
+    info, fixture_events = gate.read_fixture(args.fixture)  # exactly what the gate will see
     spikes = []
     for name, overrides in VARIANTS.items():
         found = gate.detect(fixture_events, DetectorConfig(**overrides))
-        window = gate.in_window(found, args.evaluate_from, args.end)
+        window = gate.in_window(found, info.evaluate_from, info.end)
         logger.info("Variant %s: %d spikes, %d in the evaluated hours", name, len(found),
                     len(window))  # fmt: skip
         spikes += window
@@ -242,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         records = label_bursts(
             bursts, events, load_records(args.source_labels), load_records(args.labels),
-            labeler, model,
+            labeler, model, relabel=args.relabel,
         )  # fmt: skip
     finally:
         if labeler is not None:
