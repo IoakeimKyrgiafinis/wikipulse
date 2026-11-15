@@ -1,6 +1,6 @@
 # Spec 11c: A vandalism signal for spike detection
 
-Status: ready
+Status: done
 Stage: 11. Model quality
 Owner: agent
 Depends on: 11a

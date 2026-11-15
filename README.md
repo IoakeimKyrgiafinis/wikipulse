@@ -138,8 +138,19 @@ results, deaths, releases) never reaches the portal. Recall is low for a structu
 reason: only 11 of the 52 portal lead stories received at least 5 edits from 3 people
 *in total over three days*, so no editing-burst detector can see the rest. The settings
 differ by less than their ±14 pp margin. The CI eval gate (spec 09c) holds the default
-detector at precision 0.526 and recall 0.211 on a committed 16-hour recording, against
-labels that are still LLM labels (`qwen3:8b`): no human label covers its window yet.
+detector at precision 0.600 and recall 0.184 on a committed 16-hour recording (0.526 and
+0.211 before spec 11c's vandalism rule), against labels that are still LLM labels
+(`qwen3:8b`): no human label covers its window yet.
+
+**Vandalism rule (spec 11c).** Most "not news" spikes are bursts of logged-out editing:
+vandalism and the people cleaning it up. The analysis
+([`evals/results/2026-11-16_vandalism.md`](evals/results/2026-11-16_vandalism.md)) found
+that the share of anonymous editors separates news from not news (AUC 0.75 on human
+labels), while reverts, the signal everyone expected, barely do (0.53). The detector now
+holds a start back while more than 45% of the window's edits are anonymous. Over eight
+days of the lake: 482 spikes become 327, human-label precision rises from 26% [17%, 38%]
+(n = 68) to 41% [28%, 57%] (n = 41), and none of the 15 human-labeled news bursts is
+lost; by LLM labels 43 of 245 news bursts are lost, mostly sports seasons and TV shows.
 
 ### Grouping (spec 03b)
 
@@ -254,8 +265,10 @@ should (gap +0.000), and drift monitoring found a real training/serving skew.
 - **Fix the training/serving skew** of the news classifier: build training rows from the
   live detector's spikes, anchored exactly as serving does (see the
   [roadmap's follow-ups](docs/ROADMAP.md#follow-ups)), and label new weeks automatically.
-- **A vandalism signal.** 21 of 26 "not news" spikes in one sample were vandalism bursts;
-  the share of reverted edits is the most promising detection feature.
+- **More vandalism signals.** Spec 11c's anonymous-share rule removed half of the
+  human-labeled "not news" spikes. Edit summaries that mention vandalism also separate
+  well (AUC 0.71 on human labels) but aren't in the gate's fixture yet; more human labels
+  would show what the rule costs on real news.
 - **Larger models and judges** for extraction and question answering (the 8B judge is the
   weakest link of the evaluation), and a fine-tuned small extraction model.
 - **Better Cypher generation**: date arithmetic examples, exact name matching, and a fix

@@ -341,9 +341,7 @@ class SpikeDetector:
             return False
         stats = self.clock.stats
         stats["anon_held"] = stats.get("anon_held", 0) + 1  # not in pre-11c snapshots
-        logger.debug(
-            "Start held back: %s (%d of %d edits anonymous)", title, anonymous, len(users)
-        )
+        logger.debug("Start held back: %s (%d of %d edits anonymous)", title, anonymous, len(users))
         return True
 
     def _continue(
