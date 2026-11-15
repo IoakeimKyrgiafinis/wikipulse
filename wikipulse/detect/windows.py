@@ -111,6 +111,11 @@ class PageWindows:
         edits = self._edits.get(title, [])
         return {user for _, user in edits[_first_after(edits, now - window_s) :]}
 
+    def users(self, title: str, now: float, window_s: float) -> list[str]:
+        """The user of every edit of the page in the `window_s` seconds up to `now`."""
+        edits = self._edits.get(title, [])
+        return [user for _, user in edits[_first_after(edits, now - window_s) :]]
+
     def to_dict(self) -> dict[str, Any]:
         """A JSON-ready copy of the state (for snapshots)."""
         return {

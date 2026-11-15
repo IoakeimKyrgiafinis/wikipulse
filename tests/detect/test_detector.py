@@ -6,7 +6,13 @@ from datetime import timedelta
 import pytest
 
 from tests.detect.helpers import T0, burst, config, fixture_events, make_edit
-from wikipulse.detect.detector import SpikeDetector, SpikeRecord, is_revert, poisson_z
+from wikipulse.detect.detector import (
+    SpikeDetector,
+    SpikeRecord,
+    is_anonymous,
+    is_revert,
+    poisson_z,
+)
 from wikipulse.stream.models import EditEvent
 
 
@@ -112,6 +118,88 @@ def test_reverts_count_as_edits_when_configured() -> None:
     ]
     _, spikes = run(edit_war, count_reverts=True)
     assert [s.title for s in spikes] == ["Vandalised"]
+
+
+def anonymous_burst(title: str, start: float, users: list[str]) -> list[EditEvent]:
+    """One edit a minute, by the given users in turn."""
+    return [make_edit(title, start + i, user=user) for i, user in enumerate(users)]
+
+
+ANON = ["~2026-1-1", "~2026-2-1", "192.0.2.7"]
+
+
+def test_a_burst_of_mostly_anonymous_edits_does_not_start_a_spike() -> None:
+    # Five edits from three logged-out editors: the counts pass the start rule, but the
+    # vandalism rule (spec 11c) holds it back. With the rule off it starts.
+    users = [ANON[i % 3] for i in range(5)]
+    detector, spikes = run(anonymous_burst("School", 0, users), max_anon_share=0.5)
+    assert spikes == []
+    assert detector.clock.stats["anon_held"] == 1
+    _, spikes = run(anonymous_burst("School", 0, users), max_anon_share=1.0)
+    assert [s.title for s in spikes] == ["School"]
+
+
+def test_anon_held_counts_edits_once_even_when_both_windows_are_held() -> None:
+    # Ten anonymous edits from four editors: the short rule passes from the 5th edit on,
+    # the long one (10 edits, 4 editors) on the 10th as well. Each edit counts once.
+    users = [ANON[i % 3] if i % 4 else "~2026-9-1" for i in range(10)]
+    detector, spikes = run(anonymous_burst("School", 0, users), max_anon_share=0.5)
+    assert spikes == []
+    assert detector.clock.stats["anon_held"] == 6
+
+
+def test_the_anonymous_share_may_reach_the_limit_but_not_pass_it() -> None:
+    # 3 registered + 2 anonymous editors: 2 of 5 edits (0.4) are anonymous.
+    users = ["Alice", ANON[0], "Bob", ANON[1], "Carol"]
+    _, spikes = run(anonymous_burst("Mixed", 0, users), max_anon_share=0.4)
+    assert [s.title for s in spikes] == ["Mixed"]
+    _, spikes = run(anonymous_burst("Mixed", 0, users), max_anon_share=0.39)
+    assert spikes == []
+
+
+def test_a_held_back_burst_starts_once_registered_editors_join() -> None:
+    # Edits 1-5 are 3 of 5 anonymous (0.6); the 6th, by a registered editor, makes it
+    # 3 of 6 (0.5), and the spike starts then, from the window's first edit.
+    users = [ANON[0], "Alice", ANON[1], "Bob", ANON[2], "Carol"]
+    _, spikes = run(anonymous_burst("Breaking", 0, users), max_anon_share=0.5)
+    assert [s.title for s in spikes] == ["Breaking"]
+    assert spikes[0].started_at == T0 + timedelta(minutes=5)
+    assert spikes[0].first_edit_at == T0
+    assert (spikes[0].total_edits, spikes[0].distinct_editors) == (6, 6)
+
+
+def test_the_rule_only_decides_the_start() -> None:
+    # A running spike keeps counting anonymous edits.
+    started = burst("Story", 0, edits=5, editors=3)
+    later = [make_edit("Story", 6 + i, user=ANON[i % 3]) for i in range(6)]
+    _, spikes = run([*started, *later], max_anon_share=0.5)
+    assert len(spikes) == 1 and spikes[0].total_edits == 11
+
+
+def test_a_snapshot_from_before_the_rule_still_loads() -> None:
+    old = SpikeDetector(config())
+    state = json.loads(json.dumps(old.state_to_dict()))
+    assert "anon_held" not in state["stats"]  # as in every snapshot before spec 11c
+    restored = SpikeDetector(config(max_anon_share=0.5))
+    restored.load_state(state, {})
+    for event in anonymous_burst("School", 0, [ANON[i % 3] for i in range(5)]):
+        restored.process(event)
+    assert restored.clock.stats["anon_held"] == 1
+
+
+@pytest.mark.parametrize(
+    ("user", "expected"),
+    [
+        ("~2026-12345-67", True),
+        ("192.0.2.1", True),
+        ("2001:db8::1", True),
+        ("Alice", False),
+        ("Bob 2026", False),
+        ("~Tilde", False),
+    ],
+)
+def test_is_anonymous(user: str, expected: bool) -> None:
+    assert is_anonymous(user) is expected
 
 
 @pytest.mark.parametrize(

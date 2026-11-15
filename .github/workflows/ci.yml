@@ -209,8 +209,9 @@ jobs:
   # The detection eval gate (spec 09c): the spike detector, with this commit's thresholds,
   # over a committed 16-hour recording (tests/fixtures/detection_gate/), scored against
   # frozen labels (evals/labels/detection_gate_labels.jsonl). Fails when precision drops
-  # by more than the baseline's margin_spikes spikes' worth, or recall by more than
-  # margin_bursts news bursts' worth (evals/baselines/detection_gate.json).
+  # by more than the baseline's margin_points (kept between one and margin_spikes spikes'
+  # worth), or recall by more than margin_bursts news bursts' worth
+  # (evals/baselines/detection_gate.json).
   # Deterministic: no network, no database, no GPU. The report goes to the job summary.
   # The labels are unreviewed LLM labels (qwen3:8b): the gate measures agreement with
   # them, not with a human (see the ROADMAP follow-up).

@@ -66,7 +66,7 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 10 | Polish and presentation | done |
 | 11a | Fix the classifier's training/serving skew | done |
 | 11b | Fresh labels for weekly retraining | done |
-| 11c | A vandalism signal for spike detection | ready |
+| 11c | A vandalism signal for spike detection | blocked (owner decision: rule on or off) |
 | 12a | Better Cypher generation for question answering | ready |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
 | 12c | Fine-tune a small extraction model | ready |
@@ -92,7 +92,12 @@ Known problems that were too large for the spec that found them. Each needs its 
   newest ~5 days are `delayed_days` in the manifest), and a lake whose last contiguous
   stretch is shorter than about 10 days makes no dataset at all: `build_dataset` then
   fails with a message saying what to do (fill the gap, wait, or `--mode candidates`),
-  and nothing is retrained that week.
+  and nothing is retrained that week. If spec 11c's vandalism rule is switched on
+  (`DETECT_MAX_ANON_SHARE` below 1; it is off by default), the detector holds back
+  mostly-anonymous bursts (482 spikes become 367 over the lake at 0.5), so the champion
+  would score fewer anonymous-heavy spikes than it was trained on; `anon_share` may then
+  look drifted until a model trained on the new spikes is champion. Run the drift check
+  after switching it on.
 - **The champion overlap guard can't see serving-mode rows** (found in the 11a review).
   `rows_seen_by` (`wikipulse/jobs/retrain.py`) counts the challenger's test rows the
   champion trained or validated on by `spike_id` (`title|started_at`). A candidates-mode
@@ -111,7 +116,10 @@ Known problems that were too large for the spec that found them. Each needs its 
   rebuilt the labels with `scripts/make_gate_fixture.py --labels-only --no-llm` and wrote
   the baseline again: both came out byte for byte the same (precision 0.526, recall 0.211),
   because none of the 87 human spike labels covers the gate's window (7 November, 01:00 to
-  13:00 UTC; the human labels end on 6 November). The 12b audit also found the spike
+  13:00 UTC; the human labels end on 6 November). Spec 11c's review rewrote the
+  baseline (same numbers; the fixture gained an anonymous flag and the precision margin
+  became 5 points, kept between one and two spikes); the labels are unchanged. The 12b
+  audit also found the spike
   labeler calls *news* far more often than a human (precision 48% by LLM labels, 27% by
   human labels on the same 02b sample), so the gate's `news` labels are probably too
   many. *Impact:* a blocking CI check measures agreement with an unchecked model.
@@ -133,6 +141,28 @@ Known problems that were too large for the spec that found them. Each needs its 
   labels grow every week until the prompt is fixed; a new prompt would also need its
   own model setting value or a way to relabel (the task skips any spike some label
   already covers).
+- **The gate scores few spikes** (found by spec 11c). The baseline has 19 scored spikes
+  (15 with the vandalism rule on), so one spike moves precision by 5 to 7 points. Spec
+  11c's review capped the precision margin at 5 points (never less than one spike), which
+  makes the 09c demonstration, 02b's medium thresholds and `DETECT_COUNT_REVERTS=true`
+  fail again, with the rule on or off; but the gate still can't tell one moved spike
+  from noise. *Proposed fix:* a longer fixture (24 to 48 scored hours) so the baseline has
+  40 or more spikes, labeled like the current one.
+- **The vandalism rule is off: owner decision on the delay trade-off** (found by spec
+  11c). Chosen on one half of the lake and checked on the other, every value of
+  `DETECT_MAX_ANON_SHARE` below 1 held some spikes back too long on the earlier half
+  (p90 delay of held-back spikes 17 to 76 minutes against a 10-minute cap), so the rule
+  stays off. In sample, 0.5 raises human-label precision from 26% to 35% and loses none
+  of 15 human-labeled news bursts (95% upper bound on the loss rate 18%), but loses 33 of
+  245 LLM-labeled news bursts and starts 53 of 482 spikes later (p90 7.5 minutes over
+  the whole lake, 17.1 on the earlier half). The delay statistic rests on 19 to 34
+  delayed spikes per half, so it is noisy. *Proposed fix:* human labels on the
+  LLM-news bursts the rule drops (listed in `evals/results/2026-11-16_vandalism.json`),
+  a delay measure on news bursts only (a held-back vandalism burst's delay costs
+  nothing), then choose again with `python -m wikipulse.eval.vandalism`. Edit summaries
+  that mention vandalism separate news from not news almost as well (AUC 0.71 on human
+  labels) and could make the rule sharper, but the gate's fixture keeps no summaries
+  (only a revert flag), so it would need a second flag first.
 - **No human QA judgements, and no paid-judge step** (found by spec 12b). The audit
   counts 0 human correctness or faithfulness judgements, so the QA numbers are judge-only.
   The spec's optional stronger judge (the `anthropic` backend, allowed only with

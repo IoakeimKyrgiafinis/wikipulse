@@ -10,16 +10,17 @@ committed and then read by `python -m wikipulse.eval.gate`:
 1. **The recording** `tests/fixtures/detection_gate/edits.jsonl.gz`: the human edits of
    English Wikipedia articles between `--start` and `--end`, in event-time order, kept
    small and free of personal data:
-   - only what the detector reads: event time, title, user, and whether the edit summary
-     marks a revert. User names (IP addresses for anonymous editors) become numbers in
-     order of first appearance; edit summaries are dropped;
+   - only what the detector reads: event time, title, user, whether the edit summary
+     marks a revert, and whether the user was anonymous (a flag, spec 11c). User names
+     (IP addresses or temporary accounts for anonymous editors) become numbers in order
+     of first appearance; edit summaries are dropped;
    - bot edits are left out (the detector only uses them to move its clock forward);
    - pages with fewer than `MIN_PAGE_EDITS` human edits in the whole period are left
      out: no start rule in the range the gate covers can fire on them. They only feed
      the overall edit rate (the daily rhythm), which thinning by the same share hardly
      changes; the spikes of all four variants were the same with and without them.
 2. **The labels** `evals/labels/detection_gate_labels.jsonl`: one label per burst that
-   any of four detector variants (`VARIANTS`) raised in the evaluated hours. Spikes of
+   any of the detector variants (`VARIANTS`) raised in the evaluated hours. Spikes of
    different variants on the same article with overlapping periods are one burst. A
    burst already labeled in `evals/labels/spike_labels.jsonl` (spec 02b or 07a, with the
    page summary) takes that label; the others are labeled by the LLM labeler of spec 02b
@@ -83,12 +84,20 @@ logger = logging.getLogger("make_gate_fixture")
 
 MIN_PAGE_EDITS = 3
 RUN_ID = "09c-gate"
-# The thresholds of spec 02b's four variants: the labels cover all of them.
-VARIANTS: dict[str, dict[str, int]] = {
-    "strict": {"min_edits": 6, "min_editors": 4, "long_min_edits": 12, "long_min_editors": 5},
-    "default": {},  # the code's defaults (DetectorConfig)
-    "medium": {"min_edits": 4, "min_editors": 3, "long_min_edits": 8, "long_min_editors": 3},
-    "loose": {"min_edits": 3, "min_editors": 2, "long_min_edits": 6, "long_min_editors": 2},
+# The thresholds of spec 02b's four variants, without the vandalism rule of spec 11c
+# (which they predate), plus the code's current defaults: the labels cover all of them.
+# Keeping the rule off in the four means a labels rebuild keeps the bursts the rule
+# drops, so the gate can still see what a change to the rule gains or loses.
+RULE_OFF: dict[str, float] = {"max_anon_share": 1.0}
+VARIANTS: dict[str, dict[str, float]] = {
+    "strict": {"min_edits": 6, "min_editors": 4, "long_min_edits": 12, "long_min_editors": 5}
+    | RULE_OFF,
+    "default": RULE_OFF,  # the 02b defaults
+    "medium": {"min_edits": 4, "min_editors": 3, "long_min_edits": 8, "long_min_editors": 3}
+    | RULE_OFF,
+    "loose": {"min_edits": 3, "min_editors": 2, "long_min_edits": 6, "long_min_editors": 2}
+    | RULE_OFF,
+    "current": {},  # the code's defaults (DetectorConfig), with the vandalism rule
 }
 
 
@@ -268,7 +277,8 @@ def write_new_fixture(args: argparse.Namespace, events: Sequence[EditEvent]) -> 
     chosen = human_edits(events, args.start, args.end)
     note = (
         f"Human edits of English Wikipedia articles with at least {MIN_PAGE_EDITS} in the "
-        "period; users numbered, edit summaries reduced to a revert flag."
+        "period; users numbered, anonymous ones flagged; edit summaries reduced to a "
+        "revert flag."
     )
     source = ", ".join(path.name for path in args.file)
     info = gate.FixtureInfo(source, args.start, args.evaluate_from, args.end, len(chosen), note)

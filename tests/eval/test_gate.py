@@ -10,7 +10,7 @@ import pytest
 
 from tests.eval.helpers import at, spike
 from wikipulse.config import DetectorConfig, Settings
-from wikipulse.detect.detector import is_revert
+from wikipulse.detect.detector import is_anonymous, is_revert
 from wikipulse.eval import gate
 from wikipulse.eval.label_store import load_labels, load_records
 from wikipulse.eval.metrics import Label
@@ -54,6 +54,27 @@ def test_a_fixture_round_trips_and_keeps_the_revert_flag(tmp_path: Path) -> None
     assert [e.user for e in events] == ["user-1", "user-2"]
     assert [is_revert(e.comment) for e in events] == [False, True]
     assert not any(e.is_bot for e in events)
+
+
+def test_a_fixture_keeps_whether_a_user_was_anonymous_but_not_who(tmp_path: Path) -> None:
+    info = gate.FixtureInfo("rec.jsonl", at(7, 0), at(7, 1), at(7, 2), 3, "note")
+    users = ["~2026-12345-67", "192.0.2.1", "Alice"]
+    lines = [
+        gate.compact_edit(edit("A", i, user=u), i + 1, revert=False) for i, u in enumerate(users)
+    ]
+    assert [line["a"] for line in lines] == [1, 1, 0]
+    path = tmp_path / "edits.jsonl.gz"
+    gate.write_fixture(path, info, lines)
+    text = gzip.open(path, "rt", encoding="utf-8").read()
+    assert not any(user in text for user in users)
+    _, events = gate.read_fixture(path)
+    assert [is_anonymous(e.user) for e in events] == [True, True, False]
+    assert [e.user for e in events] == ["~0000-1-0", "~0000-2-0", "user-3"]
+
+
+def test_a_fixture_line_without_the_flag_is_a_registered_user() -> None:
+    event = gate.edit_from_compact(0, {"t": at(7, 1).timestamp(), "p": "A", "u": 4, "r": 0})
+    assert event.user == "user-4" and not is_anonymous(event.user)
 
 
 def test_the_same_fixture_gives_the_same_bytes(tmp_path: Path) -> None:
@@ -164,6 +185,29 @@ def test_one_spike_moving_the_wrong_way_is_no_false_alarm() -> None:
     assert gate.check(result_with(10, 9, 6, 38), stored) != []  # two news bursts lost
 
 
+def with_points(stored: dict, points: float = 0.05) -> dict:
+    return {**stored, "margin_points": points}
+
+
+def test_the_precision_margin_is_points_kept_between_one_and_margin_spikes_spikes() -> None:
+    def drop(news: int, not_news: int) -> float:
+        return gate.allowed_drops(with_points(baseline(news, not_news, 8, 38)))["precision"]
+
+    assert drop(9, 6) == pytest.approx(1 / 15)  # 0.05 is less than one spike: one spike
+    assert drop(15, 15) == pytest.approx(0.05)  # between 1/30 and 2/30: the points
+    assert drop(25, 25) == pytest.approx(2 / 50)  # more than two spikes: two spikes
+    assert gate.allowed_drops(with_points(baseline(9, 6, 8, 38)))["recall"] == 1 / 38
+
+
+def test_on_15_spikes_one_moved_spike_passes_and_more_noise_fails() -> None:
+    """The committed baseline's size since spec 11c: 9 news of 15 spikes."""
+    stored = with_points(baseline(9, 6, 7, 38))
+    assert gate.check(result_with(8, 7, 7, 38), stored) == []  # one label flipped
+    assert gate.check(result_with(9, 7, 7, 38), stored) == []  # one noise spike more
+    assert gate.check(result_with(8, 8, 7, 38), stored) != []  # flipped, and noise
+    assert gate.check(result_with(9, 9, 7, 38), stored) != []  # three noise spikes more
+
+
 def test_better_numbers_pass() -> None:
     assert gate.check(result_with(9, 1, 9, 10), baseline(5, 5, 4, 10)) == []
 
@@ -208,7 +252,7 @@ def test_the_fixture_is_small_and_has_no_user_names() -> None:
     with gzip.open(FIXTURE, "rt", encoding="utf-8") as lines:
         next(lines)
         first = json.loads(next(lines))
-    assert set(first) == {"t", "p", "u", "r"} and isinstance(first["u"], int)
+    assert set(first) == {"t", "p", "u", "r", "a"} and isinstance(first["u"], int)
 
 
 def test_the_baseline_matches_the_committed_inputs(committed: tuple) -> None:
@@ -269,3 +313,19 @@ def test_the_cli_passes_on_the_committed_baseline(
     assert gate.main(["--markdown", str(summary)]) == 0
     assert "Detection eval gate: PASS" in summary.read_text("utf-8")
     assert gate.main(["--set", "count_reverts=true"]) == 1
+
+
+def test_with_the_vandalism_rule_on_the_gate_still_sees_small_regressions(
+    committed: tuple,
+) -> None:
+    """Spec 11c's rule at 0.45 leaves 15 spikes: one spike is 0.067, and the 2-spike
+    margin alone (0.133) let these changes through. The points cap keeps them failing."""
+    info, events, labels, _ = committed
+    rule_on = DetectorConfig(max_anon_share=0.45)
+    result = gate.score(gate.detect(events, rule_on), labels, info.evaluate_from, info.end)
+    stored = gate.baseline_data(result, rule_on, FIXTURE, LABELS)
+    assert result.spikes == 15
+    for change in ({"max_anon_share": 1.0}, {"min_edits": 3}, {"count_reverts": True}):
+        config = rule_on.model_copy(update=change)
+        changed = gate.score(gate.detect(events, config), labels, info.evaluate_from, info.end)
+        assert [f.split(" ")[0] for f in gate.check(changed, stored)] == ["precision"], change

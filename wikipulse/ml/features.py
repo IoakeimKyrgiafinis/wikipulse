@@ -32,16 +32,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 
-from wikipulse.detect.detector import is_revert
+from wikipulse.detect.detector import is_anonymous, is_revert
 
 FEATURE_WINDOW_MIN = 10.0  # default of the FEATURE_WINDOW_MIN setting
 HISTORY = timedelta(hours=24)  # how far back before the burst history features look
 PEAK_WINDOW = timedelta(minutes=10)
-
-# Anonymous editors: IP addresses (old style) and temporary accounts ("~2026-12345-67").
-_IPV4 = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
-_IPV6 = re.compile(r"^[0-9A-Fa-f]{0,4}(:[0-9A-Fa-f]{0,4}){2,7}$")
-_TEMP_ACCOUNT = re.compile(r"^~\d{4}-\d+-\d+$")
 
 NEWS_WORDS = re.compile(
     r"\b(died|dies|death|dead|killed|elected|election|results?|wins?|won|announced|"
@@ -242,11 +237,6 @@ def same_values(a: dict[str, float], b: dict[str, float]) -> bool:
 
 
 # --- the groups of features -----------------------------------------------------------
-
-
-def is_anonymous(user: str) -> bool:
-    """An IP address or a temporary account (how logged-out editors appear since 2025)."""
-    return bool(_TEMP_ACCOUNT.match(user) or _IPV4.match(user) or _IPV6.match(user))
 
 
 def share(part: int, whole: int) -> float:
