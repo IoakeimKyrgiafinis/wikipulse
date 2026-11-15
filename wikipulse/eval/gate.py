@@ -13,10 +13,13 @@ baseline allows (see `allowed_drops`), the gate fails (exit code 1). No network,
 database, no GPU, and the same input always gives the same numbers, so CI can run it on
 every pull request.
 
-The margins are counts, not fractions: precision may drop by what `margin_spikes` of the
-baseline's scored spikes turning from news to not news would cost (2 of 19 spikes:
-0.105), recall by what losing `margin_bursts` news bursts would cost (1 of 38: 0.026).
-With so few spikes, a fixed 0.05 would fail as soon as a single spike moved.
+The margins (see `allowed_drops`): precision may drop by `margin_points` (0.05), but
+never by less than one of the baseline's judged spikes turning from news to not news, so
+a single moved spike is no false alarm (with 15 spikes one spike is 0.067), and never by
+more than `margin_spikes` (2) such spikes. Recall may drop by what losing `margin_bursts`
+news bursts would cost (1 of 38: 0.026). Spec 09c started with a fixed 0.05 (one flipped
+label failed it) and then counted 2 spikes; spec 11c's vandalism rule left 15 spikes, and
+2 of 15 (0.133) let real regressions through, hence the cap in points.
 
 The numbers:
 
@@ -64,6 +67,8 @@ FIXTURE_FORMAT = "wikipulse-gate-edits/1"
 # spikes (precision) and news bursts (recall): see `allowed_drops`.
 DEFAULT_MARGIN_SPIKES = 2
 DEFAULT_MARGIN_BURSTS = 1
+# The precision margin in points (a share), kept between one and `margin_spikes` spikes.
+DEFAULT_MARGIN_POINTS = 0.05
 # The comment a fixture edit gets when the original was a revert: the detector only
 # looks at whether the comment marks a revert (`is_revert`).
 REVERT_COMMENT = "Reverted edits"
@@ -264,7 +269,11 @@ def baseline_data(
     config: DetectorConfig,
     fixture: Path,
     labels: Path,
-    margins: tuple[int, int] = (DEFAULT_MARGIN_SPIKES, DEFAULT_MARGIN_BURSTS),
+    margins: tuple[int, int, float] = (
+        DEFAULT_MARGIN_SPIKES,
+        DEFAULT_MARGIN_BURSTS,
+        DEFAULT_MARGIN_POINTS,
+    ),
 ) -> dict[str, Any]:
     """The baseline file's content for a gate result."""
     return {
@@ -272,6 +281,7 @@ def baseline_data(
         "recall": result.recall,
         "margin_spikes": margins[0],
         "margin_bursts": margins[1],
+        "margin_points": margins[2],
         "spikes": result.spikes,
         "counts": result.counts,
         "news_bursts": result.news_bursts,
@@ -286,13 +296,19 @@ def baseline_data(
 def allowed_drops(baseline: dict[str, Any]) -> dict[str, float]:
     """How far precision and recall may fall, from the baseline's counts.
 
-    Precision: `margin_spikes` of the baseline's judged spikes (news, not news, unlabeled)
-    going from news to not news. Recall: `margin_bursts` of its news bursts going unfound.
+    Precision: `margin_points`, but at least one and at most `margin_spikes` of the
+    baseline's judged spikes (news, not news, unlabeled) going from news to not news. A
+    baseline without `margin_points` (before spec 11c's review) allows `margin_spikes`
+    spikes. Recall: `margin_bursts` of its news bursts going unfound.
     """
     counts = baseline["counts"]
-    judged = counts["news"] + counts["not news"] + counts["unlabeled"]
+    one_spike = 1 / max(counts["news"] + counts["not news"] + counts["unlabeled"], 1)
+    precision = baseline["margin_spikes"] * one_spike
+    points = baseline.get("margin_points")
+    if points is not None:
+        precision = max(one_spike, min(precision, points))
     return {
-        "precision": baseline["margin_spikes"] / max(judged, 1),
+        "precision": precision,
         "recall": baseline["margin_bursts"] / max(baseline["news_bursts"], 1),
     }
 
@@ -364,10 +380,15 @@ def report_lines(
     )
     if baseline:
         drops = allowed_drops(baseline)
+        points = baseline.get("margin_points")
+        limit = (
+            f"{points:.3f}, kept between 1 and {baseline['margin_spikes']} spike(s)"
+            if points is not None
+            else f"{baseline['margin_spikes']} spike(s)"
+        )
         yield (
-            f"Allowed drop: precision {drops['precision']:.3f} "
-            f"({baseline['margin_spikes']} spike(s)), recall {drops['recall']:.3f} "
-            f"({baseline['margin_bursts']} news burst(s))."
+            f"Allowed drop: precision {drops['precision']:.3f} ({limit}), recall "
+            f"{drops['recall']:.3f} ({baseline['margin_bursts']} news burst(s))."
         )
     if changes:
         yield ""
@@ -435,20 +456,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--margin-bursts", type=int, help="with --write-baseline: recall's margin, in bursts"
     )
+    parser.add_argument(
+        "--margin-points",
+        type=float,
+        help="with --write-baseline: precision's margin as a share (kept between 1 spike "
+        "and --margin-spikes)",
+    )
     parser.add_argument("--markdown", type=Path, help="also append the report to this file")
     return parser.parse_args(argv)
 
 
-def margins(args: argparse.Namespace, baseline: dict[str, Any] | None) -> tuple[int, int]:
-    """The margins a new baseline gets: from the options, else the old baseline's."""
+def margins(args: argparse.Namespace, baseline: dict[str, Any] | None) -> tuple[int, int, float]:
+    """The margins a new baseline gets: from the options, else the old baseline's, else
+    the defaults."""
     old = baseline or {}
     spikes = args.margin_spikes
     bursts = args.margin_bursts
+    points = args.margin_points
     if spikes is None:
         spikes = old.get("margin_spikes", DEFAULT_MARGIN_SPIKES)
     if bursts is None:
         bursts = old.get("margin_bursts", DEFAULT_MARGIN_BURSTS)
-    return spikes, bursts
+    if points is None:
+        points = old.get("margin_points", DEFAULT_MARGIN_POINTS)
+    return spikes, bursts, points
 
 
 def run(args: argparse.Namespace) -> int:
