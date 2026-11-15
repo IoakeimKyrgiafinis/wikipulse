@@ -18,8 +18,10 @@ What `build` does, step by step:
    `wikipulse.eval.label` can label them. Spikes in the first `ML_WARMUP_HOURS` (cold
    baselines) or whose feature window runs past the data are left out.
 3. **Split by time**: the last `ML_TEST_DAYS` days are the test set (in `serving` mode:
-   the newest days whose portal is final at the as-of moment; newer days are *delayed*,
-   left for a later build), the `ML_VALID_DAYS` before them validation, everything
+   the newest days *ready for testing* at the as-of moment: portal final, at least
+   `ML_LABEL_MIN_SHARE` of the spikes labeled, ended `ML_LABEL_DELAY_DAYS` before it, see
+   `day_readiness`; newer days are *delayed*, left for a later build), the
+   `ML_VALID_DAYS` before them validation, everything
    earlier training. Never random. At each boundary the build *purges* spikes still
    running when the next split begins and spikes whose page spikes again in a later
    split within `ML_SPLIT_GAP_HOURS` (`purge_boundaries`).
@@ -100,11 +102,18 @@ class NotEnoughData(ValueError):
     """The lake can't make the splits (too short, or no day with a final portal yet)."""
 
 
+def lag_days(settings: Settings) -> int:
+    """About how many of the newest days a serving-mode build leaves out (delayed): the
+    portal's own lag, or the label delay (`ML_LABEL_DELAY_DAYS`, counted from a day's
+    end, so one more from its start) if that is longer."""
+    return max(FINAL_LAG_DAYS, settings.ml_label_delay_days + 1)
+
+
 def minimum_days(settings: Settings, mode: str) -> int:
     """About how many days the lake's last contiguous stretch needs for a build."""
     warmup = math.ceil(settings.ml_warmup_hours / 24)
     splits = 1 + settings.ml_valid_days + settings.ml_test_days  # at least one training day
-    return warmup + splits + (FINAL_LAG_DAYS if mode == SERVING else 0)
+    return warmup + splits + (lag_days(settings) if mode == SERVING else 0)
 
 
 def not_enough_data(
@@ -115,8 +124,9 @@ def not_enough_data(
     stretch = f"{hours[0]:%Y-%m-%d %H:00} to {hours[-1] + timedelta(hours=1):%Y-%m-%d %H:00}"
     gap_text = f"; the gap before it ends at {gaps[-1]:%Y-%m-%d %H:00}" if gaps else ""
     lag = (
-        f" In {SERVING} mode the newest ~{FINAL_LAG_DAYS} days wait for their portal to be "
-        "final, so the test split lags the end of the lake by about a week."
+        f" In {SERVING} mode the newest ~{lag_days(settings)} days wait for their portal to be "
+        "final and their spikes to be labeled, so the test split lags the end of the lake by "
+        "about a week."
         if mode == SERVING
         else ""
     )
@@ -432,22 +442,98 @@ def final_days(
     return {day for day, final in days.items() if final}
 
 
+def is_labeled(
+    spike: SpikeRecord, portal: Sequence[PortalDay], labels: Sequence[Label], as_of: datetime
+) -> bool:
+    """Has the spike been judged by `as_of`: linked from the portal (news), or covered by
+    a human or LLM label? An `unsure` answer counts: asking the same labeler again would
+    give the same answer, so waiting for it would wait forever."""
+    return bool(portal_days_of(spike, portal, as_of)) or label_of(spike, labels, as_of) is not None
+
+
+@dataclass
+class DayReadiness:
+    """Whether one day can be a test day, and why not."""
+
+    day: str
+    spikes: int
+    labeled: int
+    portal_final: bool
+    old_enough: bool
+    min_share: float
+
+    @property
+    def labeled_share(self) -> float:
+        return self.labeled / self.spikes if self.spikes else 1.0
+
+    @property
+    def ready(self) -> bool:
+        return self.portal_final and self.old_enough and self.labeled_share >= self.min_share
+
+    def waiting_for(self) -> list[str]:
+        """What the day still waits for (empty when it is ready)."""
+        reasons = []
+        if not self.old_enough:
+            reasons.append("label delay")
+        if not self.portal_final:
+            reasons.append("portal not final")
+        if self.labeled_share < self.min_share:
+            reasons.append(f"labels ({self.labeled} of {self.spikes} spikes)")
+        return reasons
+
+
+def day_readiness(
+    spikes: Sequence[SpikeRecord],
+    portal: Sequence[PortalDay],
+    labels: Sequence[Label],
+    as_of: datetime,
+    delay_days: int,
+    min_share: float,
+) -> dict[str, DayReadiness]:
+    """Per day: can it be a test day at `as_of` (the label delay of spec 11b)?
+
+    A day is ready when it ended at least `delay_days` days before `as_of`, every portal
+    page its spikes' weak labels read is final (`final_days`), and at least `min_share`
+    of its spikes are labeled (`is_labeled`). Ground truth arrives late; a day that isn't
+    ready yet waits, so the test split never rests on labels still to come.
+    """
+    final = final_days(spikes, portal, as_of)
+    by_day: dict[str, list[SpikeRecord]] = defaultdict(list)
+    for spike in spikes:
+        by_day[day_of(spike)].append(spike)
+    result = {}
+    for day, found in sorted(by_day.items()):
+        day_end = day_start(date.fromisoformat(day)) + timedelta(days=1)
+        result[day] = DayReadiness(
+            day=day,
+            spikes=len(found),
+            labeled=sum(is_labeled(s, portal, labels, as_of) for s in found),
+            portal_final=day in final,
+            old_enough=day_end + timedelta(days=delay_days) <= as_of,
+            min_share=min_share,
+        )
+    return result
+
+
 def assign_final_splits(
     days: Iterable[str], final: set[str], valid_days: int, test_days: int
 ) -> tuple[dict[str, str], list[str]]:
     """(day -> split, the delayed days): the test split is the newest `test_days` days
-    whose portal is final, validation the `valid_days` before them, training the rest.
+    that are `final` (ready for testing: in serving mode, final portal and labeled, see
+    `day_readiness`), validation the `valid_days` before them, training the rest.
 
     Days after the first test day that are not final are *delayed*: left out of this
     version (they can't be tested on yet, and training on days after the test days would
-    break the time order). A later build, once their portal is final, uses them.
+    break the time order). A later build, once they are ready, uses them. Days before the
+    test days that aren't ready go to validation or training like the others.
     """
     ordered = sorted(set(days))
     finals = [day for day in ordered if day in final]
     if len(finals) < test_days:
         raise NotEnoughData(
-            f"only {len(finals)} days with a final portal ({finals}); the test split needs "
-            f"{test_days}. Build later, or with a later --as-of"
+            f"only {len(finals)} days ready for testing (a final portal and labeled "
+            f"spikes) ({finals}); the test split needs {test_days}. Build later, with a "
+            "later --as-of, or label the newest days' spikes"
         )
     test = finals[len(finals) - test_days :]
     delayed = [day for day in ordered if day > test[0] and day not in test]
@@ -851,13 +937,38 @@ class BuildOptions:
     pages: WikiPages | None = None  # page snapshots (default: WikiPages(settings))
 
 
-def build(options: BuildOptions, settings: Settings) -> str:
-    """The whole build (see the module docstring); returns the new version's name."""
-    from wikipulse.eval.detection import git_commit
-    from wikipulse.eval.label_store import load_labels
+@dataclass
+class FoundRows:
+    """The spikes that can become rows of a build, and what was read to find them."""
 
-    clock = time.monotonic()
-    built_at = datetime.now(UTC)  # wall clock: metadata only, never in the rows
+    lake: LakeStore
+    hours: list[datetime]  # the lake's last contiguous stretch
+    missing: list[datetime]  # gaps before it
+    as_of: datetime
+    mode: str
+    row_run: str  # the detector run the rows come from
+    candidates: DetectorConfig
+    runs: dict[str, list[SpikeRecord]]  # every run's spikes
+    selected: list[SpikeRecord]  # after the warm-up and the data's edges
+    portal: list[PortalDay]
+    counts: Counter[str]  # edits read
+
+    @property
+    def data_start(self) -> datetime:
+        return self.hours[0]
+
+    @property
+    def data_end(self) -> datetime:
+        return self.hours[-1] + timedelta(hours=1)
+
+
+def find_rows(options: BuildOptions, settings: Settings, now: datetime) -> FoundRows:
+    """Steps 1 and 2 of the build, and the portal: the lake's spikes that can become rows.
+
+    Shared by `build` and the retraining's labeling task (`wikipulse.ml.fresh_labels`),
+    so the task labels exactly the spikes the next build uses. `now` only checks that
+    the as-of moment isn't in the future (`resolve_as_of`).
+    """
     window_min = settings.feature_window_min
     lake = options.lake or LakeStore.from_settings(
         settings, options.lake_prefix or settings.ml_lake_prefix
@@ -870,7 +981,7 @@ def build(options: BuildOptions, settings: Settings) -> str:
             "Gaps in the lake; using the hours from %s on (gaps at %s)", hours[0], missing
         )
     data_start, data_end = hours[0], hours[-1] + timedelta(hours=1)
-    as_of = resolve_as_of(options.as_of, data_end, built_at)
+    as_of = resolve_as_of(options.as_of, data_end, now)
     logger.info("Edits: %d hours from %s to %s in %s", len(hours), data_start, data_end, lake.root)
 
     mode = options.mode or settings.ml_dataset_mode
@@ -891,8 +1002,6 @@ def build(options: BuildOptions, settings: Settings) -> str:
             yield event
 
     runs = detect_spikes(counted(lake_events(lake, hours)), configs)
-    if options.use_db and not options.dry_run:
-        store_runs(settings, runs)
     warmup = timedelta(hours=settings.ml_warmup_hours)
     selected = select_spikes(runs[row_run], data_start, data_end, warmup, window_min)
     margin = timedelta(days=PORTAL_MARGIN_DAYS)
@@ -900,21 +1009,57 @@ def build(options: BuildOptions, settings: Settings) -> str:
     if portal is None:
         first, last = (data_start - margin).date(), (data_end + margin).date()
         portal = fetch_portal(settings, first, last, as_of)
+    return FoundRows(
+        lake, hours, missing, as_of, mode, row_run, candidates, runs, selected, portal, counter
+    )
+
+
+def build(options: BuildOptions, settings: Settings) -> str:
+    """The whole build (see the module docstring); returns the new version's name."""
+    from wikipulse.eval.detection import git_commit
+    from wikipulse.eval.label_store import load_labels
+
+    clock = time.monotonic()
+    built_at = datetime.now(UTC)  # wall clock: metadata only, never in the rows
+    window_min = settings.feature_window_min
+    found = find_rows(options, settings, built_at)
+    if options.use_db and not options.dry_run:
+        store_runs(settings, found.runs)
+    lake, hours, missing, as_of = found.lake, found.hours, found.missing, found.as_of
+    data_start, data_end = found.data_start, found.data_end
+    mode, row_run, runs, portal = found.mode, found.row_run, found.runs, found.portal
+    candidates, counter, selected = found.candidates, found.counts, found.selected
+    labels = load_labels(options.labels)
     days = [day_of(s) for s in selected]
     delayed: list[str] = []
+    readiness: dict[str, DayReadiness] = {}
     try:
-        if mode == SERVING:  # the test split: the newest days whose portal is final
-            final = final_days(selected, portal, as_of)
-            split_of, delayed = assign_final_splits(
-                days, final, settings.ml_valid_days, settings.ml_test_days
+        if mode == SERVING:  # the test split: the newest days ready for testing
+            readiness = day_readiness(
+                selected,
+                portal,
+                labels,
+                as_of,
+                settings.ml_label_delay_days,
+                settings.ml_label_min_share,
             )
-            if delayed:
-                logger.info("Delayed (portal not final at %s): %s", as_of, delayed)
+            ready = {day for day, r in readiness.items() if r.ready}
+            split_of, delayed = assign_final_splits(
+                days, ready, settings.ml_valid_days, settings.ml_test_days
+            )
+            for day in delayed:
+                logger.info(
+                    "Delayed: %s waits for %s", day, ", ".join(readiness[day].waiting_for())
+                )
             selected = [s for s in selected if day_of(s) in split_of]
         else:
             split_of = assign_splits(days, settings.ml_valid_days, settings.ml_test_days)
     except NotEnoughData as error:
+        not_ready = {d: r.waiting_for() for d, r in readiness.items() if not r.ready}
+        if not_ready:
+            logger.info("Days not ready for testing: %s", not_ready)
         raise not_enough_data(str(error).rstrip("."), settings, mode, hours, missing) from error
+    delayed_rows = sum(day in delayed for day in days)
     split_as_of = split_label_as_of(split_of, as_of)
     gap = timedelta(hours=settings.ml_split_gap_hours)
     spikes, purged = purge_boundaries(selected, split_of, split_as_of, gap)
@@ -936,7 +1081,6 @@ def build(options: BuildOptions, settings: Settings) -> str:
     rule_by_title: dict[str, list[SpikeRecord]] = defaultdict(list)
     for spike in runs[options.rule_run_id]:
         rule_by_title[spike.title].append(spike)
-    labels = load_labels(options.labels)
     sources = RowSources(edits, snapshots, rule_by_title, portal, labels, window_min)
     # check_no_leakage runs on every row; labels use only evidence from before the next split
     rows = build_rows(spikes, sources, lambda s: split_as_of[split_of[day_of(s)]])
@@ -1004,12 +1148,18 @@ def build(options: BuildOptions, settings: Settings) -> str:
         },
         "split": {
             "method": (
-                "by UTC day of started_at: the newest days whose portal is final at "
-                "labels.as_of test, the days before them valid; later days delayed"
+                "by UTC day of started_at: the newest days ready for testing at "
+                "labels.as_of (ended label_delay_days before it, portal final, at least "
+                "label_min_share of the spikes labeled) test, the days before them valid; "
+                "later days delayed"
                 if mode == SERVING
                 else "by UTC day of started_at: last days test, the days before them valid"
             ),
             "delayed_days": delayed,
+            "delayed_rows": delayed_rows,
+            "label_delay_days": settings.ml_label_delay_days if mode == SERVING else None,
+            "label_min_share": settings.ml_label_min_share if mode == SERVING else None,
+            "days_not_ready": {day: r.waiting_for() for day, r in readiness.items() if not r.ready},
             "valid_days": settings.ml_valid_days,
             "test_days": settings.ml_test_days,
             "label_as_of": {name: moment.isoformat() for name, moment in split_as_of.items()},

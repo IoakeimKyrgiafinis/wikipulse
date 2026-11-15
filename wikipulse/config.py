@@ -414,6 +414,14 @@ class Settings(BaseSettings):
     # Purge at split boundaries: a spike is left out when the same page spikes again in a
     # later split less than this many hours after it ended.
     ml_split_gap_hours: float = Field(default=24, ge=0)
+    # Label delay (spec 11b): ground truth arrives late, so in serving mode a day can be a
+    # test day only once it ended at least ML_LABEL_DELAY_DAYS days before the as-of
+    # moment, its portal is final, and at least ML_LABEL_MIN_SHARE of its spikes are
+    # labeled (portal link, or a human or LLM label). 4 days is what the portal itself
+    # needs (its last page a day's labels read is final 4 days after the day ends);
+    # more gives a human time to label first. Newer days wait for a later build.
+    ml_label_delay_days: int = Field(default=4, ge=0)
+    ml_label_min_share: float = Field(default=0.95, ge=0, le=1)
 
     # --- News classifier (stage 7, spec 07b): uv run python -m wikipulse.ml.train ---
     # MLflow tracking server (docker compose --profile mlflow up -d): runs, metrics,
@@ -455,6 +463,14 @@ class Settings(BaseSettings):
     ml_promote_min_test_rows: int = Field(default=50, ge=1)
     # The models retraining trains (the same choice rule as spec 07b picks among them).
     ml_retrain_models: str = "rule,logreg,gbt,torch"
+    # The retraining DAG's label_new_spikes task (spec 11b): it asks the LLM spike labeler
+    # about at most ML_RETRAIN_LABEL_BUDGET spikes per run (0: none), and stops after
+    # ML_RETRAIN_LABEL_MAX_MINUTES, keeping what it has. Its model is its own setting,
+    # not EVAL_LABEL_MODEL (shared with other labelers): every spike label so far is
+    # qwen3:4b, and mixing two labelers in one dataset mixes their biases.
+    ml_retrain_label_budget: int = Field(default=150, ge=0)
+    ml_retrain_label_max_minutes: float = Field(default=40, gt=0)
+    ml_retrain_label_model: str = "ollama:qwen3:4b"
     # Drift: a feature (or the score) has drifted when its population stability index
     # against the training data reaches ML_DRIFT_PSI *and* the noise floor: the PSI that
     # two samples of the same distribution, of the same sizes, stay below with

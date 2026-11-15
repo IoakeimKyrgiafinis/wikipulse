@@ -1,7 +1,7 @@
 """retrain: the news classifier's weekly drift check, retraining and promotion (spec 07c).
 
-    check_drift >> extend_history >> build_dataset >> train_challenger
-                >> evaluate_against_champion >> promote_or_reject
+    check_drift >> extend_history >> label_new_spikes >> build_dataset
+                >> train_challenger >> evaluate_against_champion >> promote_or_reject
 
 One run per week (Monday 00:00 to Monday 00:00 UTC), started after the week ends:
 
@@ -13,10 +13,18 @@ One run per week (Monday 00:00 to Monday 00:00 UTC), started after the week ends
 - `extend_history` brings the history lake up to the last complete hour from the
   stream's retained history, so each week's dataset includes the newest edits. It is
   a no-op when the lake is current, or when `lake_prefix` is the live archive.
+- `label_new_spikes` (spec 11b) labels the spikes the build will use that nobody has
+  judged yet, with the LLM spike labeler (`ML_RETRAIN_LABEL_MODEL`, qwen3:4b, through
+  Ollama), within a budget (`ML_RETRAIN_LABEL_BUDGET` spikes,
+  `ML_RETRAIN_LABEL_MAX_MINUTES`). Days that could be test days come first. It never
+  fails for missing labels: with Ollama down or the budget used up it logs that and
+  succeeds, and the build uses the labels there are.
 - `build_dataset` builds a new dataset version from the lake and hands its name on.
   Its rows are the live detector's spikes (serving mode, spec 11a); the test split is
-  the newest days whose "Current events" portal is final (about 5 days after a day
-  ends), so it lags the lake by about a week. If the lake's last contiguous stretch is
+  the newest days *ready for testing*: their "Current events" portal is final, at
+  least `ML_LABEL_MIN_SHARE` of their spikes are labeled, and they ended at least
+  `ML_LABEL_DELAY_DAYS` days ago (the label delay). Newer days wait for a later week, so
+  the test split lags the lake by about a week. If the lake's last contiguous stretch is
   shorter than about 10 days (a new lake, or a gap), the task fails with a message
   saying what to do (fill the gap, wait, or build in candidates mode) and nothing
   downstream runs: the champion stays.
@@ -66,6 +74,10 @@ with DAG(
     params={
         "run_id": name_param("Detector run whose scores the drift check reads; empty: live"),
         "lake_prefix": name_param("Lake prefix the dataset is built from; empty: ML_LAKE_PREFIX"),
+        "as_of": name_param(
+            "Labels (and the label delay) as of this UTC moment, e.g. 2026-11-15T18:00; "
+            "empty: the end of the lake"
+        ),
     },
     tags=["wikipulse", "ml"],
 ) as dag:
@@ -89,12 +101,25 @@ with DAG(
         execution_timeout=EXTEND,
         trigger_rule="all_done",  # retrain even if the drift check failed
     )
+    label_new_spikes = job_task(
+        "label_new_spikes",
+        "retrain",
+        "label",
+        options='--lake-prefix "$LAKE_PREFIX" --as-of "$AS_OF"',
+        env={"LAKE_PREFIX": "{{ params.lake_prefix }}", "AS_OF": "{{ params.as_of }}"},
+        python=WIKIPULSE_ML_PYTHON,
+        pool=WIKIMEDIA_POOL,  # page summaries and edit comments for the labeler
+        # The task stops itself after ML_RETRAIN_LABEL_MAX_MINUTES (40); this is the
+        # hard limit around it (reading the lake takes a few minutes too).
+        execution_timeout=LONG,
+        retries=1,
+    )
     build_dataset = job_task(
         "build_dataset",
         "retrain",
         "build",
-        options='--lake-prefix "$LAKE_PREFIX"',
-        env={"LAKE_PREFIX": "{{ params.lake_prefix }}"},
+        options='--lake-prefix "$LAKE_PREFIX" --as-of "$AS_OF"',
+        env={"LAKE_PREFIX": "{{ params.lake_prefix }}", "AS_OF": "{{ params.as_of }}"},
         python=WIKIPULSE_ML_PYTHON,
         pool=WIKIMEDIA_POOL,  # page revisions and portal pages (cached after the first time)
         execution_timeout=LONG,
@@ -131,6 +156,7 @@ with DAG(
     (
         check_drift
         >> extend_history
+        >> label_new_spikes
         >> build_dataset
         >> train_challenger
         >> evaluate_against_champion

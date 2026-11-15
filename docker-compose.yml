@@ -144,6 +144,8 @@ services:
       # model downloaded once into data/ (not into the container, where it would be lost).
       MLFLOW_TRACKING_URI: http://mlflow:5000
       HF_HOME: /opt/wikipulse/data/cache/huggingface
+      # The retraining's labeling task (spec 11b) asks the Ollama running on the host.
+      OLLAMA_HOST: http://host.docker.internal:11434
     ports:
       - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
     volumes:

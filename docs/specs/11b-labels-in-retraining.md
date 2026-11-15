@@ -1,6 +1,6 @@
 # Spec 11b: Fresh labels for weekly retraining
 
-Status: ready
+Status: done
 Stage: 11. Model quality
 Owner: agent
 Depends on: 11a

@@ -251,6 +251,14 @@ A model that scores each spike ten minutes after it starts: "is this real news?"
 | `uv run python -m wikipulse.ml.registry show` | Model versions and aliases; `promote <version>` and `rollback` move the `champion` alias. |
 | `uv run python -m wikipulse.ml.serve` | Scores the live run's spikes with the champion (`backfill --run-id <run>` scores past ones). |
 | `uv run python -m wikipulse.ml.drift --run-id <run> --week-of <day>` | Compares a week's scored spikes with the training data (PSI with a noise floor). `--reference-dataset v5` compares with another dataset version's training rows (stored apart from the model's own report; the drift metrics read only the own one). |
+| `uv run python -m wikipulse.jobs.retrain label --date <week start> [--as-of <moment>]` | The retraining DAG's `label_new_spikes` step by hand: labels the lake's spikes nobody has judged yet with `ML_RETRAIN_LABEL_MODEL` (qwen3:4b), days that could be test days first, within `ML_RETRAIN_LABEL_BUDGET` spikes and `ML_RETRAIN_LABEL_MAX_MINUTES` ([11b](learning/11b-labels-in-retraining.md)). `ML_RETRAIN_LABEL_BUDGET=0` only reports what is unlabeled. |
+
+The weekly `retrain` DAG (Airflow) runs `check_drift`, `extend_history`, `label_new_spikes`,
+`build_dataset`, `train_challenger`, `evaluate_against_champion` and `promote_or_reject`. Its
+trigger form takes `run_id`, `lake_prefix` and `as_of` (labels and the label delay as of a
+later moment than the lake's end). The test split is the newest days whose portal is
+final, whose spikes are labeled (`ML_LABEL_MIN_SHARE`) and which ended at least
+`ML_LABEL_DELAY_DAYS` ago; newer days wait for a later week.
 
 ## Stage 8: Kubernetes and Helm
 
