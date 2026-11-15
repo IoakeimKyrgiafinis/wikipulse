@@ -35,6 +35,7 @@ def test_expected_dags_and_tasks(dagbag) -> None:
         "retrain": [
             "check_drift",
             "extend_history",
+            "label_new_spikes",
             "build_dataset",
             "train_challenger",
             "evaluate_against_champion",
@@ -137,3 +138,20 @@ def test_retraining_passes_values_on_and_survives_a_failed_drift_check(dagbag) -
     assert promote.retries == 0
     assert dag.get_task("build_dataset").pool == "wikimedia_api"
     assert dag.get_task("extend_history").pool == "wikimedia_api"
+
+
+def test_retraining_labels_new_spikes_before_the_build(dagbag) -> None:
+    """Spec 11b: the labeling task runs on the extended lake, before the build, as of the
+    same moment, and in the Wikimedia pool (it reads summaries and edit comments)."""
+    dag = dagbag.dags["retrain"]
+    label = dag.get_task("label_new_spikes")
+    assert label.upstream_task_ids == {"extend_history"}
+    assert label.downstream_task_ids == {"build_dataset"}
+    assert label.pool == "wikimedia_api"
+    assert label.bash_command.endswith(
+        'label --date "$DAY" --lake-prefix "$LAKE_PREFIX" --as-of "$AS_OF"'
+    )
+    build = dag.get_task("build_dataset")
+    for task in (label, build):
+        assert task.env["AS_OF"] == "{{ params.as_of }}"
+        assert task.env["LAKE_PREFIX"] == "{{ params.lake_prefix }}"

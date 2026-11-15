@@ -2,7 +2,8 @@
 
     python -m wikipulse.jobs.retrain drift    --date 2026-11-02 [--run-id live]
     python -m wikipulse.jobs.retrain extend   --date 2026-11-02 [--lake-prefix history/edits]
-    python -m wikipulse.jobs.retrain build    --date 2026-11-02 [--lake-prefix history/edits]
+    python -m wikipulse.jobs.retrain label    --date 2026-11-02 [--lake-prefix ...] [--as-of ...]
+    python -m wikipulse.jobs.retrain build    --date 2026-11-02 [--lake-prefix ...] [--as-of ...]
     python -m wikipulse.jobs.retrain train    --date 2026-11-02 --dataset v3
     python -m wikipulse.jobs.retrain evaluate --date 2026-11-02 --dataset v3 --challenger 4
     python -m wikipulse.jobs.retrain promote  --date 2026-11-02 --challenger 4
@@ -16,23 +17,31 @@
    hour on (`wikipulse.lake.backfill`; one connection, polite, idempotent). Without it
    every week would rebuild the same dataset from the same edits. Skipped for the live
    archive (`LAKE_PREFIX`), which the archiver extends itself.
-3. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
+3. **label**: labels the spikes the build will use that nobody has judged yet, with
+   the LLM spike labeler, within a budget (`wikipulse.ml.fresh_labels`, spec 11b). It
+   never fails for missing labels: if Ollama is down or the budget runs out, it logs that
+   and the build uses the labels there are.
+4. **build**: a new dataset version from the lake (`wikipulse.ml.dataset build`). The last
    line printed is its name, which the DAG hands to the next steps. In serving mode (the
-   default) the test split is the newest days whose portal is final, so it lags the
-   end of the lake by about a week; a lake whose last contiguous stretch is shorter than
-   about 10 days makes no dataset, and the step fails with a message saying what to do.
-4. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
+   default) the test split is the newest days *ready for testing*: their portal is final,
+   their spikes labeled, and the label delay (`ML_LABEL_DELAY_DAYS`) has passed; so it
+   lags the end of the lake by about a week. A lake whose last contiguous stretch is
+   shorter than about 10 days makes no dataset, and the step fails with a message saying
+   what to do. `--as-of` (label and build) takes labels as of a moment later than the
+   end of the lake (default: its end).
+5. **train**: the four models of spec 07b on it (`ML_RETRAIN_MODELS`), chosen by the
    same fixed rule (`ML_SELECT_RULE`) but on the *validation* split, so the test split
    is not used to pick the challenger and stays a fair ground for step 4. The chosen one
    is registered as a new version with the alias `@challenger` and `status=challenger`;
    older versions are *not* marked superseded. Running the step again for the same week
    and dataset reuses that version.
-5. **evaluate**: champion and challenger score the *same* rows: the labeled test split of
+6. **evaluate**: champion and challenger score the *same* rows: the labeled test split of
    the new dataset. The decision (`decide`): promote only if the challenger's test
    average precision beats the champion's by at least `ML_PROMOTE_MARGIN`, with at least
-   `ML_PROMOTE_MIN_TEST_ROWS` labeled rows. Everything is logged as an MLflow run
-   (`role=promotion`) and as tags on the challenger version.
-6. **promote**: carries the decision out: `@champion` moves to the challenger
+   `ML_PROMOTE_MIN_TEST_ROWS` labeled rows (a rejection for too few says how many test
+   rows were labeled, unlabeled, and waiting on delayed days). Everything is logged as an
+   MLflow run (`role=promotion`) and as tags on the challenger version.
+7. **promote**: carries the decision out: `@champion` moves to the challenger
    (`wikipulse.ml.registry.promote`), or the challenger is tagged `status=rejected`. It
    refuses if the champion changed after the evaluation (someone promoted or rolled back
    by hand in between): then the comparison is out of date.
@@ -62,7 +71,7 @@ from wikipulse.logging_setup import setup_logging
 
 logger = logging.getLogger(__name__)
 
-STEPS = ("drift", "extend", "build", "train", "evaluate", "promote")
+STEPS = ("drift", "extend", "label", "build", "train", "evaluate", "promote")
 FORMATS = {"dataset": re.compile(r"v\d+"), "challenger": re.compile(r"\d+")}
 PROMOTE, REJECT = "promote", "reject"
 # The stream keeps about two weeks of history; the extend step stays well inside that.
@@ -94,6 +103,19 @@ class Comparison:
     challenger_precision: float
     challenger_recall: float
     champion_trained_on_test_rows: int = 0
+    unlabeled_rows: int = 0  # test rows without a known label (left out of the comparison)
+    delayed_rows: int = 0  # spikes on delayed days: not ready for testing yet
+    delayed_days: int = 0
+
+
+def too_few_rows(c: Comparison, min_rows: int) -> str:
+    """The reason for "too few labeled test rows", with where the other rows are."""
+    return (
+        f"only {c.rows} labeled test rows (fewer than {min_rows}): too few to compare; "
+        f"the label-delayed test split also has {c.unlabeled_rows} unlabeled rows, and "
+        f"{c.delayed_rows} rows on {c.delayed_days} delayed days wait for their portal or "
+        "labels (a later build tests on them)"
+    )
 
 
 def decide(c: Comparison, margin: float, min_rows: int) -> tuple[str, str]:
@@ -109,10 +131,7 @@ def decide(c: Comparison, margin: float, min_rows: int) -> tuple[str, str]:
     if c.challenger_version == c.champion_version:
         return REJECT, "the challenger is the champion itself"
     if c.rows < min_rows:
-        return (
-            REJECT,
-            f"only {c.rows} labeled test rows (fewer than {min_rows}): too few to compare",
-        )
+        return REJECT, too_few_rows(c, min_rows)
     if c.positives in (0, c.rows):
         return REJECT, "the test rows hold only one class: average precision can't compare"
     verdict = (
@@ -228,15 +247,95 @@ def step_extend(settings: Settings, lake_prefix: str | None) -> int:
     return 0
 
 
+def step_label(
+    settings: Settings,
+    lake_prefix: str | None,
+    as_of: datetime | None = None,
+    options: Any = None,
+    labeler: Any = None,
+    contexts: Any = None,
+) -> int:
+    """The `label_new_spikes` task: label the spikes the build will use; returns 0.
+
+    Never fails for missing labels (requirement 2 of spec 11b): Ollama down, Wikimedia
+    failing, the budget or the time running out all end the labeling early with a log
+    line, and the build goes on with the labels there are. `options` (a `BuildOptions`),
+    `labeler` and `contexts` are for tests (no lake, LLM or network).
+    """
+    from wikipulse.eval.label import LLMLabeler, fetch_context
+    from wikipulse.eval.wiki_client import WikiClient
+    from wikipulse.llm import get_client
+    from wikipulse.ml.dataset import BuildOptions, NotEnoughData, find_rows
+    from wikipulse.ml.fresh_labels import deadline, label_within_budget, plan_and_label
+    from wikipulse.stream.consume import warn_if_placeholder_user_agent
+
+    logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)  # a line per spike
+    options = options or BuildOptions(lake_prefix=lake_prefix or None, as_of=as_of)
+    budget, model = settings.ml_retrain_label_budget, settings.ml_retrain_label_model
+    try:
+        found = find_rows(options, settings, datetime.now(UTC))
+    except NotEnoughData as error:  # the build fails on it, saying what to do
+        logger.warning("Nothing to label: %s", error)
+        return 0
+    client = None
+    if contexts is None:
+        warn_if_placeholder_user_agent(settings)
+        cache = settings.data_dir / "cache" / "wikipedia"
+        client = WikiClient(settings.user_agent, cache, settings.wiki_api_min_interval_s)
+
+        def contexts(spike: Any) -> Any:
+            return fetch_context(client, settings, spike)
+
+    own_labeler = labeler is None
+    labeler = labeler or LLMLabeler(get_client(model, settings))
+    time_left = deadline(settings.ml_retrain_label_max_minutes)
+
+    def labeling(todo: list[Any]) -> Any:
+        return label_within_budget(
+            todo, contexts, labeler, model, found.row_run, options.labels, budget, time_left
+        )
+
+    try:
+        report = plan_and_label(
+            found.selected,
+            found.portal,
+            found.as_of,
+            options.labels,
+            labeling,
+            settings.ml_label_delay_days,
+        )
+    finally:
+        if own_labeler:
+            labeler.close()
+        if client is not None:
+            logger.info(
+                "Wikimedia API: %d requests, %d from cache", client.requests, client.cache_hits
+            )
+            client.close()
+    lines = report.lines(budget, model)
+    for line in lines[:-1] if report.run.stopped else lines:
+        logger.info("%s", line)
+    if report.run.stopped:
+        logger.warning("%s", lines[-1])
+    print(f"labeled {sum(report.run.added.values())}", flush=True)  # the task's XCom
+    return 0
+
+
 NO_DATASET = 3  # step_build's exit code when the lake is too short for a dataset
 
 
-def step_build(settings: Settings, lake_prefix: str | None, options: Any = None) -> int:
+def step_build(
+    settings: Settings,
+    lake_prefix: str | None,
+    options: Any = None,
+    as_of: datetime | None = None,
+) -> int:
     """The `build_dataset` task: build a dataset version; returns the exit code.
 
     In serving mode (the default since spec 11a) the test split is the newest days whose
     portal is final, about 5 days after they end, so the lake's last contiguous stretch
-    must be about 10 days long. When it is shorter (a new lake, or a gap in it) no
+    must be about 10 days long; days whose spikes aren't labeled enough also wait (the
+    label delay of spec 11b). When it is shorter (a new lake, or a gap in it) no
     dataset can be built: the step logs why and what to do, and exits with `NO_DATASET`,
     which fails the task, so the week's training, evaluation and promotion don't run and
     the champion stays. `options` (a `BuildOptions`) is for tests.
@@ -245,7 +344,9 @@ def step_build(settings: Settings, lake_prefix: str | None, options: Any = None)
 
     logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)  # a line per spike
     try:
-        version = build(options or BuildOptions(lake_prefix=lake_prefix or None), settings)
+        version = build(
+            options or BuildOptions(lake_prefix=lake_prefix or None, as_of=as_of), settings
+        )
     except NotEnoughData as error:
         logger.error("No dataset built, nothing retrained this week: %s", error)
         return NO_DATASET
@@ -460,14 +561,28 @@ def step_evaluate(settings: Settings, day: date, dataset: str, challenger_versio
     champion_version = alias_version(client, name, CHAMPION)
     challenger = load_version(name, challenger_version)
     champion = load_version(name, champion_version) if champion_version else None
+    from wikipulse.ml.dataset import DatasetStore
+
     frames, _ = load_dataset(settings, dataset)
-    test, _ = known_rows(frames["test"])
+    test, unlabeled = known_rows(frames["test"])
+    split = DatasetStore.from_settings(settings).manifest(dataset).get("split", {})
     if challenger.needs_text or (champion is not None and champion.needs_text):
         test = add_summary_texts(settings, {"test": test}, offline=False)["test"]
     else:
         test = test.assign(**{TEXT_COLUMN: test["title"]})
     seen = rows_seen_by(settings, champion, set(test["spike_id"])) if champion else 0
     comparison = compare_models(champion, challenger, test, dataset, settings.ml_seed, seen)
+    comparison.unlabeled_rows = unlabeled
+    comparison.delayed_rows = int(split.get("delayed_rows", 0))
+    comparison.delayed_days = len(split.get("delayed_days", []))
+    logger.info(
+        "Test rows of %s: %d labeled, %d unlabeled; %d rows on %d delayed days",
+        dataset,
+        len(test),
+        unlabeled,
+        comparison.delayed_rows,
+        comparison.delayed_days,
+    )
     decision, reason = decide(
         comparison, settings.ml_promote_margin, settings.ml_promote_min_test_rows
     )
@@ -548,6 +663,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--dataset", default="", help="train/evaluate: dataset version, e.g. v3")
     parser.add_argument("--challenger", default="", help="evaluate/promote: model version")
+    parser.add_argument(
+        "--as-of",
+        default="",
+        help="label/build: labels as of this UTC moment, e.g. 2026-11-15T18:00 (default: "
+        "the end of the lake)",
+    )
     args = parser.parse_args(argv)
     needs = {"train": ["dataset"], "evaluate": ["dataset", "challenger"], "promote": ["challenger"]}
     for option in needs.get(args.step, []):
@@ -562,6 +683,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     import mlflow
 
+    from wikipulse.ml.dataset import parse_moment
+
     args = parse_args(argv)
     # MLflow prints run links with an emoji; a redirected stdout (cp1252) can't encode it.
     for stream in (sys.stdout, sys.stderr):
@@ -574,8 +697,11 @@ def main(argv: list[str] | None = None) -> int:
         return step_drift(settings, args.date, args.run_id.strip() or None)
     if args.step == "extend":
         return step_extend(settings, args.lake_prefix.strip() or None)
+    as_of = parse_moment(args.as_of.strip()) if args.as_of.strip() else None
+    if args.step == "label":
+        return step_label(settings, args.lake_prefix.strip() or None, as_of)
     if args.step == "build":
-        return step_build(settings, args.lake_prefix.strip() or None)
+        return step_build(settings, args.lake_prefix.strip() or None, as_of=as_of)
     if args.step == "train":
         return step_train(settings, args.date, args.dataset.strip())
     if args.step == "evaluate":
