@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="WikiPulse replays one recorded day of breaking news detected from Wikipedia's edit stream.">
+  <title>WikiPulse: a recorded day (demo)</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>WikiPulse</h1>
+    <p class="tagline">Breaking news, detected from Wikipedia's live edits.</p>
+    <p class="recorded" title="Nothing on this page is live: it replays data recorded on that day.">
+      Recorded day, not live: <strong id="day-label">5 November 2026</strong>
+    </p>
+  </header>
+
+  <p class="intro">
+    This page replays one real day of English Wikipedia editing as WikiPulse processed it:
+    pages that suddenly attracted unusual editing, grouped into events, with the people,
+    organizations and places a local LLM found in them.
+    <a href="#about">How it works</a>
+  </p>
+
+  <section class="replay" aria-label="Replay controls">
+    <button type="button" id="play" aria-pressed="false">Play</button>
+    <label class="speed">Speed
+      <select id="speed">
+        <option value="60">60x</option>
+        <option value="300" selected>300x</option>
+        <option value="900">900x</option>
+        <option value="3600">3600x</option>
+      </select>
+    </label>
+    <span id="clock" class="clock" aria-live="off">--:--</span>
+    <input type="range" id="scrubber" min="0" max="86400" step="60" value="0"
+      aria-label="Time of day (UTC)">
+    <span id="progress" class="muted"></span>
+  </section>
+
+  <main>
+    <section class="events" aria-labelledby="events-heading">
+      <div class="section-head">
+        <h2 id="events-heading">Events <span id="event-count" class="muted"></span></h2>
+        <div class="filters">
+          <label>Pages
+            <select id="min-pages">
+              <option value="1" selected>1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="5">5+</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="graph-only"> in the graph</label>
+          <label><input type="checkbox" id="active-only"> active</label>
+        </div>
+      </div>
+      <p id="loading" class="muted">Loading the recorded day...</p>
+      <p id="events-empty" class="muted" hidden>No events yet at this time. Press Play, or move the slider.</p>
+      <ol id="event-list" class="event-list"></ol>
+      <p id="events-more" class="muted" hidden></p>
+    </section>
+
+    <section class="side">
+      <section class="detail" aria-labelledby="detail-heading">
+        <h2 id="detail-heading">Event</h2>
+        <div id="detail"><p class="muted">Pick an event to see its pages, entities and relations.</p></div>
+      </section>
+
+      <section class="answers" aria-labelledby="answers-heading">
+        <h2 id="answers-heading">Prepared answers</h2>
+        <p class="muted">
+          Asking the knowledge graph needs the local LLM, so this static page can't. These are
+          real answers from the question-answering evaluation, asked against a frozen copy of
+          this day's graph and scored 0 to 2 by two LLM judges (the full set of 25 scored 48%
+          fully correct). Wrong ones are included.
+          <a href="https://github.com/IoakeimKyrgiafinis/wikipulse/blob/main/evals/results/2026-11-08_05b-v1.md">The report</a>
+        </p>
+        <div id="answer-list"></div>
+      </section>
+
+      <section class="about" id="about" aria-labelledby="about-heading">
+        <h2 id="about-heading">What is this?</h2>
+        <p>
+          WikiPulse reads the stream of every edit to English Wikipedia and notices pages that
+          suddenly attract unusual editing, usually because something just happened. This
+          demo replays <strong>one recorded day</strong> in your browser; nothing runs on a server.
+        </p>
+        <ol>
+          <li><strong>Detect.</strong> Per page, edits and distinct editors in sliding 10 and
+            60 minute windows are compared with the page's normal rate. A burst is a spike.</li>
+          <li><strong>Group.</strong> Spikes about the same story become one event, by links
+            between the pages, timing and the meaning of their summaries.</li>
+          <li><strong>Understand.</strong> A local LLM (qwen3:4b) reads what was added to the
+            pages and extracts a headline, entities and relations; names are linked to
+            Wikidata and every fact keeps the revision it came from.</li>
+          <li><strong>Answer.</strong> GraphRAG over the knowledge graph, briefings written by
+            an analyst agent, an API, a live page and an MCP server.</li>
+        </ol>
+        <p id="about-data" class="muted"></p>
+        <p>
+          <a href="https://github.com/IoakeimKyrgiafinis/wikipulse">Source code on GitHub</a> ·
+          <a href="https://github.com/IoakeimKyrgiafinis/wikipulse#readme">README</a> ·
+          the one-command quickstart there runs the real pipeline on this day.
+        </p>
+      </section>
+    </section>
+  </main>
+
+  <footer class="muted">
+    <p>
+      Times are event times in UTC. Page titles, short descriptions and the text the models
+      read come from <a href="https://en.wikipedia.org/">Wikipedia</a> and are available under
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; each page and
+      fact links to its article or the exact revision. Entity identifiers come from
+      <a href="https://www.wikidata.org/">Wikidata</a> (CC0). Headlines, descriptions, entities,
+      relations, briefings and answers were written by local language models and can be wrong.
+      No editor names, IP addresses or edit summaries are included.
+    </p>
+  </footer>
+</body>
+</html>
