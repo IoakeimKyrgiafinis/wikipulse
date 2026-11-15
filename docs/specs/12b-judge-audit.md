@@ -1,6 +1,6 @@
 # Spec 12b: Audit the LLM labelers and judges against human labels
 
-Status: ready
+Status: done
 Stage: 12. AI quality
 Owner: agent
 Depends on: human labels (see Context)
