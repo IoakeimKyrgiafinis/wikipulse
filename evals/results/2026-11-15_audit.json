@@ -1,0 +1,1353 @@
+{
+  "created_at": "2026-11-15T18:03:50.085670+00:00",
+  "settings": {
+    "resamples": 2000,
+    "seed": 2026,
+    "min_conclusive": 30,
+    "interval": "95%: bootstrap percentile for accuracy, kappa, means and recall; Wilson score for single proportions"
+  },
+  "counts": [
+    {
+      "family": "spikes",
+      "file": "evals/labels/spike_labels.jsonl",
+      "records": 727,
+      "human": 87,
+      "llm": 640,
+      "human_by_value": {
+        "news": 18,
+        "not news": 68,
+        "unsure": 1
+      },
+      "llm_by_value": {
+        "news": 340,
+        "not news": 299,
+        "unsure": 1
+      }
+    },
+    {
+      "family": "gate",
+      "file": "evals/labels/detection_gate_labels.jsonl",
+      "records": 180,
+      "human": 0,
+      "llm": 180,
+      "human_by_value": {
+        "news": 0,
+        "not news": 0,
+        "unsure": 0
+      },
+      "llm_by_value": {
+        "news": 38,
+        "not news": 130,
+        "unsure": 12
+      }
+    },
+    {
+      "family": "grouping",
+      "file": "evals/labels/grouping_labels.jsonl",
+      "records": 419,
+      "human": 125,
+      "llm": 294,
+      "human_by_value": {
+        "same": 73,
+        "different": 52,
+        "unsure": 0
+      },
+      "llm_by_value": {
+        "same": 115,
+        "different": 178,
+        "unsure": 1
+      }
+    },
+    {
+      "family": "relations",
+      "file": "evals/labels/relation_labels.jsonl",
+      "records": 197,
+      "human": 49,
+      "llm": 148,
+      "human_by_value": {
+        "correct": 48,
+        "wrong": 1,
+        "unsure": 0
+      },
+      "llm_by_value": {
+        "correct": 135,
+        "wrong": 11,
+        "unsure": 2
+      }
+    },
+    {
+      "family": "qa",
+      "file": "evals/labels/qa_judgements.jsonl",
+      "records": 134,
+      "human": 0,
+      "llm": 134,
+      "human_by_value": {
+        "correctness": 0,
+        "faithfulness": 0
+      },
+      "llm_by_value": {
+        "correctness": 100,
+        "faithfulness": 34
+      }
+    },
+    {
+      "family": "qa questions",
+      "file": "evals/labels/qa_questions.jsonl",
+      "records": 25,
+      "human": 0,
+      "llm": 25,
+      "human_by_value": {
+        "aggregation": 0,
+        "connection": 0,
+        "event": 0,
+        "time": 0,
+        "unanswerable": 0
+      },
+      "llm_by_value": {
+        "aggregation": 5,
+        "connection": 5,
+        "event": 5,
+        "time": 5,
+        "unanswerable": 5
+      }
+    }
+  ],
+  "agreement": [
+    {
+      "family": "spikes",
+      "scope": "02b-baseline",
+      "labeler": "ollama:qwen3:4b",
+      "paired": 50,
+      "human_unsure": 1,
+      "llm_unsure": 0,
+      "decisive": 49,
+      "unpaired_human": 0,
+      "accuracy": 0.7959183673469388,
+      "accuracy_ci95": [
+        0.673469387755102,
+        0.8979591836734694
+      ],
+      "kappa": 0.5797598627787308,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        0.369774919614148,
+        0.7852760736196318
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "moderate",
+      "positive": "news",
+      "human_positive_share": 0.2653061224489796,
+      "llm_positive_share": 0.46938775510204084,
+      "categories": [
+        "news",
+        "not news",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          13,
+          0,
+          0
+        ],
+        [
+          10,
+          26,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "The Amazing Race 39 (2026-11-05 03:43 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Rise and Fall (Indian TV series) (2026-11-05 05:27 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "2026 SAFF Championship (2026-11-05 12:38 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Men's Asian Champions Trophy (2026-11-05 16:24 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "RuPaul's Drag Race UK series 8 (2026-11-05 20:37 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Herbert Blomstedt (2026-11-05 22:20 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Headnoise (2026-11-06 04:30 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "2026 Baltimore Ravens season (2026-11-06 04:06 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Thierno Barry (footballer, born 2002) (2026-11-06 21:19 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "2026–27 Everton F.C. season (2026-11-06 21:54 UTC)",
+          "human": "not news",
+          "llm": "news"
+        }
+      ],
+      "rare_category": false,
+      "conclusion": "enough for a first estimate"
+    },
+    {
+      "family": "spikes",
+      "scope": "07a-candidates",
+      "labeler": "ollama:qwen3:4b",
+      "paired": 30,
+      "human_unsure": 0,
+      "llm_unsure": 1,
+      "decisive": 29,
+      "unpaired_human": 7,
+      "accuracy": 0.7931034482758621,
+      "accuracy_ci95": [
+        0.6206896551724138,
+        0.9310344827586207
+      ],
+      "kappa": 0.38732394366197187,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        -0.06097560975609739,
+        0.7603305785123967
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "fair",
+      "positive": "news",
+      "human_positive_share": 0.13793103448275862,
+      "llm_positive_share": 0.27586206896551724,
+      "categories": [
+        "news",
+        "not news",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          3,
+          1,
+          0
+        ],
+        [
+          5,
+          20,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "George Michael: The Faith Tour (2026-11-05 00:01 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Rise and Fall (Indian TV series) (2026-11-05 09:00 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Ramayana: Part 1 (2026-11-05 12:48 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Taylor Wettach (2026-11-06 03:26 UTC)",
+          "human": "news",
+          "llm": "not news"
+        },
+        {
+          "item": "Scene (2026 film) (2026-11-06 06:53 UTC)",
+          "human": "not news",
+          "llm": "news"
+        },
+        {
+          "item": "Mookuthi Amman 2 (2026-11-06 15:20 UTC)",
+          "human": "not news",
+          "llm": "news"
+        }
+      ],
+      "rare_category": false,
+      "conclusion": "too few to conclude (n < 30)"
+    },
+    {
+      "family": "gate",
+      "scope": "09c-gate",
+      "labeler": "ollama:qwen3:4b",
+      "paired": 0,
+      "human_unsure": 0,
+      "llm_unsure": 0,
+      "decisive": 0,
+      "unpaired_human": 0,
+      "accuracy": null,
+      "accuracy_ci95": [
+        null,
+        null
+      ],
+      "kappa": null,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        null,
+        null
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "undefined",
+      "positive": "news",
+      "human_positive_share": null,
+      "llm_positive_share": null,
+      "categories": [
+        "news",
+        "not news",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [],
+      "rare_category": false,
+      "conclusion": "no human labels yet"
+    },
+    {
+      "family": "gate",
+      "scope": "09c-gate",
+      "labeler": "ollama:qwen3:8b",
+      "paired": 0,
+      "human_unsure": 0,
+      "llm_unsure": 0,
+      "decisive": 0,
+      "unpaired_human": 0,
+      "accuracy": null,
+      "accuracy_ci95": [
+        null,
+        null
+      ],
+      "kappa": null,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        null,
+        null
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "undefined",
+      "positive": "news",
+      "human_positive_share": null,
+      "llm_positive_share": null,
+      "categories": [
+        "news",
+        "not news",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [],
+      "rare_category": false,
+      "conclusion": "no human labels yet"
+    },
+    {
+      "family": "grouping",
+      "scope": "03b-default-fix",
+      "labeler": "ollama:qwen3:4b, prompt 1",
+      "paired": 123,
+      "human_unsure": 0,
+      "llm_unsure": 0,
+      "decisive": 123,
+      "unpaired_human": 2,
+      "accuracy": 0.6829268292682927,
+      "accuracy_ci95": [
+        0.6016260162601627,
+        0.7560975609756098
+      ],
+      "kappa": 0.40682576975392615,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        0.28088052399486285,
+        0.531130876747141
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "moderate",
+      "positive": "same",
+      "human_positive_share": 0.5772357723577236,
+      "llm_positive_share": 0.2764227642276423,
+      "categories": [
+        "same",
+        "different",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          33,
+          38,
+          0
+        ],
+        [
+          1,
+          51,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "2026 United States Senate election in Maine / 2026 United States gubernatorial elections",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Dan Newlin / Republican Party (United States)",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Beachwood, Ohio / Beachwood High School",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Maine / 2026 United States Senate election in New Hampshire",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Maine / 2026 House Republican Conference leadership election",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Jean Talon / Samuel de Champlain",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States House of Representatives elections in Iowa / Kristina Knickerbocker",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Ueno Bank / Santiago Peña",
+          "human": "different",
+          "llm": "same"
+        },
+        {
+          "item": "Scott Colom / Wisconsin's 1st congressional district",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 Ohio gubernatorial election / Scott Colom",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Kansas / Wisconsin's 1st congressional district",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 Georgia gubernatorial election / Scott Colom",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States state legislative elections / United States midterm election",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 Ohio gubernatorial election / 2026 United States House of Representatives elections",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Maine / Victoria Broderick",
+          "human": "same",
+          "llm": "different"
+        }
+      ],
+      "rare_category": false,
+      "conclusion": "enough for a first estimate"
+    },
+    {
+      "family": "grouping",
+      "scope": "03b-default-fix",
+      "labeler": "ollama:qwen3:4b, prompt 2",
+      "paired": 125,
+      "human_unsure": 0,
+      "llm_unsure": 1,
+      "decisive": 124,
+      "unpaired_human": 0,
+      "accuracy": 0.8548387096774194,
+      "accuracy_ci95": [
+        0.7903225806451613,
+        0.9112903225806451
+      ],
+      "kappa": 0.7105058365758755,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        0.5875732853033437,
+        0.8230409963674105
+      ],
+      "kappa_undefined_resamples": 0,
+      "kappa_words": "substantial",
+      "positive": "same",
+      "human_positive_share": 0.5887096774193549,
+      "llm_positive_share": 0.49193548387096775,
+      "categories": [
+        "same",
+        "different",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          58,
+          15,
+          0
+        ],
+        [
+          3,
+          48,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "2026 United States Senate election in Maine / 2026 House Republican Conference leadership election",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Jean Talon / Samuel de Champlain",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Ueno Bank / Santiago Peña",
+          "human": "different",
+          "llm": "same"
+        },
+        {
+          "item": "2026 Georgia gubernatorial election / Adam Hamilton (pastor)",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Mississippi / 2026 United States Senate election in Kansas",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Iowa / 2026 Georgia gubernatorial election",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States gubernatorial elections / 2026 United States judicial elections",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Cindy Hyde-Smith / Adam Hamilton (pastor)",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 House Republican Conference leadership election / 2026 United States House of Representatives elections in Iowa",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "List of new members of the 120th United States Congress / 2026 United States judicial elections",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "2026 United States Senate election in Kansas / 2026 United States state legislative elections",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Cindy Hyde-Smith / Adam Hamilton (pastor)",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Republican Party (United States) / Salon (website)",
+          "human": "different",
+          "llm": "same"
+        },
+        {
+          "item": "Adam Hamilton (pastor) / Republican Party (United States)",
+          "human": "same",
+          "llm": "different"
+        },
+        {
+          "item": "Grinds Pouches / Alp (company)",
+          "human": "same",
+          "llm": "different"
+        }
+      ],
+      "rare_category": false,
+      "conclusion": "enough for a first estimate"
+    },
+    {
+      "family": "relations",
+      "scope": "04c-v1",
+      "labeler": "ollama:qwen3:8b, prompt 1",
+      "paired": 49,
+      "human_unsure": 0,
+      "llm_unsure": 0,
+      "decisive": 49,
+      "unpaired_human": 0,
+      "accuracy": 0.9387755102040817,
+      "accuracy_ci95": [
+        0.8571428571428571,
+        1.0
+      ],
+      "kappa": -0.027972027972027913,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        -0.06521739130434767,
+        0.0
+      ],
+      "kappa_undefined_resamples": 85,
+      "kappa_words": "worse than chance",
+      "positive": "correct",
+      "human_positive_share": 0.9795918367346939,
+      "llm_positive_share": 0.9591836734693877,
+      "categories": [
+        "correct",
+        "wrong",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          46,
+          2,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "Michael Saward born in Tasmania (03b-default-fix:455)",
+          "human": "wrong",
+          "llm": "correct"
+        },
+        {
+          "item": "Moses Harris encouraged in entomology by Society of the Aurelians (03b-default-fix:460)",
+          "human": "correct",
+          "llm": "wrong"
+        },
+        {
+          "item": "Vivek Ramaswamy incumbent governor Ohio (03b-default-fix:404)",
+          "human": "correct",
+          "llm": "wrong"
+        }
+      ],
+      "rare_category": true,
+      "conclusion": "enough for a first estimate"
+    },
+    {
+      "family": "relations",
+      "scope": "04c-v1",
+      "labeler": "ollama:qwen3:8b, prompt 2",
+      "paired": 49,
+      "human_unsure": 0,
+      "llm_unsure": 1,
+      "decisive": 48,
+      "unpaired_human": 0,
+      "accuracy": 0.9166666666666666,
+      "accuracy_ci95": [
+        0.8333333333333334,
+        0.9796875000000018
+      ],
+      "kappa": -0.032258064516129004,
+      "kappa_weighted": false,
+      "kappa_ci95": [
+        -0.0769230769230771,
+        0.0
+      ],
+      "kappa_undefined_resamples": 50,
+      "kappa_words": "worse than chance",
+      "positive": "correct",
+      "human_positive_share": 0.9791666666666666,
+      "llm_positive_share": 0.9375,
+      "categories": [
+        "correct",
+        "wrong",
+        "unsure"
+      ],
+      "confusion": [
+        [
+          44,
+          3,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "disagreements": [
+        {
+          "item": "Michael Saward born in Tasmania (03b-default-fix:455)",
+          "human": "wrong",
+          "llm": "correct"
+        },
+        {
+          "item": "Moses Harris encouraged in entomology by Society of the Aurelians (03b-default-fix:460)",
+          "human": "correct",
+          "llm": "wrong"
+        },
+        {
+          "item": "Vivek Ramaswamy incumbent governor Ohio (03b-default-fix:404)",
+          "human": "correct",
+          "llm": "wrong"
+        },
+        {
+          "item": "Santiago Peña resigned as president of Paraguay (03b-default-fix:496)",
+          "human": "correct",
+          "llm": "wrong"
+        }
+      ],
+      "rare_category": true,
+      "conclusion": "enough for a first estimate"
+    }
+  ],
+  "headlines": {
+    "detection": [
+      {
+        "run": "02b-baseline",
+        "report": "evals/results/2026-11-07_02b-baseline.json",
+        "sample": 50,
+        "reported": 0.48,
+        "llm": {
+          "value": 0.48,
+          "n": 50,
+          "successes": 24,
+          "ci95": [
+            0.3479713519089993,
+            0.6148825520981452
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 0.2653061224489796,
+          "n": 49,
+          "successes": 13,
+          "ci95": [
+            0.1621128207018636,
+            0.40262289086000647
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 1
+        },
+        "llm_on_human_sample": {
+          "value": 0.46938775510204084,
+          "n": 49,
+          "successes": 23,
+          "ci95": [
+            0.337035035979674,
+            0.6061913611805699
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        }
+      },
+      {
+        "run": "02b-loose",
+        "report": "evals/results/2026-11-07_02b-loose.json",
+        "sample": 50,
+        "reported": 0.5,
+        "llm": {
+          "value": 0.5,
+          "n": 50,
+          "successes": 25,
+          "ci95": [
+            0.3664451421899842,
+            0.6335548578100159
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 0.0,
+          "n": 1,
+          "successes": 0,
+          "ci95": [
+            0.0,
+            0.7934506882081973
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        },
+        "llm_on_human_sample": {
+          "value": 0.0,
+          "n": 1,
+          "successes": 0,
+          "ci95": [
+            0.0,
+            0.7934506882081973
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        }
+      },
+      {
+        "run": "02b-medium",
+        "report": "evals/results/2026-11-07_02b-medium.json",
+        "sample": 50,
+        "reported": 0.58,
+        "llm": {
+          "value": 0.58,
+          "n": 50,
+          "successes": 29,
+          "ci95": [
+            0.4423344166337506,
+            0.706249967337671
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 0.25925925925925924,
+          "n": 27,
+          "successes": 7,
+          "ci95": [
+            0.13170374490590095,
+            0.44678571468694817
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        },
+        "llm_on_human_sample": {
+          "value": 0.5185185185185185,
+          "n": 27,
+          "successes": 14,
+          "ci95": [
+            0.33985615629965205,
+            0.6925677314239751
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        }
+      },
+      {
+        "run": "02b-strict",
+        "report": "evals/results/2026-11-07_02b-strict.json",
+        "sample": 50,
+        "reported": 0.54,
+        "llm": {
+          "value": 0.54,
+          "n": 50,
+          "successes": 27,
+          "ci95": [
+            0.40398871297392647,
+            0.6703034790117844
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 0.2727272727272727,
+          "n": 22,
+          "successes": 6,
+          "ci95": [
+            0.13150760211464035,
+            0.48151734179678934
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        },
+        "llm_on_human_sample": {
+          "value": 0.4090909090909091,
+          "n": 22,
+          "successes": 9,
+          "ci95": [
+            0.23255816086354597,
+            0.6126518167010261
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        }
+      }
+    ],
+    "grouping": [
+      {
+        "run": "03b-close180",
+        "report": "evals/results/2026-11-07_03b-close180.json",
+        "reported_precision": 0.66,
+        "reported_recall": 0.6429222291326169,
+        "llm": {
+          "precision": {
+            "value": 0.66,
+            "n": 50,
+            "successes": 33,
+            "ci95": [
+              0.5215382593969471,
+              0.7756305085458965
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.6429222291326169,
+          "recall_ci95": [
+            0.5428039775757648,
+            0.7619561863622338
+          ],
+          "labeled_per_stratum": {
+            "together": 50,
+            "near": 50,
+            "far": 24
+          },
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "precision": {
+            "value": 0.8695652173913043,
+            "n": 23,
+            "successes": 20,
+            "ci95": [
+              0.6787251755146014,
+              0.9546234094181704
+            ],
+            "conclusion": "too few to conclude (n < 30)"
+          },
+          "recall": 0.7011656239306948,
+          "recall_ci95": [
+            0.6008221160707189,
+            0.8255340068333211
+          ],
+          "labeled_per_stratum": {
+            "together": 23,
+            "near": 34,
+            "far": 25
+          },
+          "unsure": 0
+        }
+      },
+      {
+        "run": "03b-default",
+        "report": "evals/results/2026-11-07_03b-default.json",
+        "reported_precision": 0.78,
+        "reported_recall": 0.23656567981194415,
+        "llm": {
+          "precision": {
+            "value": 0.78,
+            "n": 50,
+            "successes": 39,
+            "ci95": [
+              0.6475845030451719,
+              0.8724608408548042
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.23656567981194415,
+          "recall_ci95": [
+            0.1847322348094748,
+            0.3145269310386816
+          ],
+          "labeled_per_stratum": {
+            "together": 50,
+            "near": 50,
+            "far": 24
+          },
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "precision": {
+            "value": 0.9795918367346939,
+            "n": 49,
+            "successes": 48,
+            "ci95": [
+              0.8930647837060598,
+              0.9963883274501185
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.26729042480947707,
+          "recall_ci95": [
+            0.21648188501233206,
+            0.3440024860161592
+          ],
+          "labeled_per_stratum": {
+            "together": 49,
+            "near": 49,
+            "far": 25
+          },
+          "unsure": 0
+        }
+      },
+      {
+        "run": "03b-default-fix",
+        "report": "evals/results/2026-11-07_03b-default-fix.json",
+        "reported_precision": 0.78,
+        "reported_recall": 0.22591109198636258,
+        "llm": {
+          "precision": {
+            "value": 0.78,
+            "n": 50,
+            "successes": 39,
+            "ci95": [
+              0.6475845030451719,
+              0.8724608408548042
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.22591109198636258,
+          "recall_ci95": [
+            0.17587434675242633,
+            0.3050773589017215
+          ],
+          "labeled_per_stratum": {
+            "together": 50,
+            "near": 50,
+            "far": 24
+          },
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "precision": {
+            "value": 0.98,
+            "n": 50,
+            "successes": 49,
+            "ci95": [
+              0.8950455630610349,
+              0.9964607407674954
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.25156217912987355,
+          "recall_ci95": [
+            0.20648718936621077,
+            0.3174265544140084
+          ],
+          "labeled_per_stratum": {
+            "together": 50,
+            "near": 50,
+            "far": 25
+          },
+          "unsure": 0
+        }
+      },
+      {
+        "run": "03b-thr050",
+        "report": "evals/results/2026-11-07_03b-thr050.json",
+        "reported_precision": 0.78,
+        "reported_recall": 0.24440465532676814,
+        "llm": {
+          "precision": {
+            "value": 0.78,
+            "n": 50,
+            "successes": 39,
+            "ci95": [
+              0.6475845030451719,
+              0.8724608408548042
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.24440465532676814,
+          "recall_ci95": [
+            0.1912839804102491,
+            0.3238533947526537
+          ],
+          "labeled_per_stratum": {
+            "together": 50,
+            "near": 50,
+            "far": 24
+          },
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "precision": {
+            "value": 0.9795918367346939,
+            "n": 49,
+            "successes": 48,
+            "ci95": [
+              0.8930647837060598,
+              0.9963883274501185
+            ],
+            "conclusion": "enough for a first estimate"
+          },
+          "recall": 0.27577973436800474,
+          "recall_ci95": [
+            0.2238504894690003,
+            0.3537519142419602
+          ],
+          "labeled_per_stratum": {
+            "together": 49,
+            "near": 49,
+            "far": 25
+          },
+          "unsure": 0
+        }
+      }
+    ],
+    "relations": [
+      {
+        "run": "04c-v1",
+        "report": "evals/results/2026-11-08_04c-v1.json",
+        "judge": "ollama:qwen3:8b, prompt 2",
+        "sample": 50,
+        "matched_to_labels": 50,
+        "reported": 0.9387755102040817,
+        "llm": {
+          "value": 0.9387755102040817,
+          "n": 49,
+          "successes": 46,
+          "ci95": [
+            0.8347951205456138,
+            0.9789598534908898
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 0.9795918367346939,
+          "n": 49,
+          "successes": 48,
+          "ci95": [
+            0.8930647837060598,
+            0.9963883274501185
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 0
+        },
+        "llm_on_human_sample": {
+          "value": 0.9375,
+          "n": 48,
+          "successes": 45,
+          "ci95": [
+            0.8316456183361519,
+            0.9785167672589278
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 1
+        }
+      },
+      {
+        "run": "04c-v2",
+        "report": "evals/results/2026-11-08_04c-v2.json",
+        "judge": "ollama:qwen3:8b, prompt 2",
+        "sample": 50,
+        "matched_to_labels": 50,
+        "reported": 0.9183673469387755,
+        "llm": {
+          "value": 0.9183673469387755,
+          "n": 49,
+          "successes": 45,
+          "ci95": [
+            0.8081087229206011,
+            0.9677971825560651
+          ],
+          "conclusion": "enough for a first estimate",
+          "unsure": 1
+        },
+        "llm_matches_report": true,
+        "human": {
+          "value": 1.0,
+          "n": 25,
+          "successes": 25,
+          "ci95": [
+            0.866807747239609,
+            1.0
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 0
+        },
+        "llm_on_human_sample": {
+          "value": 0.9583333333333334,
+          "n": 24,
+          "successes": 23,
+          "ci95": [
+            0.7975819334115467,
+            0.9926065439164028
+          ],
+          "conclusion": "too few to conclude (n < 30)",
+          "unsure": 1
+        }
+      }
+    ],
+    "qa": [
+      {
+        "run": "05b-v1",
+        "report": "evals/results/2026-11-08_05b-v1.json",
+        "judge": "ollama:qwen3:8b",
+        "reported_correctness": 1.2,
+        "reported_faithfulness": 0.9591836734693877,
+        "llm_correctness": {
+          "mean": 1.2,
+          "n": 25,
+          "ci95": [
+            0.88,
+            1.52
+          ],
+          "fully_correct": {
+            "value": 0.48,
+            "n": 25,
+            "successes": 12,
+            "ci95": [
+              0.3003128583305077,
+              0.6650148317799079
+            ],
+            "conclusion": "too few to conclude (n < 30)"
+          },
+          "conclusion": "too few to conclude (n < 30)"
+        },
+        "llm_matches_report": true,
+        "human_correctness": {
+          "mean": null,
+          "n": 0,
+          "ci95": [
+            null,
+            null
+          ],
+          "fully_correct": {
+            "value": null,
+            "n": 0,
+            "successes": 0,
+            "ci95": [
+              null,
+              null
+            ],
+            "conclusion": "no human labels yet"
+          },
+          "conclusion": "no human labels yet"
+        },
+        "llm_correctness_on_human_sample": {
+          "mean": null,
+          "n": 0,
+          "ci95": [
+            null,
+            null
+          ],
+          "fully_correct": {
+            "value": null,
+            "n": 0,
+            "successes": 0,
+            "ci95": [
+              null,
+              null
+            ],
+            "conclusion": "no human labels yet"
+          },
+          "conclusion": "no human labels yet"
+        },
+        "llm_faithfulness": {
+          "value": 0.9591836734693877,
+          "n": 49,
+          "successes": 47,
+          "ci95": [
+            0.8628696758610322,
+            0.9887343667353087
+          ],
+          "conclusion": "enough for a first estimate"
+        },
+        "human_faithfulness": {
+          "value": null,
+          "n": 0,
+          "successes": 0,
+          "ci95": [
+            null,
+            null
+          ],
+          "conclusion": "no human labels yet"
+        }
+      }
+    ]
+  },
+  "paid_judge": {
+    "used": false,
+    "api_key_set": false,
+    "allowed": false,
+    "reason": "skipped: ANTHROPIC_API_KEY and JUDGE_AUDIT_ALLOW_PAID=true not set"
+  }
+}

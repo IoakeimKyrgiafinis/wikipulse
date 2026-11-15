@@ -304,3 +304,12 @@ the namespace, the Secret, the Helm release), with the secrets from your setting
   `uv run python -m wikipulse.eval.gate` runs the gate locally and `uv run python
   scripts/deploy.py <version>` installs a release on the local cluster
   ([09c](learning/09c-cicd-pipeline.md)).
+
+## Stage 12: AI quality
+
+### Auditing the labels
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python -m wikipulse.eval.audit` | Compares every LLM labeler and judge with the human labels in `evals/labels/` (accuracy, Cohen's kappa, confusion matrices, bootstrap intervals) and recomputes the headline numbers from LLM and from human labels side by side; writes `evals/results/<today>_audit.md` and `.json`. Read-only on the labels, no network, a few seconds: run it after every labeling session. A paid judge is only allowed with `ANTHROPIC_API_KEY` and `JUDGE_AUDIT_ALLOW_PAID=true` (the audit has no paid step yet). |
+| `uv run python scripts/make_gate_fixture.py --labels-only --no-llm` | Rebuilds the CI gate's labels from the committed fixture, taking human labels from `spike_labels.jsonl` where they cover a gate burst and keeping the gate's LLM labels otherwise. Then `uv run python -m wikipulse.eval.gate --write-baseline`, and commit both for the owner's review ([12b](learning/12b-judge-audit.md)). |

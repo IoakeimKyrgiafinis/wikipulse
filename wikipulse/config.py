@@ -284,6 +284,10 @@ class Settings(BaseSettings):
     # Judge models, as comma-separated `backend:model` settings. The first one gives the
     # report's scores; every further one judges the same answers, for judge agreement.
     eval_qa_judges: str = "ollama:qwen3:8b,ollama:qwen3:4b"
+    # Spec 12b: the label audit may use a paid judge (the `anthropic` backend) only when
+    # ANTHROPIC_API_KEY is set *and* this is true. Off by default: it costs money and sends
+    # label texts to an external API.
+    judge_audit_allow_paid: bool = False
 
     # --- Stage 5: MCP server (wikipulse.mcp_server) ---
     # Address of the HTTP transport (`--transport http`). Only loopback addresses are

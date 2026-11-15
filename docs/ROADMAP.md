@@ -68,7 +68,7 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 11b | Fresh labels for weekly retraining | ready |
 | 11c | A vandalism signal for spike detection | ready |
 | 12a | Better Cypher generation for question answering | ready |
-| 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | ready |
+| 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
 | 12c | Fine-tune a small extraction model | ready |
 
 ## Follow-ups
@@ -119,15 +119,40 @@ Known problems that were too large for the spec that found them. Each needs its 
   The DAG task should pass `--model ollama:qwen3:4b` (or get its own setting), or the
   weekly labels will come from another model than the existing ones.
 
-- **The detection eval gate's labels are unreviewed** (found in the 09c review). The CI
-  gate (`wikipulse.eval.gate`) scores against `evals/labels/detection_gate_labels.jsonl`:
-  167 of its 180 labels are `qwen3:8b` labels made without the page summary, and no human
-  has checked them, including the 38 `news` labels that recall rests on (for example,
-  "Scene (2026 film)" is `news` because a Reception section was added). *Impact:* a
-  blocking CI check measures agreement with an unchecked model; a change that moves
-  precision or recall may be judged against wrong labels. *Proposed fix:* a human pass,
-  starting with the 38 `news` labels, written as `labeler: "human"` records (which win
-  over LLM ones), then `--write-baseline` and a reviewed baseline change.
+- **The detection eval gate's labels are unreviewed** (found in the 09c review; *checked,
+  not fixed* by spec 12b). The CI gate (`wikipulse.eval.gate`) scores against
+  `evals/labels/detection_gate_labels.jsonl`: 167 of its 180 labels are `qwen3:8b` labels
+  made without the page summary, the other 13 `qwen3:4b` labels copied from 07a, and no
+  human has checked them, including the 38 `news` labels that recall rests on (for
+  example, "Scene (2026 film)" is `news` because a Reception section was added). Spec 12b
+  rebuilt the labels with `scripts/make_gate_fixture.py --labels-only --no-llm` and wrote
+  the baseline again: both came out byte for byte the same (precision 0.526, recall 0.211),
+  because none of the 87 human spike labels covers the gate's window (7 November, 01:00 to
+  13:00 UTC; the human labels end on 6 November). The 12b audit also found the spike
+  labeler calls *news* far more often than a human (precision 48% by LLM labels, 27% by
+  human labels on the same 02b sample), so the gate's `news` labels are probably too
+  many. *Impact:* a blocking CI check measures agreement with an unchecked model.
+  *Proposed fix:* a human pass over the gate's bursts, starting with the 38 `news`
+  labels. Either label spikes of run `07a-candidates` or `07a-default` in that window with
+  `wikipulse.eval.label --manual` (they reach the gate through `spike_labels.jsonl`), or
+  give `make_gate_fixture.py` a `--manual` mode over the gate bursts themselves (none
+  exists yet). Then `make_gate_fixture.py --labels-only --no-llm`, `--write-baseline`,
+  and a reviewed baseline change (CODEOWNERS covers both files).
+- **The LLM spike labeler over-calls news** (found by spec 12b). On 49 spikes of run
+  `02b-baseline` labeled by both, `qwen3:4b` agrees with the human on 80% (kappa 0.58),
+  and all 10 disagreements are LLM `news` against human `not news` (sports seasons and
+  players, TV shows). The 07a-candidates sample points the same way (5 of 6, but only 29
+  pairs). *Impact:* every LLM-label precision in 02b reads about 20 points too high, and
+  the news classifier (07b onward) is trained and tested on these labels. *Proposed fix:*
+  a labeler prompt change (out of scope for 12b) measured with `wikipulse.eval.audit`
+  against the human labels, then relabeling.
+- **No human QA judgements, and no paid-judge step** (found by spec 12b). The audit
+  counts 0 human correctness or faithfulness judgements, so the QA numbers are judge-only.
+  The spec's optional stronger judge (the `anthropic` backend, allowed only with
+  `ANTHROPIC_API_KEY` and `JUDGE_AUDIT_ALLOW_PAID=true`) was skipped because neither was
+  set; `wikipulse.eval.audit` reports the condition but has no paid-judge step yet.
+  *Proposed fix:* a `--manual` mode for QA judgements, and, if wanted, a paid re-judging
+  step over the items where human and LLM disagree.
 
 ## Milestones
 
