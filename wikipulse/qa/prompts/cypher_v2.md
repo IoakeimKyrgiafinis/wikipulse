@@ -108,11 +108,13 @@ RETURN n.name AS organization, size(events) AS story_count,
 ORDER BY story_count DESC LIMIT 20
 ```
 
-Question: Which Wikipedia page belongs to the most stories?
+Question: Which organization is in the most stories since midnight?
 ```
-MATCH (p:Page)-[:PART_OF]->(ev:Event)
-WITH p, count(DISTINCT ev) AS story_count, collect(DISTINCT ev.key) AS event_keys
-RETURN p.title AS page, story_count, event_keys
+MATCH (n:Entity {type: 'organization'})-[:INVOLVED_IN]->(ev:Event)
+WHERE ev.started_at >= $today_start
+WITH n, count(DISTINCT ev) AS story_count, collect(DISTINCT ev.key) AS event_keys,
+     collect(DISTINCT ev.title) AS event_titles
+RETURN n.name AS organization, story_count, event_keys, event_titles
 ORDER BY story_count DESC LIMIT 5
 ```
 
