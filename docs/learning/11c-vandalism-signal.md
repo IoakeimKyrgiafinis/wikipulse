@@ -5,7 +5,8 @@
 Spec 02b found that most "not news" spikes were vandalism bursts: someone defaces a page,
 a few people fix it, and the burst of editing looks like breaking news to a detector that
 only counts edits and editors. This spec first measured which properties of a burst tell
-news from not news, and then added the one that helped most to the detector.
+news from not news, added the one that helped most to the detector as a rule, and chose
+its setting on held-out data: the rule ships switched off, for reasons explained below.
 
 ```
 uv run python -m wikipulse.eval.vandalism                 # the analysis (~8 minutes)
@@ -15,14 +16,14 @@ uv run python -m wikipulse.eval.gate                      # the CI gate, with th
 
 | File | Role |
 |------|------|
-| `wikipulse/eval/vandalism.py` (new) | The analysis: labeled bursts per labeler (`labeled_bursts`), revert matching (`reverted_at`), eight signals at three moments (`period_signals`, `moments_of`), the AUC with a bootstrap interval (`auc`, `auc_interval`, `separation`), the detector over the whole lake at six values of the rule (`rule_results`, `start_changes`), the gate fixture at the same values (`gate_results`), and the report. |
+| `wikipulse/eval/vandalism.py` (new) | The analysis: labeled bursts per labeler (`labeled_bursts`), revert matching (`reverted_at`), eight signals at three moments (`period_signals`, `moments_of`), the AUC with a bootstrap interval (`auc`, `auc_interval`, `separation`), the detector over the whole lake at six values of the rule (`rule_results`, `start_changes`), the gate fixture at the same values (`gate_results`), the choosing rule and the held-out split (`choose_value`, `folds`, `held_out`), and the report. |
 | `evals/results/2026-11-16_vandalism.md` / `.json` | The analysis report. |
 | `wikipulse/detect/detector.py` | The rule: `SpikeDetector._too_anonymous()`, called in `_maybe_start()`. `is_anonymous()` moved here from `ml/features.py`, so the detector and the classifier share one definition. |
 | `wikipulse/detect/windows.py` | `PageWindows.users()`: the users of a page's edits in a window. |
-| `wikipulse/config.py`, `.env.example` | `DETECT_MAX_ANON_SHARE` (`DetectorConfig.max_anon_share`), default 0.45; 1 switches the rule off. |
-| `wikipulse/eval/gate.py`, `scripts/make_gate_fixture.py` | The gate fixture keeps a flag per edit for anonymous editors (`"a"`, never the name); `fixture_user()` turns it back into a name `is_anonymous` recognises. The label variants keep the rule off, so the labels still cover what the rule drops. |
+| `wikipulse/config.py`, `.env.example` | `DETECT_MAX_ANON_SHARE` (`DetectorConfig.max_anon_share`); 1, the default, switches the rule off (chosen on held-out data, see below). |
+| `wikipulse/eval/gate.py`, `scripts/make_gate_fixture.py` | The gate fixture keeps a flag per edit for anonymous editors (`"a"`, never the name); `fixture_user()` turns it back into a name `is_anonymous` recognises. The label variants keep the rule off, so the labels still cover what the rule drops. The precision margin is now 5 points, kept between one and two spikes (`allowed_drops`). |
 | `tests/fixtures/detection_gate/edits.jsonl.gz`, `evals/baselines/detection_gate.json` | The fixture with the new flag, and the new baseline. |
-| `tests/detect/test_detector.py`, `tests/eval/test_gate.py`, `tests/eval/test_vandalism.py` | The rule (held back, the limit itself, starting later, only the start, old snapshots), the fixture flag, and the analysis (18 tests). |
+| `tests/detect/test_detector.py`, `tests/eval/test_gate.py`, `tests/eval/test_vandalism.py` | The rule (held back, the limit itself, starting later, only the start, old snapshots, `anon_held` once per edit), the fixture flag, the margin in points and the restored gate scenarios, and the analysis (26 tests, with the choosing rule and the folds). |
 
 How the pieces fit:
 
@@ -37,7 +38,7 @@ detection_gate_labels.jsonl ──────┤               │
    SpikeDetector(max_anon_share = 1.0, 0.75, 0.6, 0.5, 0.45, 0.4)    │  2026-11-16_vandalism.md
      over the lake, and over the gate fixture ── precision, recall ──┘
                                   │
-             chosen: 0.45 ──► DetectorConfig default, gate baseline
+   choose_value on one half, judged on the other ──► default 1.0 (off), gate baseline
 ```
 
 ## Key concepts
@@ -120,80 +121,160 @@ human-labeled not-news bursts. That matches the AUC table.
 ### Precision/recall trade-offs, and choosing the value
 
 `rule_results()` runs the detector over the whole lake (8 days, 988,885 edits) once per
-value and scores the spikes from 3 November 22:00 on (after a day of warm-up):
+value and scores the spikes from 3 November 22:00 on (after a day of warm-up). These are
+**in-sample numbers**: the same data any choice would be made on, so they describe the
+values but can't tell you how well a choice holds up.
 
-| `max_anon_share` | Spikes | Precision, human (n) | Human news bursts kept | Precision, LLM (n) | LLM news bursts kept | Gate precision / recall |
-|---|---:|---|---:|---|---:|---|
-| 1.0 (off) | 482 | 26% [17%, 38%] (68) | 15 of 15 | 56% [52%, 61%] (480) | 245 of 245 | 0.526 / 0.211 |
-| 0.75 | 454 | 29% [19%, 41%] (62) | 15 of 15 | 56% (452) | 229 | 0.529 / 0.184 |
-| 0.6 | 437 | 28% [19%, 41%] (60) | 15 of 15 | 56% (435) | 224 | 0.529 / 0.184 |
-| 0.5 | 367 | 35% [23%, 49%] (49) | 15 of 15 | 64% (365) | 212 | 0.562 / 0.184 |
-| **0.45** | **327** | **41% [28%, 57%] (41)** | **15 of 15** | **69% [63%, 73%] (325)** | **202** | **0.600 / 0.184** |
-| 0.4 | 324 | 41% [28%, 57%] (41) | 15 of 15 | 69% (322) | 201 | 0.600 / 0.184 |
+| `max_anon_share` | Spikes | Precision, human (n) | Human news kept | Precision, LLM (n) | LLM news kept | Held-back spikes: later start / median / p90 delay | Gate precision / recall |
+|---|---:|---|---:|---|---:|---|---|
+| **1.0 (off, chosen)** | 482 | 26% [17%, 38%] (68) | 15 of 15 | 56% [52%, 61%] (480) | 245 of 245 | 0 | **0.526 / 0.211** |
+| 0.75 | 454 | 29% [19%, 41%] (62) | 15 of 15 | 56% (452) | 229 | 14 / 2.9 / 19.3 min | 0.529 / 0.184 |
+| 0.6 | 437 | 28% [19%, 41%] (60) | 15 of 15 | 56% (435) | 224 | 18 / 3.1 / 24.7 min | 0.529 / 0.184 |
+| 0.5 | 367 | 35% [23%, 49%] (49) | 15 of 15 | 64% (365) | 212 | 53 / 0.4 / 7.5 min | 0.562 / 0.184 |
+| 0.45 | 327 | 41% [28%, 57%] (41) | 15 of 15 | 69% [63%, 73%] (325) | 202 | 25 / 4.6 / 55.1 min | 0.600 / 0.184 |
+| 0.4 | 324 | 41% [28%, 57%] (41) | 15 of 15 | 69% (322) | 201 | 23 / 4.6 / 64.4 min | 0.600 / 0.184 |
 
-The choosing rule, written down before picking: **the highest precision by human labels
-that loses no human-labeled news burst and at most one gate news burst (the gate's
-margin); on a tie, the looser value.** 0.45 and 0.4 tie on human precision; 0.45 keeps one
-more LLM-news burst. LLM-label recall is reported but not used to choose, because 12b
-showed the LLM calls exactly these bursts (sports, TV) news when a human doesn't. In
-practice 0.45 means "anonymous editors made less than about half of the window's edits":
-in a 5-edit window, 2 anonymous edits pass and 3 don't.
+The first version of this spec chose 0.45 from this table. The review found two faults
+with that, and they are the two lessons of this section:
 
-Reading the numbers honestly:
+1. **Choosing and reporting on the same data.** 0.45 was picked because it had the best
+   human precision on these 68 bursts, and then that precision (41%) was reported as the
+   result. A value picked as the best of six on a small sample looks better on that
+   sample than it will on new data. And the rule for picking it only entered the history
+   together with the numbers.
+2. **The trade-off that wasn't weighed.** A held-back burst can start later, once
+   registered editors join. At 0.45 the spikes that start later do so by 55 minutes at
+   the 90th percentile. For a project about catching breaking news early, that is a cost,
+   and it was reported but played no part in the choice.
 
-- **Precision.** By human labels 26% rises to 41%, but the two intervals overlap. The
-  stronger evidence is paired: the rule drops 25 human-labeled bursts and *all 25* are
-  not news. If it dropped bursts at random from the 63 the run found (15 news), the
-  chance of 25 drops without a single news burst would be about 0.0001
-  (hypergeometric).
-- **Recall.** No human news burst is lost, but there are only 15: with 0 of 15 lost, the
-  one-sided 95% upper bound on the loss rate is still 18%. By LLM labels 43 of 245 news
-  bursts are lost (18%). Of those 43, 4 also have a human label, all `not news`; the
-  rest, by their titles, are mostly football seasons, reality TV and wrestling, but also
-  stories with many logged-out editors: US election pages on election night (*Rick
-  Jackson* winning a governorship, *2026 United States House of Representatives elections
-  in Florida*), *Aramco Tower* after a missile strike, *James Gunn*. Those are real
-  losses, and the ROADMAP follow-up asks for human labels on these 43.
-- **Time.** 25 spikes start later than without the rule (median 4.6 minutes, p90 55):
-  bursts that were held back until registered editors joined. 154 of 482 disappear.
+The fix is `choose_value()`, `folds()` and `held_out()` in `wikipulse/eval/vandalism.py`,
+committed (9d2f48b) before they were run on the lake:
+
+- **The choosing rule**: of the values that lose none of the period's human-labeled news
+  bursts *and* whose held-back spikes start at most `MAX_P90_DELAY_MIN` = 10 minutes late
+  (p90 of the delays `start_changes()` measures), the one with the highest human
+  precision; on a tie, the looser value. 10 minutes is one short detector window, and
+  how long the news classifier waits after a start: a burst held back longer than that
+  reaches the page noticeably late. 1.0 (off) is always eligible.
+- **Held-out data** (`folds()`): the human labels cover 5 November and 6 November, so the
+  lake is cut in two at 6 November 00:00 (`SPLIT_AT`). The rule chooses on one half; the
+  value is judged on the other half, which played no part in the choice. The fold that
+  chooses on the earlier half and checks on the later one gives the value used (that's
+  how a deployment works: choose on the past, run on the future); the reversed fold
+  shows whether the other half would agree.
+
+What happened:
+
+| Fold | Chosen | Why | On the held-out half (human labels) |
+|---|---|---|---|
+| choose on 3-5 Nov, check on 6-10 Nov | **1.0 (off)** | every lower value: p90 delay 17.1 to 76 min on 3-5 Nov | 23% [12%, 41%] (n = 30), 0 of 6 news lost |
+| choose on 6-10 Nov, check on 3-5 Nov | 0.5 | 0.75: 11.9 min, 0.45 and 0.4: 33 to 48 min; 0.5: 5.6 min | 38% [22%, 57%] (n = 26), 0 of 9 news lost |
+
+Pooled over both folds (each half judged with the value the *other* half chose): human
+precision 30% [20%, 43%] (n = 56), 0 of 15 human-labeled news bursts lost. The rule off
+on both halves gives 18 of 67, 27%.
+
+So the procedure picked **1.0: the rule stays off by default**. I kept that, as decided
+before running it. It is not a verdict that the rule is useless:
+
+- On held-out data 0.5 helps on both halves: human precision 23% to 30% (n 30 to 23) on
+  6-10 Nov and 30% to 38% (n 37 to 26) on 3-5 Nov, with no human news burst lost, at a
+  cost of 17 of 151 and 16 of 94 LLM-labeled news bursts. The intervals overlap
+  everywhere; the samples are small.
+- What stopped it is the delay cap, and the delay statistic is noisy: 0.5 holds back 19
+  spikes on the earlier half (p90 17.1 minutes, so about two spikes held more than 10
+  minutes) and 34 on the later one (p90 5.6). The p90 also mixes news and vandalism
+  bursts; a vandalism burst that starts late costs nothing.
+- 0.45, the first version's choice, fails the cap on both halves (76 and 33 minutes).
+  Going from 0.5 to 0.45 turns many short holds into long ones.
+
+Turning the rule on is therefore an owner decision about how much delay is acceptable,
+not something more analysis of these 15 human news bursts can settle. The ROADMAP
+follow-up says what would help: human labels on the news bursts the rule drops, and a
+delay measured on news bursts only.
+
+Reading the numbers honestly (all in sample unless the fold table says otherwise):
+
+- **Precision.** At 0.5, 26% rises to 35% by human labels; at 0.45 to 41%. The intervals
+  overlap. The paired evidence is stronger: 0.45 drops 25 human-labeled bursts and *all
+  25* are not news (0.5: 17 of 17). If 25 drops were random among the 63 found (15
+  news), getting no news burst would have a chance of about 0.0001 (hypergeometric).
+- **Recall.** No human news burst is lost at any value, but there are only 15: with 0 of
+  15 lost, the one-sided 95% upper bound on the loss rate is 18%. By LLM labels 0.5
+  loses 33 of 245 news bursts (13%), 0.45 loses 43 (18%), among them US election pages
+  on election night (*Rick Jackson*, *2026 United States House of Representatives
+  elections in Florida*), *Aramco Tower* after a missile strike, and *James Gunn*.
+- **Time.** See the delay column: the median delay is small, the tail is not.
 
 ### How the CI gate keeps you honest
 
-The gate scores the default detector on 12 hours of 7 November against 180 frozen labels.
-With the rule:
+The gate scores the default detector on 12 hours of 7 November against 180 frozen
+labels, and fails a change whose precision or recall drops more than a margin below the
+baseline.
 
-| | Old baseline (rule off) | New baseline (`max_anon_share` 0.45) |
+**What the first version did to it.** With the rule at 0.45, the baseline had only 15
+scored spikes (precision 0.600, 9 of 15; recall 0.184). The precision margin was counted
+as 2 spikes, so it grew to 2/15 = 0.133, and changes the gate used to catch passed: the
+09c demonstration (`min_edits=3`, 0.478), 02b's medium thresholds (0.478),
+`count_reverts=true` (0.500) and switching the rule off (0.526). Three tests asserted
+that such changes fail, and they were rewritten to grosser changes so the suite stayed
+green. The review called that what it is, weakening tests, and it was the blocker.
+
+**The fix: a margin in points, kept between one and two spikes** (`allowed_drops()` in
+`wikipulse/eval/gate.py`). Precision may drop by `margin_points` = 0.05, but never by
+less than one of the baseline's judged spikes (so one moved label is still no false
+alarm) and never by more than `margin_spikes` = 2 of them:
+
+```
+allowed = max(1 / judged, min(margin_spikes / judged, margin_points))
+```
+
+This is where the gate's history pointed: spec 09c started with a fixed 0.05, which
+failed as soon as one label flipped (one spike was 0.053), and switched to 2 spikes. The
+cap stops the margin from growing when the spike count shrinks; the floor keeps 09c's
+fix. A baseline without `margin_points` (an older file) keeps the old rule;
+`--write-baseline` adds it, and `--margin-points` sets it.
+
+| | First version's baseline (rule 0.45) | New baseline (rule off) |
 |---|---:|---:|
-| precision | 0.526 (10 news of 19 spikes) | **0.600** (9 news of 15 spikes) |
-| recall | 0.211 (8 of 38 news bursts) | **0.184** (7 of 38) |
-| spikes dropped | | Kusmara, Pathans in India, Emperor of the French (not news), Bigg Boss (Tamil TV series) season 10 (news) |
-| `fixture_sha256` | `93b49d71...` | `6ae2e220...` (the new `"a"` flag) |
+| precision | 0.600 (9 news of 15 spikes) | **0.526** (10 news of 19 spikes) |
+| recall | 0.184 (7 of 38 news bursts) | **0.211** (8 of 38) |
+| allowed precision drop | 0.133 (2 spikes) | **0.053** (0.05, raised to one spike) |
+| allowed recall drop | 0.026 (1 burst) | 0.026 (1 burst) |
+| `fixture_sha256` | `6ae2e220...` | `6ae2e220...` (unchanged) |
 | `labels_sha256` | `5a0591ca...` | `5a0591ca...` (unchanged) |
 
-Recall drops by exactly one news burst, the most the gate allows (requirement 5), and the
-burst is a reality-TV season, the kind 12b's human labels call not news. The gate passes
-with the new baseline, and it would also have passed against the old one (precision up,
-recall down by the 1-burst margin). **Owner: please review the baseline change**
-(`evals/baselines/detection_gate.json` and the fixture are under CODEOWNERS).
+Precision and recall equal those on `main` (0.526 / 0.211, where the margin was 0.105):
+what changed since `main` is the fixture (the `"a"` flag), the new `max_anon_share`
+setting in the stored config, and the margin. **Owner: please review the baseline
+change** (`evals/baselines/detection_gate.json` and the fixture are under CODEOWNERS).
 
-The gate kept me honest in a second, less pleasant way: with fewer spikes, its margins
-got coarser. The precision margin is two spikes, so 2/15 = 0.133 now instead of 2/19 =
-0.105. Changes it used to catch now pass:
+The original tests are back, as on `main`, and fail as they should. Every scenario, by
+command line (`python -m wikipulse.eval.gate --set ...`):
 
-| Change (with the rule on) | Precision | Recall | Before 11c |
-|---|---:|---:|---|
-| `max_anon_share=1.0` (rule off) | 0.526 | 0.211 | (the old baseline) |
-| `min_edits=3` (09c's demonstration) | 0.478 | 0.237 | failed |
-| 02b's medium thresholds | 0.478 | 0.237 | failed |
-| `count_reverts=true` | 0.500 | 0.184 | failed |
+| Change | Precision | Recall | Against the new baseline | Against a rule-on (0.45) baseline, margin 0.067 |
+|---|---:|---:|---|---|
+| none (the defaults) | 0.526 | 0.211 | PASS | |
+| `min_edits=3` (09c's demonstration) | 0.324 | 0.263 | FAIL | FAIL (0.478) |
+| 02b's medium thresholds | 0.343 | 0.263 | FAIL | FAIL (0.478) |
+| `count_reverts=true` | 0.333 | 0.211 | FAIL | FAIL (0.500) |
+| `min_edits=4` | 0.385 | 0.211 | FAIL | |
+| 02b's strict thresholds | 0.429 | 0.079 | FAIL | |
+| `max_anon_share=0.45` (rule on) | 0.600 | 0.184 | PASS (recall -1 burst, the margin) | |
+| `max_anon_share=1.0` (rule off) | 0.526 | 0.211 | | FAIL |
 
-Three tests of `tests/eval/test_gate.py` asserted that these changes fail. I kept every
-assertion and changed the scenario: "a looser threshold fails on precision" now uses
-02b's loose thresholds (precision 0.291, recall 0.842); the 09c demonstration runs on the
-detector it was made for (`min_edits=3, max_anon_share=1.0`: 0.324); the command-line
-test uses `min_edits=3,min_editors=2` (0.325). This is a real loss of sensitivity, not a
-detail, so it is a ROADMAP follow-up (a longer fixture with 40 or more spikes) and part
-of the owner's review.
+(Against a rule-on baseline at 0.5, 9 of 16 spikes, margin 0.062, the three original
+changes also fail; only switching the rule off passes, 0.562 to 0.526, less than one
+spike.)
+
+A new test, `test_with_the_vandalism_rule_on_the_gate_still_sees_small_regressions`,
+builds the rule-on baseline in memory and checks that switching the rule off,
+`min_edits=3` and `count_reverts=true` all fail it: if the owner turns the rule on, the
+gate stays sharp. Two unit tests pin the margin itself. The price of the cap, honestly
+stated: on 15 spikes, one moved label plus one extra noise spike now fails the gate
+(`test_on_15_spikes_one_moved_spike_passes_and_more_noise_fails`), because that is
+numerically the same as `count_reverts=true` (0.600 to 0.500). A gate on 15 spikes can't
+tell those apart; a longer fixture could (ROADMAP follow-up).
 
 ### The gate fixture's new flag
 
@@ -215,65 +296,103 @@ the rule drops (without that, recall's denominator would quietly shrink).
   `vandal_word_share` and `top_editor_share` among its 43 features (the report lists the
   overlap), so a new feature would add little. The detector had none of them, and the
   gate measures the detector. The classifier is unchanged, so no challenger was trained
-  (acceptance criterion 3 doesn't apply). One consequence: the default detector now
-  raises about a third fewer spikes, all of them the anonymous-heavy kind, so the
-  classifier's live inputs shift; the next weekly retraining (serving mode) trains on the
-  new spikes. Noted in the skew follow-up.
+  (acceptance criterion 3 doesn't apply). With the rule off by default, the classifier's
+  live inputs don't change either; if the owner turns it on, the detector raises fewer
+  anonymous-heavy spikes, and the ROADMAP skew follow-up asks for a drift check then.
 - **"Doesn't start" rather than "marked `vandalism`".** A mark would need a new column,
   API and page changes, and would leave the gate's numbers unchanged. Holding the start
   back is one condition in `_maybe_start()`.
 - **`max_anon_share` is inclusive** (a share equal to the limit passes) so that 1.0 can
-  mean "off". The analysis grid used inclusive values; 0.45 sits between 2/5 and 1/2.
-- **`stats["anon_held"]`** counts start checks the rule held back (a burst is checked on
-  every edit, so one burst can count several times). Old snapshots don't have the key;
-  `_too_anonymous()` uses `stats.get`, and a test loads such a snapshot.
+  mean "off". Shares in small windows are coarse: at 0.5, 5 of 10 anonymous edits pass
+  and 6 of 11 (0.545) don't. (The first version's comment called 0.45 "less than half",
+  which was wrong: 5 of 11, 0.455, is less than half and was held back.)
+- **The default is 1.0 (off)**, because the held-out choosing rule picked it (see above).
+  This deviates from the spec's expected outcome ("precision improves"): acceptance
+  criterion 2 ("on the gate fixture, precision rises") is **not met**, and the spec's
+  status is `blocked` on an owner decision. The two options: keep the rule off (the
+  analysis, the rule and the sharper gate stay useful), or accept the delay and set
+  `DETECT_MAX_ANON_SHARE=0.5` (then write the gate baseline again; the gate's numbers
+  would be 0.562 / 0.184, one news burst less, within the margin).
+- **Choosing the delay cap.** 10 minutes was set with the whole-lake delay table already
+  known (the review quoted it: 7.5 minutes at 0.5, 55 at 0.45), so the cap is not blind;
+  what was blind is how the halves would come out, and the rule was committed before
+  they were computed. I did not change the cap or the fold after seeing that the earlier
+  half rejects 0.5; doing so would repeat the first version's mistake.
+- **Grid.** The six values stayed as they were (1.0, 0.75, 0.6, 0.5, 0.45, 0.4), so the
+  numbers stay comparable with the first version; 0.45 sits between 2/5 and 1/2. Adding
+  values after seeing results would add more chances to fit noise.
+- **`stats["anon_held"]`** counts edits on which a start rule passed and the vandalism
+  rule held the start back, once per edit (the first version counted inside
+  `_too_anonymous()`, so an edit counted twice when both windows were held, and also when
+  the long window then started the spike). A burst held back over several edits counts
+  on each. Old snapshots don't have the key (`stats.get`), and a test loads one.
+- **Bootstrap intervals say how many resamples they rest on.** `auc_interval()` leaves
+  out resamples that hold only one class (no AUC); it now returns the count, and the
+  report says "(981 of 1000 resamples had both classes)" where some were left out
+  (only `revert_minutes`, the signal with 2 to 7 news bursts).
 - **Labels.** Human labels first: every number exists for human and LLM labels apart, and
   the value was chosen on the human ones. The human set is 86 bursts (18 news), from
-  `02b-baseline` and `07a-candidates`; the LLM set 698 bursts (all `qwen3:4b`); the gate
-  set 168 bursts (`qwen3:8b` and copied `qwen3:4b`). One human and one LLM `unsure` were
-  left out, and 12 gate `unsure`. No label file was changed; no LLM was called.
+  `02b-baseline` and `07a-candidates`, on 5 and 6 November only; the LLM set 698 bursts
+  (all `qwen3:4b`); the gate set 168 bursts (`qwen3:8b` and copied `qwen3:4b`). One human
+  and one LLM `unsure` were left out, and 12 gate `unsure`. No label file was changed;
+  no LLM was called.
 - **Edits come from the history lake** (`ML_LAKE_PREFIX`, 2 November 22:00 to 10
   November 23:00), not from the recordings: it covers every labeled burst and reads in a
   second per query. No Wikimedia request was made.
-- **The determinism check** (02a) was run twice on the one-hour recording 02a used:
-  with the defaults (now 0 spikes, 1 start held back; 02a found 1 spike) and with 02a's
-  looser thresholds (17 spikes, 12 still active at the end; 02a found 28 without the
-  rule). Both PASS: run B, stopped half way and restarted from its snapshot, gave
-  identical spikes in every field.
+- **The determinism check** (02a) was run on the one-hour recording 02a used: first with
+  the defaults then (0.45: 0 spikes, 1 start held back; 02a found 1 spike) and with 02a's
+  looser thresholds (17 spikes); after the review fixes again with the rule on at 0.5 and
+  02a's looser thresholds (see Results). All PASS: run B, stopped half way and restarted
+  from its snapshot, gave identical spikes in every field.
 - **Report date.** The analysis ran shortly after midnight local time; `--date
-  2026-11-16` names the report after the local day (the default is the UTC day).
-- **README** updated where it stated the old gate numbers and "the share of reverted
-  edits is the most promising detection feature", which the analysis contradicts.
+  2026-11-16` names the report after the local day (the default is the UTC day). The
+  review fixes regenerated the same report.
+- **Not fixed from the review**: the `# fmt: skip` markers in the analysis tests
+  (problem 7) and a drift check for the champion (problem 8; moot while the rule is off,
+  kept as a ROADMAP note).
 
 ## Results
 
-- Analysis: `evals/results/2026-11-16_vandalism.md` (signals for 86 human, 698 LLM and 168
-  gate bursts; six rule values over the lake and the gate). About 7 minutes.
-- Chosen: `DETECT_MAX_ANON_SHARE=0.45`. Over the lake: 482 spikes become 327; precision
-  by human labels 26% [17%, 38%] (n = 68) to 41% [28%, 57%] (n = 41), by LLM labels 56% to
-  69%; human news bursts kept 15 of 15, LLM news bursts 202 of 245.
-- Gate: precision 0.526 to 0.600, recall 0.211 to 0.184 (one news burst, the margin).
-- Checks: `uv run pytest` 1,398 passed, 1 skipped, 81 deselected; `uv run pytest -m
-  integration tests/detect tests/eval` 4 passed; `ruff check .` and `ruff format --check
-  .` pass; `python -m wikipulse.eval.gate` passes (exit code 0); the determinism check
-  passes with the defaults and with looser thresholds.
+- Analysis: `evals/results/2026-11-16_vandalism.md` (signals for 86 human, 698 LLM and
+  168 gate bursts; six rule values over the lake and the gate; both folds). About 8
+  minutes.
+- Chosen on held-out data: `DETECT_MAX_ANON_SHARE=1.0`, the rule off.
+  - Held out (each half judged with the other half's choice): human precision 30% [20%,
+    43%] (n = 56), 0 of 15 human news bursts lost; the rule off on both halves: 27%
+    (n = 67).
+  - In sample, for the owner's decision: 0.5 gives human precision 35% [23%, 49%] (n =
+    49) against 26% [17%, 38%] (n = 68), keeps 15 of 15 human and 212 of 245 LLM news
+    bursts, and starts 53 of 482 spikes later (median 0.4, p90 7.5 minutes).
+- Gate: baseline 0.526 / 0.211 (as on `main`), allowed precision drop 0.105 to 0.053
+  (0.133 in the first version), recall 0.026 unchanged. The 09c demonstration, 02b's
+  medium thresholds and `count_reverts=true` fail again (table above).
+- Checks: `uv run pytest` 1,410 passed, 1 skipped, 81 deselected; `ruff check .` and
+  `ruff format --check .` pass; `python -m wikipulse.eval.gate` passes (exit code 0); the
+  determinism check passes (rule on at 0.5 with 02a's looser thresholds: 20 spikes in both
+  runs, 13 still active at the end, `anon_held` 16 in both, run B restarted from its
+  snapshot half way).
 
 ## Look at it yourself
 
-- The report lists the 25 human-labeled bursts the rule drops (all not news: schools,
-  towns, TV, a few articles hit by vandals) and the 151 LLM-labeled ones, news first.
-  Read ten of the 43 LLM-news ones: would you call them news?
-- Run `python -m wikipulse.eval.gate --set max_anon_share=1.0` and see it pass: what
-  does that tell you about the gate after this spec?
+- The report lists the 17 human-labeled bursts 0.5 drops (all not news) and the 111
+  LLM-labeled ones, news first. Read ten of the 33 LLM-news ones: would you call them
+  news? That is the evidence the decision to turn the rule on needs.
+- In the fold tables, compare the "Choose: p90 delay" of 0.5 on the two halves (17.1 and
+  5.6 minutes). How many spikes is that p90 computed from, and how much would you trust
+  it?
+- Run `python -m wikipulse.eval.gate --set count_reverts=true` and see it fail, then
+  `--set max_anon_share=0.5` and see it pass.
 
 ## Questions to test understanding
 
 1. 02b's note said "21 of 26 not-news labels mention vandalism or reverts", yet reverts
    turned out to be one of the weakest signals. How can both be true?
-2. By LLM labels the rule loses 18% of the news; by human labels none. Which number
-   would you quote, and what would you do before trusting either?
-3. The rule raised the gate's precision, and also made the gate unable to notice the
-   rule being switched off. Why, and what would fix it?
+2. The first version reported 41% precision for 0.45; the held-out procedure picked the
+   rule off. Why is the 41% not a fair estimate of what 0.45 would do on new data, and
+   what does the held-out split give you instead?
+3. Why did the gate's 2-spike precision margin let `count_reverts=true` through with the
+   rule on, and how does the cap in points fix that without making a single flipped
+   label fail the gate?
 
 <details>
 <summary>Answers</summary>
@@ -284,16 +403,17 @@ the rule drops (without that, recall's denominator would quietly shrink).
    burst is mostly the vandals' own edits and people fixing them by hand, with one or
    two tool reverts that often come after the start. And news bursts have reverts too.
    So "many bursts mention reverts" and "the revert share barely differs" are both true.
-2. Neither alone. The human number is the trustworthy labeler on a tiny sample (0 of 15;
-   the loss could still be up to 18%). The LLM number is a large sample from a labeler
-   known to call sports and TV news, which are just what the rule drops. I would quote
-   both, as the report does, and get human labels on the 43 LLM-news bursts the rule
-   drops: that turns the uncertain part into a measurement.
-3. The gate's precision margin is counted in spikes (2), and the rule left only 15
-   scored spikes, so one spike is now 6.7 points and the margin 13.3. Switching the rule
-   off lowers precision by 7.4 points, within the margin, and raises recall. A larger
-   fixture (more hours, more scored spikes) makes each spike weigh less, so the same
-   2-spike margin becomes a finer check; a margin with a floor in percentage points is
-   the other option.
+2. 0.45 was picked *because* it scored best on those 68 human-labeled spikes; part of
+   any winner's lead on a small sample is luck, and reporting the winner's score on the
+   same sample counts that luck as skill. Choosing on one half and judging on the other
+   keeps the luck of the choosing half out of the reported number: the held-out half
+   never influenced the choice, so its precision is an honest estimate of the
+   procedure. Here it also exposed that the delay cost, which the first choice ignored,
+   rules 0.45 out on both halves.
+3. The margin was 2 spikes of the baseline's judged spikes; the rule left 15, so it was
+   2/15 = 0.133, and `count_reverts=true` cost 0.100 (three more noise spikes). The cap
+   limits the margin to 5 points however few spikes there are, but never below one
+   spike (0.067 with 15), so one flipped label still passes while the three extra noise
+   spikes fail.
 
 </details>
