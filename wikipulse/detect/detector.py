@@ -17,6 +17,10 @@ Lifecycle of a spike (one per page at a time):
   more slowly. Either way the count must also be at least `min_ratio` times what the
   page's baseline expects in that window at this hour. A page without history expects
   zero, so then only the minimum counts decide (cold start).
+- **Vandalism rule** (spec 11c): a start rule only counts while anonymous editors (IP
+  addresses, temporary accounts) made at most `max_anon_share` of the window's edits.
+  Bursts of mostly logged-out editing are usually vandalism and the people cleaning it
+  up; see docs/learning/11c-vandalism-signal.md for the analysis behind it.
 - **Hot**: an edit after which the short window still holds `continue_min_edits` edits.
   Starting needs much more than staying active (hysteresis), so one burst that briefly
   slows down stays one spike.
@@ -68,6 +72,18 @@ REVERT_PATTERN = re.compile(
 def is_revert(comment: str) -> bool:
     """True if the edit summary says this edit undoes another one."""
     return REVERT_PATTERN.search(comment) is not None
+
+
+# Anonymous editors: IP addresses (old style) and temporary accounts ("~2026-12345-67"),
+# which is how logged-out editors appear since 2025.
+_IPV4 = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_IPV6 = re.compile(r"^[0-9A-Fa-f]{0,4}(:[0-9A-Fa-f]{0,4}){2,7}$")
+_TEMP_ACCOUNT = re.compile(r"^~\d{4}-\d+-\d+$")
+
+
+def is_anonymous(user: str) -> bool:
+    """An IP address or a temporary account: an editor who isn't logged in."""
+    return bool(_TEMP_ACCOUNT.match(user) or _IPV4.match(user) or _IPV6.match(user))
 
 
 def to_datetime(seconds: float) -> datetime:
@@ -267,14 +283,14 @@ class SpikeDetector:
         self, title: str, now: float, counts: WindowCounts, correlation_id: str
     ) -> None:
         checks = self._evaluate(title, now, counts)
-        if checks["short"][0]:
+        if checks["short"][0] and not self._too_anonymous(title, now, self.short_s):
             window, window_s, edits, first = (
                 "short",
                 self.short_s,
                 counts.edits_short,
                 counts.first_edit_short,
             )
-        elif checks["long"][0]:
+        elif checks["long"][0] and not self._too_anonymous(title, now, self.long_s):
             window, window_s, edits, first = (
                 "long",
                 self.long_s,
@@ -310,6 +326,25 @@ class SpikeDetector:
             spike.score,
             extra={"correlation_id": correlation_id, "title": title, "window": window},
         )
+
+    def _too_anonymous(self, title: str, now: float, window_s: float) -> bool:
+        """The vandalism rule (spec 11c): did anonymous editors make more than
+        `max_anon_share` of the window's edits? Then the start rule doesn't count yet.
+
+        Bursts of logged-out editing are mostly vandalism and its clean-up, not news.
+        The rule is checked again on every edit, so a burst that registered editors join
+        can still start a spike later.
+        """
+        users = self.windows.users(title, now, window_s)
+        anonymous = sum(is_anonymous(user) for user in users)
+        if not users or anonymous / len(users) <= self.config.max_anon_share:
+            return False
+        stats = self.clock.stats
+        stats["anon_held"] = stats.get("anon_held", 0) + 1  # not in pre-11c snapshots
+        logger.debug(
+            "Start held back: %s (%d of %d edits anonymous)", title, anonymous, len(users)
+        )
+        return True
 
     def _continue(
         self, spike: Spike, time: float, user: str, now: float, counts: WindowCounts

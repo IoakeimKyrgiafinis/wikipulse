@@ -61,6 +61,11 @@ class DetectorConfig(BaseModel):
     rhythm_max: float = Field(default=2.0, gt=0)
     # Count reverts ("Reverted ...", "Undid ...") as normal edits? Default: no.
     count_reverts: bool = False
+    # Vandalism rule (spec 11c): a start rule counts only while anonymous editors (IP
+    # addresses, temporary accounts) made at most this share of the window's edits.
+    # Bursts of mostly logged-out editing are usually vandalism and its clean-up. 1
+    # switches the rule off. Chosen in evals/results/2026-11-16_vandalism.md.
+    max_anon_share: float = Field(default=1.0, ge=0, le=1)
 
 
 class EventsConfig(BaseModel):
@@ -172,6 +177,7 @@ class Settings(BaseSettings):
     detect_rhythm_min: float = Field(default=0.5, gt=0)
     detect_rhythm_max: float = Field(default=2.0, gt=0)
     detect_count_reverts: bool = False
+    detect_max_anon_share: float = Field(default=1.0, ge=0, le=1)
     # How often (wall-clock seconds) the detector saves its state to Redis, writes
     # spikes to Postgres and acknowledges the stream entries it has processed. 30 s keeps
     # new spikes' enrichment (stage 3, which reads them from Postgres) within a minute.
