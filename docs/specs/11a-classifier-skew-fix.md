@@ -1,6 +1,6 @@
 # Spec 11a: Fix the news classifier's training/serving skew
 
-Status: ready
+Status: done
 Stage: 11. Model quality
 Owner: agent
 Depends on: 07c
