@@ -47,7 +47,7 @@ from wikipulse.detect.detector import SpikeRecord, is_anonymous, is_revert
 from wikipulse.eval import gate
 from wikipulse.eval.audit import wilson
 from wikipulse.eval.label_store import DEFAULT_LABELS_PATH, LabelRecord, load_records
-from wikipulse.eval.metrics import Label, percentile, pick_label
+from wikipulse.eval.metrics import Label, percentile, pick_label, spike_end
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
 from wikipulse.ml.dataset import contiguous_hours, detect_spikes, lake_events, page_edits
@@ -393,6 +393,43 @@ def dropped_item(burst: LabeledBurst, others: dict[str, list[LabeledBurst]]) -> 
     }
 
 
+def start_changes(
+    before: Sequence[SpikeRecord], after: Sequence[SpikeRecord], scored_from: datetime
+) -> dict[str, Any]:
+    """How a rule changes the start of the spikes the run without it raised.
+
+    A spike is kept if a spike of the rule's run overlaps it (same article); it then
+    starts at the same moment or later (a held-back burst can start once registered
+    editors join). The delays are in minutes of event time.
+    """
+    by_title: dict[str, list[SpikeRecord]] = {}
+    for spike in after:
+        by_title.setdefault(spike.title, []).append(spike)
+    same, delays, dropped = 0, [], 0
+    for spike in (s for s in before if s.first_edit_at >= scored_from):
+        end = spike_end(spike)
+        matches = [
+            s
+            for s in by_title.get(spike.title, [])
+            if s.first_edit_at <= end and spike.first_edit_at <= spike_end(s)
+        ]
+        if not matches:
+            dropped += 1
+            continue
+        delay = (min(s.started_at for s in matches) - spike.started_at).total_seconds() / 60
+        if delay <= 0:
+            same += 1
+        else:
+            delays.append(delay)
+    return {
+        "same_start": same,
+        "later_start": len(delays),
+        "later_median_min": percentile(delays, 50),
+        "later_p90_min": percentile(delays, 90),
+        "dropped": dropped,
+    }
+
+
 def rule_results(
     runs: dict[float, list[SpikeRecord]],
     sets: dict[str, list[LabeledBurst]],
@@ -403,7 +440,12 @@ def rule_results(
     results = []
     for value, spikes in runs.items():
         scored = [s for s in spikes if s.first_edit_at >= scored_from]
-        row: dict[str, Any] = {"max_anon_share": value, "spikes": len(scored), "sets": {}}
+        row: dict[str, Any] = {
+            "max_anon_share": value,
+            "spikes": len(scored),
+            "starts": start_changes(baseline, spikes, scored_from),
+            "sets": {},
+        }
         for name, bursts in sets.items():
             found_before = [b for b in bursts if covered(b, baseline)]
             found = [b for b in found_before if covered(b, spikes)]
@@ -602,6 +644,22 @@ def render_rules(rules: dict[str, Any], current: float) -> Iterable[str]:
                 f" {s['not_news_found']} of {s['not_news_found_before']} |"
             )
         yield line
+    yield ""
+    yield (
+        "What each value does to the spikes raised without the rule: kept with the same "
+        "start, kept but started later (held back until registered editors joined), or "
+        "dropped."
+    )
+    yield ""
+    yield "| `max_anon_share` | Same start | Later start | Delay, median / p90 (min) | Dropped |"
+    yield "|---|---:|---:|---|---:|"
+    for row in lake:
+        st = row["starts"]
+        yield (
+            f"| {row['max_anon_share']} | {st['same_start']} | {st['later_start']} | "
+            f"{num(st['later_median_min'], 1)} / {num(st['later_p90_min'], 1)} | "
+            f"{st['dropped']} |"
+        )
     yield ""
     yield "On the CI gate's fixture (labels: LLM, see the set `gate (llm)`):"
     yield ""

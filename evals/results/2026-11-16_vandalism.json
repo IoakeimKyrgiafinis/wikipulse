@@ -1,0 +1,5016 @@
+{
+  "spec": "11c",
+  "lake": {
+    "prefix": "history/edits",
+    "from": "2026-11-02 22:00:00+00:00",
+    "to": "2026-11-10 23:00:00+00:00"
+  },
+  "sets": {
+    "human": {
+      "file": "evals\\labels\\spike_labels.jsonl",
+      "labeler": "human",
+      "models": [],
+      "news": 18,
+      "not_news": 68,
+      "unsure_left_out": 1,
+      "with_edits": 86,
+      "with_edits_news": 18
+    },
+    "llm": {
+      "file": "evals\\labels\\spike_labels.jsonl",
+      "labeler": "llm",
+      "models": [
+        "ollama:qwen3:4b"
+      ],
+      "news": 361,
+      "not_news": 337,
+      "unsure_left_out": 1,
+      "with_edits": 698,
+      "with_edits_news": 361
+    },
+    "gate (llm)": {
+      "file": "evals\\labels\\detection_gate_labels.jsonl",
+      "labeler": "llm",
+      "models": [
+        "ollama:qwen3:4b",
+        "ollama:qwen3:8b"
+      ],
+      "news": 38,
+      "not_news": 130,
+      "unsure_left_out": 12,
+      "with_edits": 168,
+      "with_edits_news": 38
+    }
+  },
+  "signals": {
+    "human": [
+      {
+        "signal": "revert_share",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.03218078218078218,
+        "mean_not_news": 0.05218253968253968,
+        "auc": 0.5330882352941176,
+        "auc_low": 0.4215733225108225,
+        "auc_high": 0.6300797311451278,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.03474627224627225,
+        "mean_not_news": 0.06702970232381997,
+        "auc": 0.5612745098039216,
+        "auc_low": 0.4474067855680825,
+        "auc_high": 0.6610610963075751,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.03163218203540784,
+        "mean_not_news": 0.053509263002168385,
+        "auc": 0.5151143790849673,
+        "auc_low": 0.39807810499359797,
+        "auc_high": 0.6160794789227166,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.03333333333333334,
+        "mean_not_news": 0.07129010695187166,
+        "auc": 0.5408496732026143,
+        "auc_low": 0.43408685064935065,
+        "auc_high": 0.6333380681818181,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.04955908289241622,
+        "mean_not_news": 0.09707441251558899,
+        "auc": 0.556781045751634,
+        "auc_low": 0.44318293749424653,
+        "auc_high": 0.6572713856669429,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.045356803690137025,
+        "mean_not_news": 0.1140984172017909,
+        "auc": 0.5735294117647058,
+        "auc_low": 0.46294553781019454,
+        "auc_high": 0.6726365961404325,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "start",
+        "n_news": 4,
+        "n_not_news": 18,
+        "mean_news": 1.5653833333333336,
+        "mean_not_news": 1.4897444444444445,
+        "auc": 0.4166666666666667,
+        "auc_low": 0.10208333333333333,
+        "auc_high": 0.8535714285714285,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "cutoff",
+        "n_news": 5,
+        "n_not_news": 24,
+        "mean_news": 1.8737116666666669,
+        "mean_not_news": 1.2055989583333333,
+        "auc": 0.26666666666666666,
+        "auc_low": 0.06,
+        "auc_high": 0.5203043478260869,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "burst",
+        "n_news": 6,
+        "n_not_news": 27,
+        "mean_news": 1.7841305555555556,
+        "mean_not_news": 2.885941049382716,
+        "auc": 0.3271604938271605,
+        "auc_low": 0.13580026455026453,
+        "auc_high": 0.5413668424052436,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.13518518518518519,
+        "mean_not_news": 0.3810797046091164,
+        "auc": 0.7536764705882353,
+        "auc_low": 0.6374965659340659,
+        "auc_high": 0.8483674474182092,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.12547852474323062,
+        "mean_not_news": 0.37349439775910365,
+        "auc": 0.7463235294117647,
+        "auc_low": 0.623823902027027,
+        "auc_high": 0.8446664710485132,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.12169691906534011,
+        "mean_not_news": 0.3721511995107424,
+        "auc": 0.7504084967320261,
+        "auc_low": 0.6331465470803705,
+        "auc_high": 0.8454490712390283,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.6111111111111112,
+        "mean_not_news": 1.0441176470588236,
+        "auc": 0.6654411764705882,
+        "auc_low": 0.5222991071428572,
+        "auc_high": 0.7921506045519203,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.6666666666666666,
+        "mean_not_news": 1.2647058823529411,
+        "auc": 0.6805555555555556,
+        "auc_low": 0.5356465755316211,
+        "auc_high": 0.8074389293139294,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.7777777777777778,
+        "mean_not_news": 1.3823529411764706,
+        "auc": 0.6658496732026143,
+        "auc_low": 0.5212063717532468,
+        "auc_high": 0.7884803921568626,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 3.0,
+        "mean_not_news": 2.2794117647058822,
+        "auc": 0.29411764705882354,
+        "auc_low": 0.1711438923395445,
+        "auc_high": 0.42278409090909086,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 3.5,
+        "mean_not_news": 2.485294117647059,
+        "auc": 0.2687908496732026,
+        "auc_low": 0.1513122374598468,
+        "auc_high": 0.4061027216471414,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 5.277777777777778,
+        "mean_not_news": 2.7205882352941178,
+        "auc": 0.21446078431372548,
+        "auc_low": 0.10535479323308271,
+        "auc_high": 0.327718956984796,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.5520622895622895,
+        "mean_not_news": 0.5124188311688311,
+        "auc": 0.39950980392156865,
+        "auc_low": 0.2513669788759795,
+        "auc_high": 0.5491647465437788,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.5863203517615282,
+        "mean_not_news": 0.4894954310395486,
+        "auc": 0.306781045751634,
+        "auc_low": 0.17763776154401156,
+        "auc_high": 0.4474542853713188,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.530797379339691,
+        "mean_not_news": 0.47836299085331596,
+        "auc": 0.40931372549019607,
+        "auc_low": 0.2526763069358178,
+        "auc_high": 0.5767524313023134,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "start",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.03432400932400933,
+        "mean_not_news": 0.13319327731092437,
+        "auc": 0.7103758169934641,
+        "auc_low": 0.610894579598805,
+        "auc_high": 0.7955801729841221,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "cutoff",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.02733886483886484,
+        "mean_not_news": 0.13307231983702572,
+        "auc": 0.744281045751634,
+        "auc_low": 0.6453898840885143,
+        "auc_high": 0.8271473459768824,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "burst",
+        "n_news": 18,
+        "n_not_news": 68,
+        "mean_news": 0.019787051804595664,
+        "mean_not_news": 0.13362209237129066,
+        "auc": 0.7602124183006536,
+        "auc_low": 0.6657687777628213,
+        "auc_high": 0.840653331043956,
+        "verdict": "higher in not news"
+      }
+    ],
+    "llm": [
+      {
+        "signal": "revert_share",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.02109914283207423,
+        "mean_not_news": 0.06251879787464165,
+        "auc": 0.5780719564020155,
+        "auc_low": 0.5497423666942869,
+        "auc_high": 0.6104910848472088,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.025405309063147124,
+        "mean_not_news": 0.08461975976158206,
+        "auc": 0.6205314942831074,
+        "auc_low": 0.5869694442701138,
+        "auc_high": 0.6551551459456619,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.023964324100488262,
+        "mean_not_news": 0.06823177708153039,
+        "auc": 0.5791898534404103,
+        "auc_low": 0.54481719047342,
+        "auc_high": 0.6138076604647769,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.029598876401059876,
+        "mean_not_news": 0.08468106242586955,
+        "auc": 0.5782651224343852,
+        "auc_low": 0.549193116988145,
+        "auc_high": 0.6086203028912863,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.03739538064855595,
+        "mean_not_news": 0.11911012660270821,
+        "auc": 0.6194629162317006,
+        "auc_low": 0.58616676449868,
+        "auc_high": 0.6540048228046975,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.04649877938973904,
+        "mean_not_news": 0.13133834013472234,
+        "auc": 0.6144981382082412,
+        "auc_low": 0.5795431873045361,
+        "auc_high": 0.6515518275512754,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "start",
+        "n_news": 46,
+        "n_not_news": 92,
+        "mean_news": 3.6275545289855073,
+        "mean_not_news": 1.0979709239130435,
+        "auc": 0.2700850661625709,
+        "auc_low": 0.1871491361402442,
+        "auc_high": 0.3671221604543273,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "cutoff",
+        "n_news": 65,
+        "n_not_news": 132,
+        "mean_news": 3.4835285897435897,
+        "mean_not_news": 1.209765845959596,
+        "auc": 0.2837995337995338,
+        "auc_low": 0.20951108857980633,
+        "auc_high": 0.3598873348873349,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "burst",
+        "n_news": 95,
+        "n_not_news": 148,
+        "mean_news": 5.626260701754386,
+        "mean_not_news": 2.6839734234234234,
+        "auc": 0.3021337126600285,
+        "auc_low": 0.23588091031919145,
+        "auc_high": 0.36237836652257255,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.2436671768837322,
+        "mean_not_news": 0.39418581747958603,
+        "auc": 0.649757103989084,
+        "auc_low": 0.6097522533667238,
+        "auc_high": 0.690908722971694,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.23391204366835353,
+        "mean_not_news": 0.38031128120148894,
+        "auc": 0.6532916313898912,
+        "auc_low": 0.6110650304791689,
+        "auc_high": 0.6939010403533349,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.22946601786523887,
+        "mean_not_news": 0.3768154299125994,
+        "auc": 0.658531773757367,
+        "auc_low": 0.6171940932236403,
+        "auc_high": 0.70144845350764,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.8670360110803325,
+        "mean_not_news": 1.0059347181008902,
+        "auc": 0.5786185751744659,
+        "auc_low": 0.5394079146066665,
+        "auc_high": 0.6204664475189628,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.9916897506925207,
+        "mean_not_news": 1.0712166172106825,
+        "auc": 0.5614144685468161,
+        "auc_low": 0.5215647138306476,
+        "auc_high": 0.6038580030231634,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 1.3988919667590027,
+        "mean_not_news": 1.228486646884273,
+        "auc": 0.5379879497275126,
+        "auc_low": 0.4973639636109589,
+        "auc_high": 0.5795507899858658,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 2.6260387811634347,
+        "mean_not_news": 2.1899109792284865,
+        "auc": 0.382415315189426,
+        "auc_low": 0.3403526093667893,
+        "auc_high": 0.42341660169629997,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 3.0,
+        "mean_not_news": 2.4243323442136497,
+        "auc": 0.3862046573563379,
+        "auc_low": 0.3422399203292458,
+        "auc_high": 0.4263759228575369,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 4.54016620498615,
+        "mean_not_news": 2.750741839762611,
+        "auc": 0.343880746689463,
+        "auc_low": 0.29968420751743624,
+        "auc_high": 0.38114847769336396,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.516023675417516,
+        "mean_not_news": 0.5233623201724092,
+        "auc": 0.5144586830186508,
+        "auc_low": 0.47248649395788656,
+        "auc_high": 0.5550959736988174,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.5032745857343964,
+        "mean_not_news": 0.505923107555155,
+        "auc": 0.5129750034934283,
+        "auc_low": 0.4693908468455713,
+        "auc_high": 0.5578012630222617,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.47481263546416164,
+        "mean_not_news": 0.49428571569466007,
+        "auc": 0.5504122245329081,
+        "auc_low": 0.5045070831223621,
+        "auc_high": 0.5941831887792803,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "start",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.030308119089282524,
+        "mean_not_news": 0.13053400631892065,
+        "auc": 0.7086686339462588,
+        "auc_low": 0.6764609319937349,
+        "auc_high": 0.7401609514997958,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "cutoff",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.02889575413813641,
+        "mean_not_news": 0.12832848601525507,
+        "auc": 0.7340309230048415,
+        "auc_low": 0.700408069336873,
+        "auc_high": 0.7665396052988117,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "burst",
+        "n_news": 361,
+        "n_not_news": 337,
+        "mean_news": 0.028881813791767963,
+        "mean_not_news": 0.12832122679477306,
+        "auc": 0.7301306131172066,
+        "auc_low": 0.695428955528651,
+        "auc_high": 0.7637276748084569,
+        "verdict": "higher in not news"
+      }
+    ],
+    "gate (llm)": [
+      {
+        "signal": "revert_share",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.015789473684210527,
+        "mean_not_news": 0.04591395783703476,
+        "auc": 0.53917004048583,
+        "auc_low": 0.4870265151515152,
+        "auc_high": 0.59016708277319,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.03226817042606517,
+        "mean_not_news": 0.057315862242332836,
+        "auc": 0.5376518218623482,
+        "auc_low": 0.4781954887218045,
+        "auc_high": 0.5964039030225071,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_share",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.021037442090073667,
+        "mean_not_news": 0.04816751059398118,
+        "auc": 0.5307692307692308,
+        "auc_low": 0.4693850698174007,
+        "auc_high": 0.5885747201836069,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.017543859649122806,
+        "mean_not_news": 0.06792735042735043,
+        "auc": 0.5477732793522267,
+        "auc_low": 0.502249149659864,
+        "auc_high": 0.592595223063973,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.041666666666666664,
+        "mean_not_news": 0.09506105006105006,
+        "auc": 0.5422064777327935,
+        "auc_low": 0.48472378191155946,
+        "auc_high": 0.5997962914023961,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "reverted_share",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.04949874686716792,
+        "mean_not_news": 0.10700995899525312,
+        "auc": 0.5453441295546558,
+        "auc_low": 0.4729989392731934,
+        "auc_high": 0.6127968763643667,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "start",
+        "n_news": 2,
+        "n_not_news": 19,
+        "mean_news": 1.8373583333333334,
+        "mean_not_news": 2.392569298245614,
+        "auc": 0.47368421052631576,
+        "auc_low": 0.15,
+        "auc_high": 0.8,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "cutoff",
+        "n_news": 5,
+        "n_not_news": 27,
+        "mean_news": 2.6997299999999997,
+        "mean_not_news": 2.6886935185185186,
+        "auc": 0.5259259259259259,
+        "auc_low": 0.21317733990147783,
+        "auc_high": 0.8677011494252872,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "revert_minutes",
+        "moment": "burst",
+        "n_news": 7,
+        "n_not_news": 34,
+        "mean_news": 6.484395238095238,
+        "mean_not_news": 5.483658333333333,
+        "auc": 0.542016806722689,
+        "auc_low": 0.27073704481792715,
+        "auc_high": 0.7899439775910364,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.13793859649122808,
+        "mean_not_news": 0.31768476621417796,
+        "auc": 0.6436234817813765,
+        "auc_low": 0.5615732131983638,
+        "auc_high": 0.7301508227669178,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.13783416875522136,
+        "mean_not_news": 0.3055219290513408,
+        "auc": 0.6410931174089068,
+        "auc_low": 0.5585863961285426,
+        "auc_high": 0.7286473765730032,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_share",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.1227548036758563,
+        "mean_not_news": 0.30362884664355255,
+        "auc": 0.6524291497975708,
+        "auc_low": 0.5726217459527463,
+        "auc_high": 0.731244703785194,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.2894736842105263,
+        "mean_not_news": 0.6307692307692307,
+        "auc": 0.6395748987854251,
+        "auc_low": 0.5562487996927213,
+        "auc_high": 0.720592609097511,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.3157894736842105,
+        "mean_not_news": 0.6461538461538462,
+        "auc": 0.6401821862348178,
+        "auc_low": 0.5575330795196867,
+        "auc_high": 0.7204574663402692,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "anon_editors",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.34210526315789475,
+        "mean_not_news": 0.6923076923076923,
+        "auc": 0.6418016194331984,
+        "auc_low": 0.5567713181763934,
+        "auc_high": 0.7192856787914927,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 1.9736842105263157,
+        "mean_not_news": 1.623076923076923,
+        "auc": 0.35121457489878544,
+        "auc_low": 0.2712489478114478,
+        "auc_high": 0.42491821463888696,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 2.0,
+        "mean_not_news": 1.7076923076923076,
+        "auc": 0.3737854251012146,
+        "auc_low": 0.2946225554880056,
+        "auc_high": 0.45088411015476354,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "registered_editors",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 2.4210526315789473,
+        "mean_not_news": 1.7846153846153847,
+        "auc": 0.31285425101214576,
+        "auc_low": 0.2319922534418727,
+        "auc_high": 0.4000866465354147,
+        "verdict": "higher in news"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.6894648480174796,
+        "mean_not_news": 0.657003417648214,
+        "auc": 0.44767206477732796,
+        "auc_low": 0.35766258010209623,
+        "auc_high": 0.5347435045190755,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.6609503800293274,
+        "mean_not_news": 0.642845481567201,
+        "auc": 0.4763157894736842,
+        "auc_low": 0.36642895667381536,
+        "auc_high": 0.5760612073112072,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "top_editor_share",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.6337590083939829,
+        "mean_not_news": 0.6405800408741585,
+        "auc": 0.5238866396761134,
+        "auc_low": 0.4046944637229892,
+        "auc_high": 0.6245695490934777,
+        "verdict": "no clear separation"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "start",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.03355263157894737,
+        "mean_not_news": 0.10682001005530417,
+        "auc": 0.6159919028340081,
+        "auc_low": 0.5535012770254217,
+        "auc_high": 0.6811183317626988,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "cutoff",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.03135964912280702,
+        "mean_not_news": 0.10999776367423426,
+        "auc": 0.6256072874493928,
+        "auc_low": 0.5643402969582982,
+        "auc_high": 0.6885523373267559,
+        "verdict": "higher in not news"
+      },
+      {
+        "signal": "vandal_word_share",
+        "moment": "burst",
+        "n_news": 38,
+        "n_not_news": 130,
+        "mean_news": 0.03284252297410192,
+        "mean_not_news": 0.1025855925120631,
+        "auc": 0.6182186234817814,
+        "auc_low": 0.5547934784172395,
+        "auc_high": 0.6842675445844368,
+        "verdict": "higher in not news"
+      }
+    ]
+  },
+  "current_max_anon_share": 0.45,
+  "rules": {
+    "scored_from": "2026-11-03 22:00:00+00:00",
+    "lake": [
+      {
+        "max_anon_share": 1.0,
+        "spikes": 482,
+        "starts": {
+          "same_start": 482,
+          "later_start": 0,
+          "later_median_min": null,
+          "later_p90_min": null,
+          "dropped": 0
+        },
+        "sets": {
+          "human": {
+            "news": 18,
+            "not news": 50,
+            "unlabeled": 414,
+            "n": 68,
+            "precision": 0.2647058823529412,
+            "interval": [
+              0.17449740610772085,
+              0.38007734086569805
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 48,
+            "dropped": []
+          },
+          "llm": {
+            "news": 270,
+            "not news": 210,
+            "unlabeled": 2,
+            "n": 480,
+            "precision": 0.5625,
+            "interval": [
+              0.5177984946574345,
+              0.6062090679411236
+            ],
+            "news_found_before": 245,
+            "news_found": 245,
+            "not_news_found_before": 210,
+            "not_news_found": 210,
+            "dropped": []
+          }
+        }
+      },
+      {
+        "max_anon_share": 0.75,
+        "spikes": 454,
+        "starts": {
+          "same_start": 440,
+          "later_start": 14,
+          "later_median_min": 2.918,
+          "later_p90_min": 19.336296666666655,
+          "dropped": 28
+        },
+        "sets": {
+          "human": {
+            "news": 18,
+            "not news": 44,
+            "unlabeled": 392,
+            "n": 62,
+            "precision": 0.2903225806451613,
+            "interval": [
+              0.19223557223842785,
+              0.4128764583610948
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 43,
+            "dropped": [
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              }
+            ]
+          },
+          "llm": {
+            "news": 251,
+            "not news": 201,
+            "unlabeled": 2,
+            "n": 452,
+            "precision": 0.5553097345132744,
+            "interval": [
+              0.5092231013868911,
+              0.6004641572549789
+            ],
+            "news_found_before": 245,
+            "news_found": 229,
+            "not_news_found_before": 210,
+            "not_news_found": 201,
+            "dropped": [
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 10:24:52.029000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Crumple zone",
+                "first_edit_at": "2026-11-04 16:47:15.367000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-04 18:02:20.296000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Swing state",
+                "first_edit_at": "2026-11-04 20:38:20.727000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 13:13:14.726000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Nefertari",
+                "first_edit_at": "2026-11-05 21:58:46.251000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 07:56:40.048000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Emperor of the French",
+                "first_edit_at": "2026-11-07 12:20:22.614000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dixons Brooklands Academy",
+                "first_edit_at": "2026-11-07 13:14:27.673000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 16:51:54.200000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tiffany Stratton",
+                "first_edit_at": "2026-11-07 18:55:03.955000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Manchester City F.C. season",
+                "first_edit_at": "2026-11-07 19:24:23.816000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Liverpool F.C. season",
+                "first_edit_at": "2026-11-08 15:52:31.691000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Carlos Alcaraz career statistics",
+                "first_edit_at": "2026-11-08 16:20:43.183000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Formula One World Constructors' Champions",
+                "first_edit_at": "2026-11-08 18:53:04.995000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Aramco Tower",
+                "first_edit_at": "2026-11-08 20:47:12.043000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Big Brother (Australian TV series) season 17",
+                "first_edit_at": "2026-11-09 09:48:22.084000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of Samoa",
+                "first_edit_at": "2026-11-09 19:30:15.776000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fern",
+                "first_edit_at": "2026-11-10 17:40:26.493000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sheikh Hasina",
+                "first_edit_at": "2026-11-10 20:26:13.188000+00:00",
+                "label": "news",
+                "other_labels": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "max_anon_share": 0.6,
+        "spikes": 437,
+        "starts": {
+          "same_start": 420,
+          "later_start": 18,
+          "later_median_min": 3.1043250000000002,
+          "later_p90_min": 24.676196666666666,
+          "dropped": 44
+        },
+        "sets": {
+          "human": {
+            "news": 17,
+            "not news": 43,
+            "unlabeled": 377,
+            "n": 60,
+            "precision": 0.2833333333333333,
+            "interval": [
+              0.1850682836411917,
+              0.40767285267364
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 42,
+            "dropped": [
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 00:08:10.327000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              }
+            ]
+          },
+          "llm": {
+            "news": 245,
+            "not news": 190,
+            "unlabeled": 2,
+            "n": 435,
+            "precision": 0.5632183908045977,
+            "interval": [
+              0.5162566920692272,
+              0.6090733078359941
+            ],
+            "news_found_before": 245,
+            "news_found": 224,
+            "not_news_found_before": 210,
+            "not_news_found": 190,
+            "dropped": [
+              {
+                "title": "Josh Shapiro",
+                "first_edit_at": "2026-11-04 01:53:57.845000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harris Wofford",
+                "first_edit_at": "2026-11-04 03:28:55.409000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harpsichord",
+                "first_edit_at": "2026-11-04 03:54:00.564000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 04:08:12.393000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 10:24:52.029000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 10:53:41.952000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Crumple zone",
+                "first_edit_at": "2026-11-04 16:47:15.367000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-04 18:02:20.296000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jacoby Brissett",
+                "first_edit_at": "2026-11-04 19:49:00.638000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Swing state",
+                "first_edit_at": "2026-11-04 20:38:20.727000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bormujos",
+                "first_edit_at": "2026-11-04 21:45:02.992000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Tilly Lockey",
+                "first_edit_at": "2026-11-05 12:36:47.824000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 13:13:14.726000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Nefertari",
+                "first_edit_at": "2026-11-05 21:58:46.251000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-05 23:39:10.928000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 07:56:40.048000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Emperor of the French",
+                "first_edit_at": "2026-11-07 12:20:22.614000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dixons Brooklands Academy",
+                "first_edit_at": "2026-11-07 13:14:27.673000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Tottenham Hotspur F.C. season",
+                "first_edit_at": "2026-11-07 14:10:42.628000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 16:51:54.200000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 18:12:28.530000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tiffany Stratton",
+                "first_edit_at": "2026-11-07 18:55:03.955000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Manchester City F.C. season",
+                "first_edit_at": "2026-11-07 19:24:23.816000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-08 10:08:20.705000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sajidha Mohamed",
+                "first_edit_at": "2026-11-08 12:47:44.040000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Liverpool F.C. season",
+                "first_edit_at": "2026-11-08 15:52:31.691000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Carlos Alcaraz career statistics",
+                "first_edit_at": "2026-11-08 16:20:43.183000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Formula One World Constructors' Champions",
+                "first_edit_at": "2026-11-08 18:53:04.995000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Aramco Tower",
+                "first_edit_at": "2026-11-08 20:47:12.043000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Big Brother (Australian TV series) season 17",
+                "first_edit_at": "2026-11-09 09:48:22.084000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Religions by country",
+                "first_edit_at": "2026-11-09 16:13:54.667000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of Samoa",
+                "first_edit_at": "2026-11-09 19:30:15.776000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "James Gunn",
+                "first_edit_at": "2026-11-10 01:43:55.844000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Osaka",
+                "first_edit_at": "2026-11-10 04:12:14.032000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fern",
+                "first_edit_at": "2026-11-10 17:40:26.493000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sheikh Hasina",
+                "first_edit_at": "2026-11-10 20:26:13.188000+00:00",
+                "label": "news",
+                "other_labels": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "max_anon_share": 0.5,
+        "spikes": 367,
+        "starts": {
+          "same_start": 315,
+          "later_start": 53,
+          "later_median_min": 0.36174999999999996,
+          "later_p90_min": 7.512529999999995,
+          "dropped": 114
+        },
+        "sets": {
+          "human": {
+            "news": 17,
+            "not news": 32,
+            "unlabeled": 318,
+            "n": 49,
+            "precision": 0.3469387755102041,
+            "interval": [
+              0.2292439275588767,
+              0.48688805824234294
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 31,
+            "dropped": [
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 00:08:10.327000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              }
+            ]
+          },
+          "llm": {
+            "news": 233,
+            "not news": 132,
+            "unlabeled": 2,
+            "n": 365,
+            "precision": 0.6383561643835617,
+            "interval": [
+              0.5878596908961479,
+              0.6859706976570673
+            ],
+            "news_found_before": 245,
+            "news_found": 212,
+            "not_news_found_before": 210,
+            "not_news_found": 132,
+            "dropped": [
+              {
+                "title": "2026 United States House of Representatives elections in Florida",
+                "first_edit_at": "2026-11-04 00:15:03.702000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Wrinkles the Clown",
+                "first_edit_at": "2026-11-04 01:35:10.311000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Josh Shapiro",
+                "first_edit_at": "2026-11-04 01:53:57.845000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rick Jackson (businessman)",
+                "first_edit_at": "2026-11-04 02:19:20.253000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harris Wofford",
+                "first_edit_at": "2026-11-04 03:28:55.409000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harpsichord",
+                "first_edit_at": "2026-11-04 03:54:00.564000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 04:08:12.393000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 10:24:52.029000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 10:53:41.952000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-04 12:29:03.162000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jean de La Fontaine",
+                "first_edit_at": "2026-11-04 14:55:48.187000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Castle Hill (Ipswich, Massachusetts)",
+                "first_edit_at": "2026-11-04 15:32:12.348000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Team Spirit (esports)",
+                "first_edit_at": "2026-11-04 16:07:30.189000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026 FIFA U-17 Women's World Cup",
+                "first_edit_at": "2026-11-04 16:41:47.427000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Crumple zone",
+                "first_edit_at": "2026-11-04 16:47:15.367000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Apple sauce",
+                "first_edit_at": "2026-11-04 16:59:08.936000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Passaic Valley Regional High School",
+                "first_edit_at": "2026-11-04 17:12:02.366000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-04 18:02:20.296000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Mason Greenwood",
+                "first_edit_at": "2026-11-04 18:19:42.010000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jacoby Brissett",
+                "first_edit_at": "2026-11-04 19:49:00.638000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Charlie and the Chocolate Factory",
+                "first_edit_at": "2026-11-04 20:22:32.209000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Swing state",
+                "first_edit_at": "2026-11-04 20:38:20.727000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bormujos",
+                "first_edit_at": "2026-11-04 21:45:02.992000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Arsenal F.C. season",
+                "first_edit_at": "2026-11-04 21:52:50.753000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Greg James",
+                "first_edit_at": "2026-11-05 07:58:28.660000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Tilly Lockey",
+                "first_edit_at": "2026-11-05 12:36:47.824000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 13:13:14.726000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Maumoon Abdul Gayoom",
+                "first_edit_at": "2026-11-05 15:08:46.554000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Truth serum",
+                "first_edit_at": "2026-11-05 15:56:58.222000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Douglas W. Owsley",
+                "first_edit_at": "2026-11-05 16:57:46.579000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Influence of the French Revolution",
+                "first_edit_at": "2026-11-05 18:06:13.146000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Looney Tunes feature films",
+                "first_edit_at": "2026-11-05 18:11:59.674000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Nefertari",
+                "first_edit_at": "2026-11-05 21:58:46.251000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-05 23:39:10.928000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Shipley (surname)",
+                "first_edit_at": "2026-11-06 09:35:53.732000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fufu",
+                "first_edit_at": "2026-11-06 10:27:08.855000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Sabine Hossenfelder",
+                "first_edit_at": "2026-11-06 15:08:23.016000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Syed Soharwardy",
+                "first_edit_at": "2026-11-06 20:10:25.801000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 00:25:55.244000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 07:56:40.048000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Pathans in India",
+                "first_edit_at": "2026-11-07 12:07:22.009000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Emperor of the French",
+                "first_edit_at": "2026-11-07 12:20:22.614000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dixons Brooklands Academy",
+                "first_edit_at": "2026-11-07 13:14:27.673000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 13:25:54.351000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Tottenham Hotspur F.C. season",
+                "first_edit_at": "2026-11-07 14:10:42.628000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "ITS Dental College",
+                "first_edit_at": "2026-11-07 15:54:58.675000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 16:03:39.736000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 16:51:54.200000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 18:12:28.530000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tiffany Stratton",
+                "first_edit_at": "2026-11-07 18:55:03.955000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Manchester City F.C. season",
+                "first_edit_at": "2026-11-07 19:24:23.816000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 20:29:40.492000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Peter Hewitt (director)",
+                "first_edit_at": "2026-11-07 22:17:19.151000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-08 10:08:20.705000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sajidha Mohamed",
+                "first_edit_at": "2026-11-08 12:47:44.040000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Liverpool F.C. season",
+                "first_edit_at": "2026-11-08 15:52:31.691000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Carlos Alcaraz career statistics",
+                "first_edit_at": "2026-11-08 16:20:43.183000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Formula One World Constructors' Champions",
+                "first_edit_at": "2026-11-08 18:53:04.995000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Weasel war dance",
+                "first_edit_at": "2026-11-08 19:55:48.685000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Aramco Tower",
+                "first_edit_at": "2026-11-08 20:47:12.043000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Park Community School",
+                "first_edit_at": "2026-11-08 21:58:15.650000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lafayette High School (Louisiana)",
+                "first_edit_at": "2026-11-09 01:11:30.402000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Big Brother (Australian TV series) season 17",
+                "first_edit_at": "2026-11-09 09:48:22.084000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Spinning top",
+                "first_edit_at": "2026-11-09 12:55:17.315000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Religions by country",
+                "first_edit_at": "2026-11-09 16:13:54.667000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lionfish",
+                "first_edit_at": "2026-11-09 16:23:58.087000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ricky",
+                "first_edit_at": "2026-11-09 16:42:49.797000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "0.999...",
+                "first_edit_at": "2026-11-09 17:41:31.501000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Oyster River High School",
+                "first_edit_at": "2026-11-09 18:25:07.185000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Budos Band",
+                "first_edit_at": "2026-11-09 18:30:04.372000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of Samoa",
+                "first_edit_at": "2026-11-09 19:30:15.776000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Starr Roxanne Hiltz",
+                "first_edit_at": "2026-11-09 21:13:41.741000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "University of Exeter Halls of Residence",
+                "first_edit_at": "2026-11-10 00:00:46.622000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Agneta Ekmanner",
+                "first_edit_at": "2026-11-10 00:51:25.943000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "James Gunn",
+                "first_edit_at": "2026-11-10 01:43:55.844000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Osaka",
+                "first_edit_at": "2026-11-10 04:12:14.032000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Kogarah High School",
+                "first_edit_at": "2026-11-10 10:26:44.975000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Typhoon Megi (2010)",
+                "first_edit_at": "2026-11-10 12:04:24.953000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "1958 Lituya Bay earthquake and megatsunami",
+                "first_edit_at": "2026-11-10 13:21:49.294000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Minute (basketball)",
+                "first_edit_at": "2026-11-10 13:38:39.883000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2014",
+                "first_edit_at": "2026-11-10 13:41:36.219000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bounty (chocolate bar)",
+                "first_edit_at": "2026-11-10 16:06:03.720000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fern",
+                "first_edit_at": "2026-11-10 17:40:26.493000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "People's Liberation Army Special Operations Forces",
+                "first_edit_at": "2026-11-10 18:28:30.514000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sheikh Hasina",
+                "first_edit_at": "2026-11-10 20:26:13.188000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Preserved Fish",
+                "first_edit_at": "2026-11-10 20:48:46.429000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Guardbridge",
+                "first_edit_at": "2026-11-10 20:52:15.932000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "OpenSolaris",
+                "first_edit_at": "2026-11-10 20:58:01.897000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Johnny Walker (Indian actor)",
+                "first_edit_at": "2026-11-10 21:04:43.213000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "I'm a Celebrity...Get Me Out of Here! (British TV series) series 26",
+                "first_edit_at": "2026-11-10 21:32:42.409000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Chestnut Grove Academy",
+                "first_edit_at": "2026-11-10 21:47:30.721000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Hamble School",
+                "first_edit_at": "2026-11-10 22:32:37.743000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ravshan Bozorov",
+                "first_edit_at": "2026-11-10 22:57:52.550000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "A. J. Green",
+                "first_edit_at": "2026-11-10 23:23:21.814000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anthony Whiteman",
+                "first_edit_at": "2026-11-10 23:33:01.505000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "max_anon_share": 0.45,
+        "spikes": 327,
+        "starts": {
+          "same_start": 303,
+          "later_start": 25,
+          "later_median_min": 4.567833333333334,
+          "later_p90_min": 55.0737466666667,
+          "dropped": 154
+        },
+        "sets": {
+          "human": {
+            "news": 17,
+            "not news": 24,
+            "unlabeled": 286,
+            "n": 41,
+            "precision": 0.4146341463414634,
+            "interval": [
+              0.27756549360403493,
+              0.5663289698091571
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 23,
+            "dropped": [
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Tanimbar corella",
+                "first_edit_at": "2026-11-05 15:30:27.434000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Ellen Ochoa",
+                "first_edit_at": "2026-11-05 16:59:38.077000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "University of Warwick Conservative Association",
+                "first_edit_at": "2026-11-06 00:00:28.416000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 00:08:10.327000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "1946: The Mistranslation That Shifted Culture",
+                "first_edit_at": "2026-11-06 03:24:22.358000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "List of Jewish messiah claimants",
+                "first_edit_at": "2026-11-06 09:25:06.239000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Ostrom",
+                "first_edit_at": "2026-11-06 09:33:14.092000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Shakeela",
+                "first_edit_at": "2026-11-06 10:03:05.713000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Dingo",
+                "first_edit_at": "2026-11-06 21:13:03.484000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              }
+            ]
+          },
+          "llm": {
+            "news": 223,
+            "not news": 102,
+            "unlabeled": 2,
+            "n": 325,
+            "precision": 0.6861538461538461,
+            "interval": [
+              0.6337759908275489,
+              0.7341824789214804
+            ],
+            "news_found_before": 245,
+            "news_found": 202,
+            "not_news_found_before": 210,
+            "not_news_found": 102,
+            "dropped": [
+              {
+                "title": "2026 United States House of Representatives elections in Florida",
+                "first_edit_at": "2026-11-04 00:15:03.702000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Wrinkles the Clown",
+                "first_edit_at": "2026-11-04 01:35:10.311000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Josh Shapiro",
+                "first_edit_at": "2026-11-04 01:53:57.845000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rick Jackson (businessman)",
+                "first_edit_at": "2026-11-04 02:19:20.253000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dan Osborn",
+                "first_edit_at": "2026-11-04 02:36:25.148000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harris Wofford",
+                "first_edit_at": "2026-11-04 03:28:55.409000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Darline Graham",
+                "first_edit_at": "2026-11-04 03:40:38.082000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "David Crowley (Wisconsin politician)",
+                "first_edit_at": "2026-11-04 03:43:55.757000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harpsichord",
+                "first_edit_at": "2026-11-04 03:54:00.564000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 04:08:12.393000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bodybuilding",
+                "first_edit_at": "2026-11-04 07:40:30.134000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 10:24:52.029000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 10:53:41.952000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-04 12:29:03.162000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jean de La Fontaine",
+                "first_edit_at": "2026-11-04 14:55:48.187000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Castle Hill (Ipswich, Massachusetts)",
+                "first_edit_at": "2026-11-04 15:32:12.348000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Team Spirit (esports)",
+                "first_edit_at": "2026-11-04 16:07:30.189000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026 FIFA U-17 Women's World Cup",
+                "first_edit_at": "2026-11-04 16:41:47.427000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 16:42:31.171000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Crumple zone",
+                "first_edit_at": "2026-11-04 16:47:15.367000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Apple sauce",
+                "first_edit_at": "2026-11-04 16:59:08.936000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Passaic Valley Regional High School",
+                "first_edit_at": "2026-11-04 17:12:02.366000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-04 18:02:20.296000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Mason Greenwood",
+                "first_edit_at": "2026-11-04 18:19:42.010000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jacoby Brissett",
+                "first_edit_at": "2026-11-04 19:49:00.638000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Multimedia",
+                "first_edit_at": "2026-11-04 20:04:40.137000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Charlie and the Chocolate Factory",
+                "first_edit_at": "2026-11-04 20:22:32.209000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Swing state",
+                "first_edit_at": "2026-11-04 20:38:20.727000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Naomi Ackie",
+                "first_edit_at": "2026-11-04 20:43:32.247000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Edna, the Inebriate Woman",
+                "first_edit_at": "2026-11-04 20:51:13.635000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bormujos",
+                "first_edit_at": "2026-11-04 21:45:02.992000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Arsenal F.C. season",
+                "first_edit_at": "2026-11-04 21:52:50.753000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Rodil Zalameda",
+                "first_edit_at": "2026-11-05 05:29:03.873000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Greg James",
+                "first_edit_at": "2026-11-05 07:58:28.660000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Museum of Contemporary Art Australia",
+                "first_edit_at": "2026-11-05 09:42:38.442000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tilly Lockey",
+                "first_edit_at": "2026-11-05 12:36:47.824000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 13:13:14.726000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Maumoon Abdul Gayoom",
+                "first_edit_at": "2026-11-05 15:08:46.554000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tanimbar corella",
+                "first_edit_at": "2026-11-05 15:30:27.434000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Jacques Cousteau",
+                "first_edit_at": "2026-11-05 15:32:25.501000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Truth serum",
+                "first_edit_at": "2026-11-05 15:56:58.222000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Douglas W. Owsley",
+                "first_edit_at": "2026-11-05 16:57:46.579000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ellen Ochoa",
+                "first_edit_at": "2026-11-05 16:59:38.077000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Influence of the French Revolution",
+                "first_edit_at": "2026-11-05 18:06:13.146000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Looney Tunes feature films",
+                "first_edit_at": "2026-11-05 18:11:59.674000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Polonium",
+                "first_edit_at": "2026-11-05 18:40:53.401000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Nefertari",
+                "first_edit_at": "2026-11-05 21:58:46.251000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-05 23:39:10.928000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "University of Warwick Conservative Association",
+                "first_edit_at": "2026-11-06 00:00:28.416000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "1946: The Mistranslation That Shifted Culture",
+                "first_edit_at": "2026-11-06 03:24:22.358000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Shrek the Third",
+                "first_edit_at": "2026-11-06 04:28:02.314000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Nithya Raman",
+                "first_edit_at": "2026-11-06 07:05:09.192000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "List of Jewish messiah claimants",
+                "first_edit_at": "2026-11-06 09:25:06.239000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Ostrom",
+                "first_edit_at": "2026-11-06 09:33:14.092000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Shipley (surname)",
+                "first_edit_at": "2026-11-06 09:35:53.732000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Shakeela",
+                "first_edit_at": "2026-11-06 10:03:05.713000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Fufu",
+                "first_edit_at": "2026-11-06 10:27:08.855000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Patriot Platform",
+                "first_edit_at": "2026-11-06 14:11:57.609000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Sabine Hossenfelder",
+                "first_edit_at": "2026-11-06 15:08:23.016000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Marduk",
+                "first_edit_at": "2026-11-06 19:46:56.180000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Syed Soharwardy",
+                "first_edit_at": "2026-11-06 20:10:25.801000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dingo",
+                "first_edit_at": "2026-11-06 21:13:03.484000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 00:25:55.244000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Kusmara",
+                "first_edit_at": "2026-11-07 05:29:31.590000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 07:56:40.048000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Pathans in India",
+                "first_edit_at": "2026-11-07 12:07:22.009000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Emperor of the French",
+                "first_edit_at": "2026-11-07 12:20:22.614000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dixons Brooklands Academy",
+                "first_edit_at": "2026-11-07 13:14:27.673000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 13:25:54.351000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Tottenham Hotspur F.C. season",
+                "first_edit_at": "2026-11-07 14:10:42.628000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "ITS Dental College",
+                "first_edit_at": "2026-11-07 15:54:58.675000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 16:03:39.736000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 16:51:54.200000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 18:12:28.530000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tiffany Stratton",
+                "first_edit_at": "2026-11-07 18:55:03.955000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Manchester City F.C. season",
+                "first_edit_at": "2026-11-07 19:24:23.816000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 20:29:40.492000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Peter Hewitt (director)",
+                "first_edit_at": "2026-11-07 22:17:19.151000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-08 10:08:20.705000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sajidha Mohamed",
+                "first_edit_at": "2026-11-08 12:47:44.040000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Liverpool F.C. season",
+                "first_edit_at": "2026-11-08 15:52:31.691000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Carlos Alcaraz career statistics",
+                "first_edit_at": "2026-11-08 16:20:43.183000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Formula One World Constructors' Champions",
+                "first_edit_at": "2026-11-08 18:53:04.995000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Weasel war dance",
+                "first_edit_at": "2026-11-08 19:55:48.685000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Aramco Tower",
+                "first_edit_at": "2026-11-08 20:47:12.043000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dževad Prekazi",
+                "first_edit_at": "2026-11-08 21:34:43.743000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Park Community School",
+                "first_edit_at": "2026-11-08 21:58:15.650000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "How Doth the Little Crocodile",
+                "first_edit_at": "2026-11-08 22:39:08.333000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Christopher Bell (racing driver)",
+                "first_edit_at": "2026-11-08 23:25:15.958000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Corn Pops",
+                "first_edit_at": "2026-11-08 23:26:37.206000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lafayette High School (Louisiana)",
+                "first_edit_at": "2026-11-09 01:11:30.402000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Big Brother (Australian TV series) season 17",
+                "first_edit_at": "2026-11-09 09:48:22.084000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Spinning top",
+                "first_edit_at": "2026-11-09 12:55:17.315000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Religions by country",
+                "first_edit_at": "2026-11-09 16:13:54.667000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lionfish",
+                "first_edit_at": "2026-11-09 16:23:58.087000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ricky",
+                "first_edit_at": "2026-11-09 16:42:49.797000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "0.999...",
+                "first_edit_at": "2026-11-09 17:41:31.501000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Oyster River High School",
+                "first_edit_at": "2026-11-09 18:25:07.185000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Budos Band",
+                "first_edit_at": "2026-11-09 18:30:04.372000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of Samoa",
+                "first_edit_at": "2026-11-09 19:30:15.776000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Starr Roxanne Hiltz",
+                "first_edit_at": "2026-11-09 21:13:41.741000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Smokedope2016",
+                "first_edit_at": "2026-11-09 22:14:51.874000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "University of Exeter Halls of Residence",
+                "first_edit_at": "2026-11-10 00:00:46.622000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Agneta Ekmanner",
+                "first_edit_at": "2026-11-10 00:51:25.943000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "James Gunn",
+                "first_edit_at": "2026-11-10 01:43:55.844000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Survivor Series: WarGames (2026)",
+                "first_edit_at": "2026-11-10 03:09:24.476000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Osaka",
+                "first_edit_at": "2026-11-10 04:12:14.032000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Kogarah High School",
+                "first_edit_at": "2026-11-10 10:26:44.975000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Typhoon Megi (2010)",
+                "first_edit_at": "2026-11-10 12:04:24.953000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "1958 Lituya Bay earthquake and megatsunami",
+                "first_edit_at": "2026-11-10 13:21:49.294000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Minute (basketball)",
+                "first_edit_at": "2026-11-10 13:38:39.883000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2014",
+                "first_edit_at": "2026-11-10 13:41:36.219000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Grendel",
+                "first_edit_at": "2026-11-10 14:51:39.584000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Priscilla Chan",
+                "first_edit_at": "2026-11-10 15:48:20.484000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bounty (chocolate bar)",
+                "first_edit_at": "2026-11-10 16:06:03.720000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Gabriel Horn (filmmaker)",
+                "first_edit_at": "2026-11-10 17:19:01.752000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fern",
+                "first_edit_at": "2026-11-10 17:40:26.493000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "People's Liberation Army Special Operations Forces",
+                "first_edit_at": "2026-11-10 18:28:30.514000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ruthenium",
+                "first_edit_at": "2026-11-10 19:03:28.877000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sergei Rachmaninoff",
+                "first_edit_at": "2026-11-10 19:10:10.041000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sheikh Hasina",
+                "first_edit_at": "2026-11-10 20:26:13.188000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Preserved Fish",
+                "first_edit_at": "2026-11-10 20:48:46.429000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Guardbridge",
+                "first_edit_at": "2026-11-10 20:52:15.932000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Hakeem Oluseyi",
+                "first_edit_at": "2026-11-10 20:57:36.206000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "OpenSolaris",
+                "first_edit_at": "2026-11-10 20:58:01.897000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Johnny Walker (Indian actor)",
+                "first_edit_at": "2026-11-10 21:04:43.213000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "I'm a Celebrity...Get Me Out of Here! (British TV series) series 26",
+                "first_edit_at": "2026-11-10 21:32:42.409000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Chestnut Grove Academy",
+                "first_edit_at": "2026-11-10 21:47:30.721000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Hamble School",
+                "first_edit_at": "2026-11-10 22:32:37.743000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lachie Neale",
+                "first_edit_at": "2026-11-10 22:35:49.265000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harley Reid",
+                "first_edit_at": "2026-11-10 22:43:40.318000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ravshan Bozorov",
+                "first_edit_at": "2026-11-10 22:57:52.550000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Book of Jonah",
+                "first_edit_at": "2026-11-10 23:17:30.578000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "A. J. Green",
+                "first_edit_at": "2026-11-10 23:23:21.814000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anthony Whiteman",
+                "first_edit_at": "2026-11-10 23:33:01.505000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "max_anon_share": 0.4,
+        "spikes": 324,
+        "starts": {
+          "same_start": 302,
+          "later_start": 23,
+          "later_median_min": 4.567833333333334,
+          "later_p90_min": 64.36206,
+          "dropped": 157
+        },
+        "sets": {
+          "human": {
+            "news": 17,
+            "not news": 24,
+            "unlabeled": 283,
+            "n": 41,
+            "precision": 0.4146341463414634,
+            "interval": [
+              0.27756549360403493,
+              0.5663289698091571
+            ],
+            "news_found_before": 15,
+            "news_found": 15,
+            "not_news_found_before": 48,
+            "not_news_found": 23,
+            "dropped": [
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Tanimbar corella",
+                "first_edit_at": "2026-11-05 15:30:27.434000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Ellen Ochoa",
+                "first_edit_at": "2026-11-05 16:59:38.077000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "University of Warwick Conservative Association",
+                "first_edit_at": "2026-11-06 00:00:28.416000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 00:08:10.327000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "1946: The Mistranslation That Shifted Culture",
+                "first_edit_at": "2026-11-06 03:24:22.358000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "List of Jewish messiah claimants",
+                "first_edit_at": "2026-11-06 09:25:06.239000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Ostrom",
+                "first_edit_at": "2026-11-06 09:33:14.092000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Shakeela",
+                "first_edit_at": "2026-11-06 10:03:05.713000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "Dingo",
+                "first_edit_at": "2026-11-06 21:13:03.484000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "llm": "news"
+                }
+              }
+            ]
+          },
+          "llm": {
+            "news": 222,
+            "not news": 100,
+            "unlabeled": 2,
+            "n": 322,
+            "precision": 0.6894409937888198,
+            "interval": [
+              0.6369161517860717,
+              0.7374990635731393
+            ],
+            "news_found_before": 245,
+            "news_found": 201,
+            "not_news_found_before": 210,
+            "not_news_found": 100,
+            "dropped": [
+              {
+                "title": "2026 United States House of Representatives elections in Florida",
+                "first_edit_at": "2026-11-04 00:15:03.702000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Wrinkles the Clown",
+                "first_edit_at": "2026-11-04 01:35:10.311000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Josh Shapiro",
+                "first_edit_at": "2026-11-04 01:53:57.845000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rick Jackson (businessman)",
+                "first_edit_at": "2026-11-04 02:19:20.253000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dan Osborn",
+                "first_edit_at": "2026-11-04 02:36:25.148000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harris Wofford",
+                "first_edit_at": "2026-11-04 03:28:55.409000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Darline Graham",
+                "first_edit_at": "2026-11-04 03:40:38.082000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "David Crowley (Wisconsin politician)",
+                "first_edit_at": "2026-11-04 03:43:55.757000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harpsichord",
+                "first_edit_at": "2026-11-04 03:54:00.564000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 04:08:12.393000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bodybuilding",
+                "first_edit_at": "2026-11-04 07:40:30.134000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Hindi TV series) season 20",
+                "first_edit_at": "2026-11-04 10:24:52.029000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 10:53:41.952000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-04 12:29:03.162000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jean de La Fontaine",
+                "first_edit_at": "2026-11-04 14:55:48.187000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Castle Hill (Ipswich, Massachusetts)",
+                "first_edit_at": "2026-11-04 15:32:12.348000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Team Spirit (esports)",
+                "first_edit_at": "2026-11-04 16:07:30.189000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026 FIFA U-17 Women's World Cup",
+                "first_edit_at": "2026-11-04 16:41:47.427000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 AFC Women's Champions League",
+                "first_edit_at": "2026-11-04 16:42:31.171000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Crumple zone",
+                "first_edit_at": "2026-11-04 16:47:15.367000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Apple sauce",
+                "first_edit_at": "2026-11-04 16:59:08.936000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Passaic Valley Regional High School",
+                "first_edit_at": "2026-11-04 17:12:02.366000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-04 18:02:20.296000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Mason Greenwood",
+                "first_edit_at": "2026-11-04 18:19:42.010000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jacoby Brissett",
+                "first_edit_at": "2026-11-04 19:49:00.638000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Multimedia",
+                "first_edit_at": "2026-11-04 20:04:40.137000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Charlie and the Chocolate Factory",
+                "first_edit_at": "2026-11-04 20:22:32.209000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Swing state",
+                "first_edit_at": "2026-11-04 20:38:20.727000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Naomi Ackie",
+                "first_edit_at": "2026-11-04 20:43:32.247000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Edna, the Inebriate Woman",
+                "first_edit_at": "2026-11-04 20:51:13.635000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bormujos",
+                "first_edit_at": "2026-11-04 21:45:02.992000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Arsenal F.C. season",
+                "first_edit_at": "2026-11-04 21:52:50.753000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 05:27:43.654000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Rodil Zalameda",
+                "first_edit_at": "2026-11-05 05:29:03.873000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Greg James",
+                "first_edit_at": "2026-11-05 07:58:28.660000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sefton High School",
+                "first_edit_at": "2026-11-05 09:12:25.511000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Charles Tiu",
+                "first_edit_at": "2026-11-05 09:26:10.518000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Museum of Contemporary Art Australia",
+                "first_edit_at": "2026-11-05 09:42:38.442000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tilly Lockey",
+                "first_edit_at": "2026-11-05 12:36:47.824000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Rise and Fall (Indian TV series)",
+                "first_edit_at": "2026-11-05 13:13:14.726000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Gameoverse",
+                "first_edit_at": "2026-11-05 14:24:26.325000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Maumoon Abdul Gayoom",
+                "first_edit_at": "2026-11-05 15:08:46.554000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tanimbar corella",
+                "first_edit_at": "2026-11-05 15:30:27.434000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Jacques Cousteau",
+                "first_edit_at": "2026-11-05 15:32:25.501000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Truth serum",
+                "first_edit_at": "2026-11-05 15:56:58.222000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Douglas W. Owsley",
+                "first_edit_at": "2026-11-05 16:57:46.579000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ellen Ochoa",
+                "first_edit_at": "2026-11-05 16:59:38.077000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Rolijah Hardy",
+                "first_edit_at": "2026-11-05 17:18:13.097000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Influence of the French Revolution",
+                "first_edit_at": "2026-11-05 18:06:13.146000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Looney Tunes feature films",
+                "first_edit_at": "2026-11-05 18:11:59.674000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Polonium",
+                "first_edit_at": "2026-11-05 18:40:53.401000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of photography",
+                "first_edit_at": "2026-11-05 19:52:43.145000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "RuPaul's Drag Race UK series 8",
+                "first_edit_at": "2026-11-05 20:37:56.124000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Neha Bora",
+                "first_edit_at": "2026-11-05 21:08:19.779000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Nefertari",
+                "first_edit_at": "2026-11-05 21:58:46.251000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Alamo Heights High School",
+                "first_edit_at": "2026-11-05 23:28:45.902000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-05 23:39:10.928000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Foundational Black Americans",
+                "first_edit_at": "2026-11-05 23:55:19.023000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "University of Warwick Conservative Association",
+                "first_edit_at": "2026-11-06 00:00:28.416000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "1946: The Mistranslation That Shifted Culture",
+                "first_edit_at": "2026-11-06 03:24:22.358000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Shrek the Third",
+                "first_edit_at": "2026-11-06 04:28:02.314000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Headnoise",
+                "first_edit_at": "2026-11-06 04:30:37.643000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Nithya Raman",
+                "first_edit_at": "2026-11-06 07:05:09.192000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Turbofan",
+                "first_edit_at": "2026-11-06 09:01:14.199000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "List of Jewish messiah claimants",
+                "first_edit_at": "2026-11-06 09:25:06.239000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Ostrom",
+                "first_edit_at": "2026-11-06 09:33:14.092000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Shipley (surname)",
+                "first_edit_at": "2026-11-06 09:35:53.732000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Shakeela",
+                "first_edit_at": "2026-11-06 10:03:05.713000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Fufu",
+                "first_edit_at": "2026-11-06 10:27:08.855000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Patriot Platform",
+                "first_edit_at": "2026-11-06 14:11:57.609000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anuradha T. K.",
+                "first_edit_at": "2026-11-06 14:26:29.085000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Tidal power",
+                "first_edit_at": "2026-11-06 14:38:36.497000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Sabine Hossenfelder",
+                "first_edit_at": "2026-11-06 15:08:23.016000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Leonid Sedov",
+                "first_edit_at": "2026-11-06 15:15:45.241000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Scene (2026 film)",
+                "first_edit_at": "2026-11-06 17:41:43.121000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Jim McDonald (Coronation Street)",
+                "first_edit_at": "2026-11-06 18:28:24.876000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Marduk",
+                "first_edit_at": "2026-11-06 19:46:56.180000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Syed Soharwardy",
+                "first_edit_at": "2026-11-06 20:10:25.801000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dingo",
+                "first_edit_at": "2026-11-06 21:13:03.484000+00:00",
+                "label": "not news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "2026–27 Everton F.C. season",
+                "first_edit_at": "2026-11-06 21:54:48.964000+00:00",
+                "label": "news",
+                "other_labels": {
+                  "human": "not news"
+                }
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 00:25:55.244000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Kusmara",
+                "first_edit_at": "2026-11-07 05:29:31.590000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 07:56:40.048000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Pathans in India",
+                "first_edit_at": "2026-11-07 12:07:22.009000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Emperor of the French",
+                "first_edit_at": "2026-11-07 12:20:22.614000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dixons Brooklands Academy",
+                "first_edit_at": "2026-11-07 13:14:27.673000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 13:25:54.351000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Tottenham Hotspur F.C. season",
+                "first_edit_at": "2026-11-07 14:10:42.628000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "ITS Dental College",
+                "first_edit_at": "2026-11-07 15:54:58.675000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 16:03:39.736000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bigg Boss (Tamil TV series) season 10",
+                "first_edit_at": "2026-11-07 16:51:54.200000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "John Brooks (referee)",
+                "first_edit_at": "2026-11-07 18:12:28.530000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Tiffany Stratton",
+                "first_edit_at": "2026-11-07 18:55:03.955000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Manchester City F.C. season",
+                "first_edit_at": "2026-11-07 19:24:23.816000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-07 20:29:40.492000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Peter Hewitt (director)",
+                "first_edit_at": "2026-11-07 22:17:19.151000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-08 10:08:20.705000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sajidha Mohamed",
+                "first_edit_at": "2026-11-08 12:47:44.040000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2026–27 Liverpool F.C. season",
+                "first_edit_at": "2026-11-08 15:52:31.691000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Carlos Alcaraz career statistics",
+                "first_edit_at": "2026-11-08 16:20:43.183000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Frozen yogurt",
+                "first_edit_at": "2026-11-08 18:17:08.970000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "List of Formula One World Constructors' Champions",
+                "first_edit_at": "2026-11-08 18:53:04.995000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Weasel war dance",
+                "first_edit_at": "2026-11-08 19:55:48.685000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Aramco Tower",
+                "first_edit_at": "2026-11-08 20:47:12.043000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Dževad Prekazi",
+                "first_edit_at": "2026-11-08 21:34:43.743000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Park Community School",
+                "first_edit_at": "2026-11-08 21:58:15.650000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "How Doth the Little Crocodile",
+                "first_edit_at": "2026-11-08 22:39:08.333000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Christopher Bell (racing driver)",
+                "first_edit_at": "2026-11-08 23:25:15.958000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Corn Pops",
+                "first_edit_at": "2026-11-08 23:26:37.206000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lafayette High School (Louisiana)",
+                "first_edit_at": "2026-11-09 01:11:30.402000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Big Brother (Australian TV series) season 17",
+                "first_edit_at": "2026-11-09 09:48:22.084000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Spinning top",
+                "first_edit_at": "2026-11-09 12:55:17.315000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Religions by country",
+                "first_edit_at": "2026-11-09 16:13:54.667000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lionfish",
+                "first_edit_at": "2026-11-09 16:23:58.087000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ricky",
+                "first_edit_at": "2026-11-09 16:42:49.797000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "0.999...",
+                "first_edit_at": "2026-11-09 17:41:31.501000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Oyster River High School",
+                "first_edit_at": "2026-11-09 18:25:07.185000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "The Budos Band",
+                "first_edit_at": "2026-11-09 18:30:04.372000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "History of Samoa",
+                "first_edit_at": "2026-11-09 19:30:15.776000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Starr Roxanne Hiltz",
+                "first_edit_at": "2026-11-09 21:13:41.741000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Smokedope2016",
+                "first_edit_at": "2026-11-09 22:14:51.874000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "University of Exeter Halls of Residence",
+                "first_edit_at": "2026-11-10 00:00:46.622000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Agneta Ekmanner",
+                "first_edit_at": "2026-11-10 00:51:25.943000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "James Gunn",
+                "first_edit_at": "2026-11-10 01:43:55.844000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Survivor Series: WarGames (2026)",
+                "first_edit_at": "2026-11-10 03:09:24.476000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Osaka",
+                "first_edit_at": "2026-11-10 04:12:14.032000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Kogarah High School",
+                "first_edit_at": "2026-11-10 10:26:44.975000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Typhoon Megi (2010)",
+                "first_edit_at": "2026-11-10 12:04:24.953000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "1958 Lituya Bay earthquake and megatsunami",
+                "first_edit_at": "2026-11-10 13:21:49.294000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Minute (basketball)",
+                "first_edit_at": "2026-11-10 13:38:39.883000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "2014",
+                "first_edit_at": "2026-11-10 13:41:36.219000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Grendel",
+                "first_edit_at": "2026-11-10 14:51:39.584000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Priscilla Chan",
+                "first_edit_at": "2026-11-10 15:48:20.484000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Bounty (chocolate bar)",
+                "first_edit_at": "2026-11-10 16:06:03.720000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Gabriel Horn (filmmaker)",
+                "first_edit_at": "2026-11-10 17:19:01.752000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Fern",
+                "first_edit_at": "2026-11-10 17:40:26.493000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "People's Liberation Army Special Operations Forces",
+                "first_edit_at": "2026-11-10 18:28:30.514000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ruthenium",
+                "first_edit_at": "2026-11-10 19:03:28.877000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sergei Rachmaninoff",
+                "first_edit_at": "2026-11-10 19:10:10.041000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Sheikh Hasina",
+                "first_edit_at": "2026-11-10 20:26:13.188000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Preserved Fish",
+                "first_edit_at": "2026-11-10 20:48:46.429000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Guardbridge",
+                "first_edit_at": "2026-11-10 20:52:15.932000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Hakeem Oluseyi",
+                "first_edit_at": "2026-11-10 20:57:36.206000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "OpenSolaris",
+                "first_edit_at": "2026-11-10 20:58:01.897000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Johnny Walker (Indian actor)",
+                "first_edit_at": "2026-11-10 21:04:43.213000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "I'm a Celebrity...Get Me Out of Here! (British TV series) series 26",
+                "first_edit_at": "2026-11-10 21:32:42.409000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Chestnut Grove Academy",
+                "first_edit_at": "2026-11-10 21:47:30.721000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Hamble School",
+                "first_edit_at": "2026-11-10 22:32:37.743000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Lachie Neale",
+                "first_edit_at": "2026-11-10 22:35:49.265000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Harley Reid",
+                "first_edit_at": "2026-11-10 22:43:40.318000+00:00",
+                "label": "news",
+                "other_labels": {}
+              },
+              {
+                "title": "Ravshan Bozorov",
+                "first_edit_at": "2026-11-10 22:57:52.550000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Book of Jonah",
+                "first_edit_at": "2026-11-10 23:17:30.578000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "A. J. Green",
+                "first_edit_at": "2026-11-10 23:23:21.814000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              },
+              {
+                "title": "Anthony Whiteman",
+                "first_edit_at": "2026-11-10 23:33:01.505000+00:00",
+                "label": "not news",
+                "other_labels": {}
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "gate": [
+      {
+        "max_anon_share": 1.0,
+        "spikes": 19,
+        "counts": {
+          "news": 10,
+          "not news": 9,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.5263157894736842,
+        "recall": 0.21052631578947367,
+        "found": 8,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Bigg Boss (Tamil TV series) season 10 (2026-11-07 07:56 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      },
+      {
+        "max_anon_share": 0.75,
+        "spikes": 17,
+        "counts": {
+          "news": 9,
+          "not news": 8,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.5294117647058824,
+        "recall": 0.18421052631578946,
+        "found": 7,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      },
+      {
+        "max_anon_share": 0.6,
+        "spikes": 17,
+        "counts": {
+          "news": 9,
+          "not news": 8,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.5294117647058824,
+        "recall": 0.18421052631578946,
+        "found": 7,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      },
+      {
+        "max_anon_share": 0.5,
+        "spikes": 16,
+        "counts": {
+          "news": 9,
+          "not news": 7,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.5625,
+        "recall": 0.18421052631578946,
+        "found": 7,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      },
+      {
+        "max_anon_share": 0.45,
+        "spikes": 15,
+        "counts": {
+          "news": 9,
+          "not news": 6,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.6,
+        "recall": 0.18421052631578946,
+        "found": 7,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      },
+      {
+        "max_anon_share": 0.4,
+        "spikes": 15,
+        "counts": {
+          "news": 9,
+          "not news": 6,
+          "unsure": 0,
+          "unlabeled": 0
+        },
+        "precision": 0.6,
+        "recall": 0.18421052631578946,
+        "found": 7,
+        "news_bursts": 38,
+        "found_bursts": [
+          "2026 NASCAR Craftsman Truck Series (2026-11-07 01:33 UTC)",
+          "Haley Stevens (2026-11-07 02:29 UTC)",
+          "2026 Pacific typhoon season (2026-11-07 04:16 UTC)",
+          "Tornadoes of 2026 (2026-11-07 08:10 UTC)",
+          "Results of the 2026 New Zealand general election (2026-11-07 11:01 UTC)",
+          "2026 New Zealand general election (2026-11-07 11:15 UTC)",
+          "Deaths in 2026 (2026-11-07 11:35 UTC)"
+        ]
+      }
+    ]
+  }
+}

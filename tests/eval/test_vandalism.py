@@ -220,6 +220,14 @@ def test_rule_results_count_precision_and_dropped_bursts() -> None:
     assert rows[1]["spikes"] == 2
 
 
+def test_start_changes_count_kept_delayed_and_dropped_spikes() -> None:
+    before = [spike("A", at(7, 1)), spike("B", at(7, 2)), spike("C", at(7, 3)), spike("D", at(6))]
+    after = [spike("A", at(7, 1)), spike("B", at(7, 2) + timedelta(minutes=6))]
+    changes = vandalism.start_changes(before, after, at(7))
+    assert (changes["same_start"], changes["later_start"], changes["dropped"]) == (1, 1, 1)
+    assert changes["later_median_min"] == pytest.approx(6.0)
+
+
 def test_a_dropped_burst_shows_the_other_labelers_verdict() -> None:
     human = [burst("Vandal", 2, "not news")]
     llm = [burst("Vandal", 2.2, "news"), burst("Elsewhere", 5, "news")]
