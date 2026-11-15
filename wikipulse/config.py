@@ -397,6 +397,10 @@ class Settings(BaseSettings):
     # Lake prefix the dataset reads edits from, and where datasets go in S3_BUCKET.
     ml_lake_prefix: str = "history/edits"
     ml_dataset_prefix: str = "datasets"
+    # Which spikes become rows (spec 11a): "serving" = the default detector's spikes, as
+    # wikipulse.ml.serve scores them (no training/serving skew); "candidates" = the looser
+    # candidate detector's spikes below (how datasets v1 to v4 were built).
+    ml_dataset_mode: Literal["serving", "candidates"] = "serving"
     # Candidate spikes: the detector with these changes to the DETECT_* thresholds.
     ml_candidate_detector: str = "min_edits=4,min_editors=3,long_min_edits=8,long_min_editors=3"
     # Warm-up hours at the start of the lake (no spikes taken), and the held-out days.

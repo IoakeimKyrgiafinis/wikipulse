@@ -7,19 +7,26 @@ What `build` does, step by step:
 
 1. **Edits.** Reads the lake (`ML_LAKE_PREFIX`, by default the recorded and backfilled
    history) hour by hour, in event-time order, over its last contiguous stretch of hours.
-2. **Spikes.** Runs two spike detectors over those edits: the *candidates* (thresholds
-   `ML_CANDIDATE_DETECTOR`, looser than the live defaults) and the live *default* rule.
-   Both runs are stored in Postgres (run ids `07a-candidates` and `07a-default` by
-   default, replaced on every build, never on a dry run) so `wikipulse.eval.label` can
-   label them. Spikes in the first `ML_WARMUP_HOURS` (cold baselines) or whose feature
-   window runs past the data are left out.
-3. **Split by time**: the last `ML_TEST_DAYS` days are the test set, the `ML_VALID_DAYS`
-   before them validation, everything earlier training. Never random. At each boundary
-   the build *purges* spikes still running when the next split begins and spikes whose
-   page spikes again in a later split within `ML_SPLIT_GAP_HOURS` (`purge_boundaries`).
-4. **Features** (`features.py`): from the page's edits up to the cutoff (`started_at +
-   FEATURE_WINDOW_MIN`) and the page's revision at the cutoff (`pages.py`, MediaWiki API,
-   cached). `check_no_leakage` runs on every row.
+2. **Spikes.** Which spikes become rows is the *mode* (`--mode`, `ML_DATASET_MODE`):
+   - `serving` (spec 11a, the default): the live *default* detector's spikes, exactly
+     the ones `wikipulse.ml.serve` scores, so the model learns from the rows it will
+     meet live (no training/serving skew). Run id `07a-default`.
+   - `candidates` (datasets v1 to v4): a looser *candidate* detector
+     (`ML_CANDIDATE_DETECTOR`, run id `07a-candidates`), with the default rule run
+     alongside for the `default_rule_fired` column.
+   The runs are stored in Postgres (replaced on every build, never on a dry run) so
+   `wikipulse.eval.label` can label them. Spikes in the first `ML_WARMUP_HOURS` (cold
+   baselines) or whose feature window runs past the data are left out.
+3. **Split by time**: the last `ML_TEST_DAYS` days are the test set (in `serving` mode:
+   the newest days whose portal is final at the as-of moment; newer days are *delayed*,
+   left for a later build), the `ML_VALID_DAYS` before them validation, everything
+   earlier training. Never random. At each boundary the build *purges* spikes still
+   running when the next split begins and spikes whose page spikes again in a later
+   split within `ML_SPLIT_GAP_HOURS` (`purge_boundaries`).
+4. **Features** (`features.py`), through the code path serving uses (`cutoff.py`): from
+   the page's edits up to the cutoff (`started_at + FEATURE_WINDOW_MIN`) and the page's
+   revision at the cutoff (`pages.py`, MediaWiki API, cached). `check_no_leakage` runs on
+   every row.
 5. **Labels, as of a moment.** Each split's labels use only evidence from before the next
    split begins (the test split: before the build's *as-of*, by default the end of the
    data). The *weak label*: the article is linked from the "Current events" portal within
@@ -58,13 +65,13 @@ from wikipulse.eval.ground_truth import FINAL_AFTER, PortalDay
 from wikipulse.eval.metrics import Label, day_start, match_spikes, pick_label, spike_end
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
+from wikipulse.ml.cutoff import at_cutoff, features_at_cutoff
 from wikipulse.ml.features import (
     FEATURE_NAMES,
     FEATURES,
     PageEdit,
     PageSnapshot,
     SpikeWindow,
-    check_no_leakage,
 )
 from wikipulse.stream.models import EditEvent
 
@@ -73,6 +80,13 @@ logger = logging.getLogger(__name__)
 SPLITS = ("train", "valid", "test")
 CANDIDATE_RUN = "07a-candidates"
 RULE_RUN = "07a-default"
+# Which spikes become rows (`ML_DATASET_MODE`, `--mode`):
+SERVING = "serving"  # the default detector's spikes, as wikipulse.ml.serve scores them
+CANDIDATES = "candidates"  # the looser candidate detector's spikes (datasets v1 to v4)
+MODES = {
+    SERVING: "rows are the default detector's spikes, the ones the live scorer scores",
+    CANDIDATES: "rows are the looser candidate detector's spikes (ML_CANDIDATE_DETECTOR)",
+}
 PORTAL_MARGIN_DAYS = 2  # portal days fetched around the data (the weak label's 48 h)
 
 # --- 1. edits from the lake -------------------------------------------------------------
@@ -194,12 +208,6 @@ def page_edits(store: LakeStore, titles: Iterable[str]) -> dict[str, list[PageEd
     return edits
 
 
-def revision_at(edits: Sequence[PageEdit], cutoff: datetime) -> int | None:
-    """The page's revision current at the cutoff: the newest one saved at or before it."""
-    known = [e for e in edits if e.time <= cutoff and e.rev_new is not None]
-    return max(known, key=lambda e: e.time).rev_new if known else None
-
-
 # --- 4 and 5. rows: features and labels ---------------------------------------------
 
 
@@ -310,11 +318,11 @@ def build_row(spike: SpikeRecord, src: RowSources, label_as_of: datetime) -> dic
     `label_as_of` bounds the labels' evidence: the start of the next split (or the
     build's as-of for the last split), so no label uses data from a later split.
     """
-    window = window_of(spike, src.window_min)
     edits = src.edits.get(spike.title, [])
-    revision = revision_at(edits, window.cutoff)
-    page = src.snapshots.get(revision) if revision is not None else None
-    features = check_no_leakage(window, edits, page)
+    # the same code path as wikipulse.ml.serve (spec 11a): window, revision, features
+    item = at_cutoff(spike.title, spike.first_edit_at, spike.started_at, edits, src.window_min)
+    window, revision = item.window, item.revision
+    features, page = features_at_cutoff(item, src.snapshots)
     weak, portal_days, final = weak_label_of(spike, src.portal, label_as_of)
     label = label_of(spike, src.labels, label_as_of)
     value, source = combined_label(weak, label)
@@ -377,6 +385,52 @@ def assign_splits(days: Iterable[str], valid_days: int, test_days: int) -> dict[
         day: "train" if i < valid_from else "valid" if i < test_from else "test"
         for i, day in enumerate(ordered)
     }
+
+
+def final_days(
+    spikes: Iterable[SpikeRecord], portal: Sequence[PortalDay], as_of: datetime
+) -> set[str]:
+    """The days whose spikes all have a final portal at `as_of` (`portal_final`).
+
+    Only on such a day can "not on the portal" be told apart from "not on the portal
+    yet", so only such days can make a test split whose labels won't change later.
+    """
+    days: dict[str, bool] = {}
+    for spike in spikes:
+        day = day_of(spike)
+        days[day] = days.get(day, True) and portal_final(spike, portal, as_of)
+    return {day for day, final in days.items() if final}
+
+
+def assign_final_splits(
+    days: Iterable[str], final: set[str], valid_days: int, test_days: int
+) -> tuple[dict[str, str], list[str]]:
+    """(day -> split, the delayed days): the test split is the newest `test_days` days
+    whose portal is final, validation the `valid_days` before them, training the rest.
+
+    Days after the first test day that are not final are *delayed*: left out of this
+    version (they can't be tested on yet, and training on days after the test days would
+    break the time order). A later build, once their portal is final, uses them.
+    """
+    ordered = sorted(set(days))
+    finals = [day for day in ordered if day in final]
+    if len(finals) < test_days:
+        raise ValueError(
+            f"only {len(finals)} days with a final portal ({finals}); the test split needs "
+            f"{test_days}. Build later, or with a later --as-of"
+        )
+    test = finals[len(finals) - test_days :]
+    delayed = [day for day in ordered if day > test[0] and day not in test]
+    earlier = [day for day in ordered if day < test[0]]
+    if len(earlier) <= valid_days:
+        raise ValueError(
+            f"{len(earlier)} days before the test days {test} can't make {valid_days} "
+            "validation days plus at least one training day"
+        )
+    valid_from = len(earlier) - valid_days
+    split_of = {day: "train" if i < valid_from else "valid" for i, day in enumerate(earlier)}
+    split_of.update({day: "test" for day in test})
+    return split_of, delayed
 
 
 def day_of(spike: SpikeRecord) -> str:
@@ -691,10 +745,10 @@ def fetch_snapshots(
 
     revids = set()
     for spike in spikes:
-        cutoff = window_of(spike, window_min).cutoff
-        revision = revision_at(edits.get(spike.title, []), cutoff)
-        if revision is not None:
-            revids.add(revision)
+        page = edits.get(spike.title, [])
+        item = at_cutoff(spike.title, spike.first_edit_at, spike.started_at, page, window_min)
+        if item.revision is not None:
+            revids.add(item.revision)
     cache = settings.data_dir / "cache" / "ml"
     with WikiClient(settings.user_agent, cache, settings.wiki_api_min_interval_s) as client:
         cached = RevisionCache(cache / "revisions")
@@ -770,6 +824,7 @@ class BuildOptions:
     """What `build` needs besides the settings (the CLI arguments; tests set them)."""
 
     lake_prefix: str | None = None
+    mode: str | None = None  # SERVING or CANDIDATES (default: ML_DATASET_MODE)
     candidate: str | None = None  # detector changes for the candidates
     run_id: str = CANDIDATE_RUN
     rule_run_id: str = RULE_RUN
@@ -805,8 +860,15 @@ def build(options: BuildOptions, settings: Settings) -> str:
     as_of = resolve_as_of(options.as_of, data_end, built_at)
     logger.info("Edits: %d hours from %s to %s in %s", len(hours), data_start, data_end, lake.root)
 
+    mode = options.mode or settings.ml_dataset_mode
+    if mode not in MODES:
+        raise ValueError(f"unknown dataset mode {mode!r}; choose one of {sorted(MODES)}")
     candidates = candidate_config(settings, options.candidate or settings.ml_candidate_detector)
-    configs = {options.run_id: candidates, options.rule_run_id: settings.detector_config()}
+    configs = {options.rule_run_id: settings.detector_config()}
+    if mode == CANDIDATES:  # serving mode needs only the default detector
+        configs = {options.run_id: candidates, **configs}
+    row_run = options.run_id if mode == CANDIDATES else options.rule_run_id
+    logger.info("Mode %s: %s (run %s)", mode, MODES[mode], row_run)
     counter: Counter[str] = Counter()
 
     def counted(events: Iterable[EditEvent]) -> Iterator[EditEvent]:
@@ -819,17 +881,32 @@ def build(options: BuildOptions, settings: Settings) -> str:
     if options.use_db and not options.dry_run:
         store_runs(settings, runs)
     warmup = timedelta(hours=settings.ml_warmup_hours)
-    selected = select_spikes(runs[options.run_id], data_start, data_end, warmup, window_min)
-    split_of = assign_splits(
-        (day_of(s) for s in selected), settings.ml_valid_days, settings.ml_test_days
-    )
+    selected = select_spikes(runs[row_run], data_start, data_end, warmup, window_min)
+    margin = timedelta(days=PORTAL_MARGIN_DAYS)
+    portal = options.portal
+    if portal is None:
+        first, last = (data_start - margin).date(), (data_end + margin).date()
+        portal = fetch_portal(settings, first, last, as_of)
+    days = [day_of(s) for s in selected]
+    delayed: list[str] = []
+    if mode == SERVING:  # the test split: the newest days whose portal is final
+        final = final_days(selected, portal, as_of)
+        split_of, delayed = assign_final_splits(
+            days, final, settings.ml_valid_days, settings.ml_test_days
+        )
+        if delayed:
+            logger.info("Delayed (portal not final at %s): %s", as_of, delayed)
+        selected = [s for s in selected if day_of(s) in split_of]
+    else:
+        split_of = assign_splits(days, settings.ml_valid_days, settings.ml_test_days)
     split_as_of = split_label_as_of(split_of, as_of)
     gap = timedelta(hours=settings.ml_split_gap_hours)
     spikes, purged = purge_boundaries(selected, split_of, split_as_of, gap)
     logger.info(
-        "Using %d of %d candidate spikes (%d selected; purged at split boundaries: %s)",
+        "Using %d of %d spikes of run %s (%d selected; purged at split boundaries: %s)",
         len(spikes),
-        len(runs[options.run_id]),
+        len(runs[row_run]),
+        row_run,
         len(selected),
         purged,
     )
@@ -839,11 +916,6 @@ def build(options: BuildOptions, settings: Settings) -> str:
     page_stats: dict[str, int] = {}
     if options.use_pages:
         snapshots, page_stats = fetch_snapshots(settings, edits, spikes, window_min)
-    margin = timedelta(days=PORTAL_MARGIN_DAYS)
-    portal = options.portal
-    if portal is None:
-        first, last = (data_start - margin).date(), (data_end + margin).date()
-        portal = fetch_portal(settings, first, last, as_of)
     rule_by_title: dict[str, list[SpikeRecord]] = defaultdict(list)
     for spike in runs[options.rule_run_id]:
         rule_by_title[spike.title].append(spike)
@@ -855,6 +927,8 @@ def build(options: BuildOptions, settings: Settings) -> str:
 
     manifest = {
         "created_at": built_at.isoformat(),
+        "mode": mode,
+        "mode_meaning": MODES[mode],
         "git": git_commit(),
         "command": " ".join(sys.argv),
         "source": {
@@ -872,14 +946,24 @@ def build(options: BuildOptions, settings: Settings) -> str:
         "feature_window_min": window_min,
         "warmup_hours": settings.ml_warmup_hours,
         "detector": {
-            "candidates": {"run_id": options.run_id, "config": candidates.model_dump()},
+            **(
+                {"candidates": {"run_id": options.run_id, "config": candidates.model_dump()}}
+                if mode == CANDIDATES
+                else {}
+            ),
             "default_rule": {
                 "run_id": options.rule_run_id,
                 "config": settings.detector_config().model_dump(),
             },
+            "rows_from_run": row_run,
             "spikes_detected": {name: len(found) for name, found in runs.items()},
-            "candidate_spikes_selected": len(selected),
-            "candidate_spikes_used": len(spikes),
+            "spikes_selected": len(selected),
+            "spikes_used": len(spikes),
+            **(
+                {"candidate_spikes_selected": len(selected), "candidate_spikes_used": len(spikes)}
+                if mode == CANDIDATES
+                else {}
+            ),
         },
         "labels": {
             "as_of": as_of.isoformat(),
@@ -902,7 +986,13 @@ def build(options: BuildOptions, settings: Settings) -> str:
             "portal_sha256": portal_sha256(portal),
         },
         "split": {
-            "method": "by UTC day of started_at: last days test, the days before them valid",
+            "method": (
+                "by UTC day of started_at: the newest days whose portal is final at "
+                "labels.as_of test, the days before them valid; later days delayed"
+                if mode == SERVING
+                else "by UTC day of started_at: last days test, the days before them valid"
+            ),
+            "delayed_days": delayed,
             "valid_days": settings.ml_valid_days,
             "test_days": settings.ml_test_days,
             "label_as_of": {name: moment.isoformat() for name, moment in split_as_of.items()},
@@ -936,6 +1026,7 @@ def summary(manifest: dict[str, Any]) -> str:
     """A few lines about one version, for `list` and the end of `build`."""
     lines = [
         f"{manifest['version']}  built {manifest['created_at'][:16]}  "
+        f"mode {manifest.get('mode', CANDIDATES)}  "
         f"commit {(manifest['git'].get('commit') or '?')[:10]}"
         f"{' (dirty)' if manifest['git'].get('dirty') else ''}  "
         f"{manifest['rows']} rows  {manifest['date_range']['first_day']} to "
@@ -963,6 +1054,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     commands = parser.add_subparsers(dest="command", required=True)
     make = commands.add_parser("build", help="build a new dataset version")
     make.add_argument("--lake-prefix", help="lake prefix to read (default: ML_LAKE_PREFIX)")
+    make.add_argument(
+        "--mode",
+        choices=sorted(MODES),
+        help="which spikes become rows (default: ML_DATASET_MODE): "
+        + "; ".join(f"{k}: {v}" for k, v in MODES.items()),
+    )
     make.add_argument("--candidate", help="detector changes, e.g. min_edits=4,min_editors=3")
     make.add_argument("--run-id", default=CANDIDATE_RUN, help="Postgres run of the candidates")
     make.add_argument("--rule-run-id", default=RULE_RUN, help="Postgres run of the default rule")
@@ -991,6 +1088,7 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger("wikipulse.detect").setLevel(logging.WARNING)  # a line per spike
         options = BuildOptions(
             lake_prefix=args.lake_prefix,
+            mode=args.mode,
             candidate=args.candidate,
             run_id=args.run_id,
             rule_run_id=args.rule_run_id,

@@ -48,8 +48,8 @@ from wikipulse.db.scores import SpikeScore, SpikeToScore, spikes_to_score, upser
 from wikipulse.logging_setup import setup_logging
 from wikipulse.metrics.catalog import MODEL_SCORED, MODEL_SCORES
 from wikipulse.metrics.server import start_metrics_server
-from wikipulse.ml.dataset import revision_at
-from wikipulse.ml.features import HISTORY, PageEdit, PageSnapshot, SpikeWindow, check_no_leakage
+from wikipulse.ml.cutoff import AtCutoff, at_cutoff, features_at_cutoff
+from wikipulse.ml.features import HISTORY, PageEdit, PageSnapshot
 from wikipulse.ml.models import INPUT_COLUMNS, RULE_COLUMN, TEXT_COLUMN
 from wikipulse.ml.registry import CHAMPION, alias_version
 from wikipulse.ml.summaries import Lead, summary_text
@@ -234,10 +234,10 @@ class WikiPages:
 
 @dataclass
 class Prepared:
+    """A spike to score with its window and revision at the cutoff (`ml.cutoff`)."""
+
     spike: SpikeToScore
-    window: SpikeWindow
-    edits: Sequence[PageEdit]
-    revision: int | None
+    item: AtCutoff
 
 
 def model_inputs(
@@ -253,15 +253,16 @@ def model_inputs(
     (`leads` given), else just the title (ignored by the other models).
     """
     rows, features = [], []
-    for item in prepared:
-        page = snapshots.get(item.revision) if item.revision is not None else None
-        values = check_no_leakage(item.window, item.edits, page)  # also proves the cutoff
+    for p in prepared:
+        # the same code path as the dataset's rows (spec 11a); also proves the cutoff
+        values, _ = features_at_cutoff(p.item, snapshots)
         features.append(values)
+        revision = p.item.revision
         if leads is not None:
-            lead = leads.get(item.revision) if item.revision is not None else None
-            text = summary_text(item.spike.title, lead)
+            lead = leads.get(revision) if revision is not None else None
+            text = summary_text(p.spike.title, lead)
         else:
-            text = item.spike.title
+            text = p.spike.title
         rows.append({**values, RULE_COLUMN: True, TEXT_COLUMN: text})
     frame = pd.DataFrame(rows, columns=INPUT_COLUMNS)
     numeric = [c for c in INPUT_COLUMNS if c not in (RULE_COLUMN, TEXT_COLUMN)]
@@ -285,33 +286,33 @@ def score_spikes(
         return []
     prepared = []
     for spike in spikes:
-        window = SpikeWindow(spike.title, spike.first_edit_at, spike.started_at, window_min)
         edits = edits_of(spike.title)
-        prepared.append(Prepared(spike, window, edits, revision_at(edits, window.cutoff)))
-    revids = {p.revision for p in prepared if p.revision is not None}
+        item = at_cutoff(spike.title, spike.first_edit_at, spike.started_at, edits, window_min)
+        prepared.append(Prepared(spike, item))
+    revids = {p.item.revision for p in prepared if p.item.revision is not None}
     snapshots = pages.snapshots(revids) if revids else {}
     leads = (pages.leads(revids) if revids else {}) if model.needs_text else None
     frame, features = model_inputs(prepared, snapshots, leads)
     out = model.predict(frame)
     scores = []
-    for item, values, score, is_news in zip(
+    for p, values, score, is_news in zip(
         prepared, features, out["score"], out["is_news"], strict=True
     ):
         complete = (
-            history_start is not None and item.window.first_edit_at - HISTORY >= history_start
+            history_start is not None and p.item.window.first_edit_at - HISTORY >= history_start
         )
         scores.append(
             SpikeScore(
-                spike_id=item.spike.id,
-                run_id=item.spike.run_id,
+                spike_id=p.spike.id,
+                run_id=p.spike.run_id,
                 model_name=model.name,
                 model_version=model.version,
                 score=float(score),
                 is_news=bool(is_news),
                 threshold=model.threshold,
-                cutoff=item.window.cutoff,
+                cutoff=p.item.window.cutoff,
                 features=values,
-                page_revision_id=item.revision,
+                page_revision_id=p.item.revision,
                 history_complete=complete,
             )
         )
