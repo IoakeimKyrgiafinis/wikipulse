@@ -970,7 +970,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines += list(render_rules(rules, chosen))
         if "held_out" in rules:
             lines += list(render_held_out(rules))
-        lines += list(render_dropped(rules, chosen))
+        # With the rule off nothing is dropped: list what the in-sample choice drops.
+        listed = rules.get("in_sample_choice", chosen) if chosen == 1.0 else chosen
+        lines += list(render_dropped(rules, listed))
     return "\n".join(lines).rstrip() + "\n"
 
 

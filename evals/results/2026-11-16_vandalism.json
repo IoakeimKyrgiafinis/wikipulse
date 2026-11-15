@@ -54,7 +54,9 @@
         "auc": 0.5330882352941176,
         "auc_low": 0.4215733225108225,
         "auc_high": 0.6300797311451278,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -66,7 +68,9 @@
         "auc": 0.5612745098039216,
         "auc_low": 0.4474067855680825,
         "auc_high": 0.6610610963075751,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -78,7 +82,9 @@
         "auc": 0.5151143790849673,
         "auc_low": 0.39807810499359797,
         "auc_high": 0.6160794789227166,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -90,7 +96,9 @@
         "auc": 0.5408496732026143,
         "auc_low": 0.43408685064935065,
         "auc_high": 0.6333380681818181,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -102,7 +110,9 @@
         "auc": 0.556781045751634,
         "auc_low": 0.44318293749424653,
         "auc_high": 0.6572713856669429,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -114,7 +124,9 @@
         "auc": 0.5735294117647058,
         "auc_low": 0.46294553781019454,
         "auc_high": 0.6726365961404325,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -126,7 +138,9 @@
         "auc": 0.4166666666666667,
         "auc_low": 0.10208333333333333,
         "auc_high": 0.8535714285714285,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 981,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -138,7 +152,9 @@
         "auc": 0.26666666666666666,
         "auc_low": 0.06,
         "auc_high": 0.5203043478260869,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 994,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -150,7 +166,9 @@
         "auc": 0.3271604938271605,
         "auc_low": 0.13580026455026453,
         "auc_high": 0.5413668424052436,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -162,7 +180,9 @@
         "auc": 0.7536764705882353,
         "auc_low": 0.6374965659340659,
         "auc_high": 0.8483674474182092,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -174,7 +194,9 @@
         "auc": 0.7463235294117647,
         "auc_low": 0.623823902027027,
         "auc_high": 0.8446664710485132,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -186,7 +208,9 @@
         "auc": 0.7504084967320261,
         "auc_low": 0.6331465470803705,
         "auc_high": 0.8454490712390283,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -198,7 +222,9 @@
         "auc": 0.6654411764705882,
         "auc_low": 0.5222991071428572,
         "auc_high": 0.7921506045519203,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -210,7 +236,9 @@
         "auc": 0.6805555555555556,
         "auc_low": 0.5356465755316211,
         "auc_high": 0.8074389293139294,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -222,7 +250,9 @@
         "auc": 0.6658496732026143,
         "auc_low": 0.5212063717532468,
         "auc_high": 0.7884803921568626,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -234,7 +264,9 @@
         "auc": 0.29411764705882354,
         "auc_low": 0.1711438923395445,
         "auc_high": 0.42278409090909086,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -246,7 +278,9 @@
         "auc": 0.2687908496732026,
         "auc_low": 0.1513122374598468,
         "auc_high": 0.4061027216471414,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -258,7 +292,9 @@
         "auc": 0.21446078431372548,
         "auc_low": 0.10535479323308271,
         "auc_high": 0.327718956984796,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -270,7 +306,9 @@
         "auc": 0.39950980392156865,
         "auc_low": 0.2513669788759795,
         "auc_high": 0.5491647465437788,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -282,7 +320,9 @@
         "auc": 0.306781045751634,
         "auc_low": 0.17763776154401156,
         "auc_high": 0.4474542853713188,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -294,7 +334,9 @@
         "auc": 0.40931372549019607,
         "auc_low": 0.2526763069358178,
         "auc_high": 0.5767524313023134,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -306,7 +348,9 @@
         "auc": 0.7103758169934641,
         "auc_low": 0.610894579598805,
         "auc_high": 0.7955801729841221,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -318,7 +362,9 @@
         "auc": 0.744281045751634,
         "auc_low": 0.6453898840885143,
         "auc_high": 0.8271473459768824,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -330,7 +376,9 @@
         "auc": 0.7602124183006536,
         "auc_low": 0.6657687777628213,
         "auc_high": 0.840653331043956,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       }
     ],
     "llm": [
@@ -344,7 +392,9 @@
         "auc": 0.5780719564020155,
         "auc_low": 0.5497423666942869,
         "auc_high": 0.6104910848472088,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -356,7 +406,9 @@
         "auc": 0.6205314942831074,
         "auc_low": 0.5869694442701138,
         "auc_high": 0.6551551459456619,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -368,7 +420,9 @@
         "auc": 0.5791898534404103,
         "auc_low": 0.54481719047342,
         "auc_high": 0.6138076604647769,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -380,7 +434,9 @@
         "auc": 0.5782651224343852,
         "auc_low": 0.549193116988145,
         "auc_high": 0.6086203028912863,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -392,7 +448,9 @@
         "auc": 0.6194629162317006,
         "auc_low": 0.58616676449868,
         "auc_high": 0.6540048228046975,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -404,7 +462,9 @@
         "auc": 0.6144981382082412,
         "auc_low": 0.5795431873045361,
         "auc_high": 0.6515518275512754,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -416,7 +476,9 @@
         "auc": 0.2700850661625709,
         "auc_low": 0.1871491361402442,
         "auc_high": 0.3671221604543273,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -428,7 +490,9 @@
         "auc": 0.2837995337995338,
         "auc_low": 0.20951108857980633,
         "auc_high": 0.3598873348873349,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -440,7 +504,9 @@
         "auc": 0.3021337126600285,
         "auc_low": 0.23588091031919145,
         "auc_high": 0.36237836652257255,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -452,7 +518,9 @@
         "auc": 0.649757103989084,
         "auc_low": 0.6097522533667238,
         "auc_high": 0.690908722971694,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -464,7 +532,9 @@
         "auc": 0.6532916313898912,
         "auc_low": 0.6110650304791689,
         "auc_high": 0.6939010403533349,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -476,7 +546,9 @@
         "auc": 0.658531773757367,
         "auc_low": 0.6171940932236403,
         "auc_high": 0.70144845350764,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -488,7 +560,9 @@
         "auc": 0.5786185751744659,
         "auc_low": 0.5394079146066665,
         "auc_high": 0.6204664475189628,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -500,7 +574,9 @@
         "auc": 0.5614144685468161,
         "auc_low": 0.5215647138306476,
         "auc_high": 0.6038580030231634,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -512,7 +588,9 @@
         "auc": 0.5379879497275126,
         "auc_low": 0.4973639636109589,
         "auc_high": 0.5795507899858658,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -524,7 +602,9 @@
         "auc": 0.382415315189426,
         "auc_low": 0.3403526093667893,
         "auc_high": 0.42341660169629997,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -536,7 +616,9 @@
         "auc": 0.3862046573563379,
         "auc_low": 0.3422399203292458,
         "auc_high": 0.4263759228575369,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -548,7 +630,9 @@
         "auc": 0.343880746689463,
         "auc_low": 0.29968420751743624,
         "auc_high": 0.38114847769336396,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -560,7 +644,9 @@
         "auc": 0.5144586830186508,
         "auc_low": 0.47248649395788656,
         "auc_high": 0.5550959736988174,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -572,7 +658,9 @@
         "auc": 0.5129750034934283,
         "auc_low": 0.4693908468455713,
         "auc_high": 0.5578012630222617,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -584,7 +672,9 @@
         "auc": 0.5504122245329081,
         "auc_low": 0.5045070831223621,
         "auc_high": 0.5941831887792803,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -596,7 +686,9 @@
         "auc": 0.7086686339462588,
         "auc_low": 0.6764609319937349,
         "auc_high": 0.7401609514997958,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -608,7 +700,9 @@
         "auc": 0.7340309230048415,
         "auc_low": 0.700408069336873,
         "auc_high": 0.7665396052988117,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -620,7 +714,9 @@
         "auc": 0.7301306131172066,
         "auc_low": 0.695428955528651,
         "auc_high": 0.7637276748084569,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       }
     ],
     "gate (llm)": [
@@ -634,7 +730,9 @@
         "auc": 0.53917004048583,
         "auc_low": 0.4870265151515152,
         "auc_high": 0.59016708277319,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -646,7 +744,9 @@
         "auc": 0.5376518218623482,
         "auc_low": 0.4781954887218045,
         "auc_high": 0.5964039030225071,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_share",
@@ -658,7 +758,9 @@
         "auc": 0.5307692307692308,
         "auc_low": 0.4693850698174007,
         "auc_high": 0.5885747201836069,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -670,7 +772,9 @@
         "auc": 0.5477732793522267,
         "auc_low": 0.502249149659864,
         "auc_high": 0.592595223063973,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -682,7 +786,9 @@
         "auc": 0.5422064777327935,
         "auc_low": 0.48472378191155946,
         "auc_high": 0.5997962914023961,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "reverted_share",
@@ -694,7 +800,9 @@
         "auc": 0.5453441295546558,
         "auc_low": 0.4729989392731934,
         "auc_high": 0.6127968763643667,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -706,7 +814,9 @@
         "auc": 0.47368421052631576,
         "auc_low": 0.15,
         "auc_high": 0.8,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 869,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -718,7 +828,9 @@
         "auc": 0.5259259259259259,
         "auc_low": 0.21317733990147783,
         "auc_high": 0.8677011494252872,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 995,
+        "resamples": 1000
       },
       {
         "signal": "revert_minutes",
@@ -730,7 +842,9 @@
         "auc": 0.542016806722689,
         "auc_low": 0.27073704481792715,
         "auc_high": 0.7899439775910364,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 999,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -742,7 +856,9 @@
         "auc": 0.6436234817813765,
         "auc_low": 0.5615732131983638,
         "auc_high": 0.7301508227669178,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -754,7 +870,9 @@
         "auc": 0.6410931174089068,
         "auc_low": 0.5585863961285426,
         "auc_high": 0.7286473765730032,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_share",
@@ -766,7 +884,9 @@
         "auc": 0.6524291497975708,
         "auc_low": 0.5726217459527463,
         "auc_high": 0.731244703785194,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -778,7 +898,9 @@
         "auc": 0.6395748987854251,
         "auc_low": 0.5562487996927213,
         "auc_high": 0.720592609097511,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -790,7 +912,9 @@
         "auc": 0.6401821862348178,
         "auc_low": 0.5575330795196867,
         "auc_high": 0.7204574663402692,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "anon_editors",
@@ -802,7 +926,9 @@
         "auc": 0.6418016194331984,
         "auc_low": 0.5567713181763934,
         "auc_high": 0.7192856787914927,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -814,7 +940,9 @@
         "auc": 0.35121457489878544,
         "auc_low": 0.2712489478114478,
         "auc_high": 0.42491821463888696,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -826,7 +954,9 @@
         "auc": 0.3737854251012146,
         "auc_low": 0.2946225554880056,
         "auc_high": 0.45088411015476354,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "registered_editors",
@@ -838,7 +968,9 @@
         "auc": 0.31285425101214576,
         "auc_low": 0.2319922534418727,
         "auc_high": 0.4000866465354147,
-        "verdict": "higher in news"
+        "verdict": "higher in news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -850,7 +982,9 @@
         "auc": 0.44767206477732796,
         "auc_low": 0.35766258010209623,
         "auc_high": 0.5347435045190755,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -862,7 +996,9 @@
         "auc": 0.4763157894736842,
         "auc_low": 0.36642895667381536,
         "auc_high": 0.5760612073112072,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "top_editor_share",
@@ -874,7 +1010,9 @@
         "auc": 0.5238866396761134,
         "auc_low": 0.4046944637229892,
         "auc_high": 0.6245695490934777,
-        "verdict": "no clear separation"
+        "verdict": "no clear separation",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -886,7 +1024,9 @@
         "auc": 0.6159919028340081,
         "auc_low": 0.5535012770254217,
         "auc_high": 0.6811183317626988,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -898,7 +1038,9 @@
         "auc": 0.6256072874493928,
         "auc_low": 0.5643402969582982,
         "auc_high": 0.6885523373267559,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       },
       {
         "signal": "vandal_word_share",
@@ -910,13 +1052,17 @@
         "auc": 0.6182186234817814,
         "auc_low": 0.5547934784172395,
         "auc_high": 0.6842675445844368,
-        "verdict": "higher in not news"
+        "verdict": "higher in not news",
+        "resamples_used": 1000,
+        "resamples": 1000
       }
     ]
   },
-  "current_max_anon_share": 0.45,
+  "current_max_anon_share": 1.0,
   "rules": {
     "scored_from": "2026-11-03 22:00:00+00:00",
+    "scored_to": "2026-11-11 00:00:00+00:00",
+    "max_p90_delay_min": 10.0,
     "lake": [
       {
         "max_anon_share": 1.0,
@@ -4871,6 +5017,700 @@
         }
       }
     ],
+    "in_sample_choice": 0.5,
+    "held_out": {
+      "folds": [
+        {
+          "name": "earlier -> later",
+          "choose": [
+            "2026-11-03 22:00:00+00:00",
+            "2026-11-06 00:00:00+00:00"
+          ],
+          "evaluate": [
+            "2026-11-06 00:00:00+00:00",
+            "2026-11-11 00:00:00+00:00"
+          ],
+          "choice": {
+            "chosen": 1.0,
+            "candidates": [
+              {
+                "max_anon_share": 1.0,
+                "precision": 0.2972972972972973,
+                "n": 37,
+                "news_lost": 0,
+                "p90_delay_min": null,
+                "eligible": true,
+                "reasons": []
+              },
+              {
+                "max_anon_share": 0.75,
+                "precision": 0.3333333333333333,
+                "n": 33,
+                "news_lost": 0,
+                "p90_delay_min": 21.557380000000013,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 21.6 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.6,
+                "precision": 0.3125,
+                "n": 32,
+                "news_lost": 0,
+                "p90_delay_min": 33.98275833333333,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 34.0 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.5,
+                "precision": 0.38461538461538464,
+                "n": 26,
+                "news_lost": 0,
+                "p90_delay_min": 17.058279999999968,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 17.1 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.45,
+                "precision": 0.4166666666666667,
+                "n": 24,
+                "news_lost": 0,
+                "p90_delay_min": 76.03523833333333,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 76.0 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.4,
+                "precision": 0.4166666666666667,
+                "n": 24,
+                "news_lost": 0,
+                "p90_delay_min": 76.03523833333333,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 76.0 min > 10"
+                ]
+              }
+            ]
+          },
+          "evaluated": [
+            {
+              "max_anon_share": 1.0,
+              "spikes": 306,
+              "starts": {
+                "same_start": 306,
+                "later_start": 0,
+                "later_median_min": null,
+                "later_p90_min": null,
+                "dropped": 0
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 23,
+                  "unlabeled": 276,
+                  "n": 30,
+                  "precision": 0.23333333333333334,
+                  "interval": [
+                    0.11792388080557861,
+                    0.40928326306719587
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 23
+                },
+                "llm": {
+                  "news": 166,
+                  "not news": 138,
+                  "unlabeled": 2,
+                  "n": 304,
+                  "precision": 0.5460526315789473,
+                  "interval": [
+                    0.4898583721725002,
+                    0.6010975377356477
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 151,
+                  "not_news_found_before": 138,
+                  "not_news_found": 138
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.75,
+              "spikes": 288,
+              "starts": {
+                "same_start": 281,
+                "later_start": 7,
+                "later_median_min": 3.1573166666666665,
+                "later_p90_min": 11.915646666666673,
+                "dropped": 18
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 21,
+                  "unlabeled": 260,
+                  "n": 28,
+                  "precision": 0.25,
+                  "interval": [
+                    0.12676494850621306,
+                    0.4335567047135223
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 21
+                },
+                "llm": {
+                  "news": 153,
+                  "not news": 133,
+                  "unlabeled": 2,
+                  "n": 286,
+                  "precision": 0.534965034965035,
+                  "interval": [
+                    0.47707840776168364,
+                    0.5919248331038371
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 140,
+                  "not_news_found_before": 138,
+                  "not_news_found": 133
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.6,
+              "spikes": 281,
+              "starts": {
+                "same_start": 271,
+                "later_start": 10,
+                "later_median_min": 3.9627083333333335,
+                "later_p90_min": 8.17760166666666,
+                "dropped": 25
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 21,
+                  "unlabeled": 253,
+                  "n": 28,
+                  "precision": 0.25,
+                  "interval": [
+                    0.12676494850621306,
+                    0.4335567047135223
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 20
+                },
+                "llm": {
+                  "news": 151,
+                  "not news": 128,
+                  "unlabeled": 2,
+                  "n": 279,
+                  "precision": 0.5412186379928315,
+                  "interval": [
+                    0.4825842512860923,
+                    0.5987333889600384
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 138,
+                  "not_news_found_before": 138,
+                  "not_news_found": 128
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.5,
+              "spikes": 236,
+              "starts": {
+                "same_start": 202,
+                "later_start": 34,
+                "later_median_min": 0.34559166666666663,
+                "later_p90_min": 5.622921666666667,
+                "dropped": 70
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 16,
+                  "unlabeled": 213,
+                  "n": 23,
+                  "precision": 0.30434782608695654,
+                  "interval": [
+                    0.1560402436889323,
+                    0.5086575642878356
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 15
+                },
+                "llm": {
+                  "news": 147,
+                  "not news": 87,
+                  "unlabeled": 2,
+                  "n": 234,
+                  "precision": 0.6282051282051282,
+                  "interval": [
+                    0.5646799808393275,
+                    0.6875889056795084
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 134,
+                  "not_news_found_before": 138,
+                  "not_news_found": 87
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.45,
+              "spikes": 210,
+              "starts": {
+                "same_start": 193,
+                "later_start": 17,
+                "later_median_min": 4.038266666666667,
+                "later_p90_min": 33.23770666666667,
+                "dropped": 96
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 10,
+                  "unlabeled": 193,
+                  "n": 17,
+                  "precision": 0.4117647058823529,
+                  "interval": [
+                    0.21611056673991857,
+                    0.6399455751507853
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 9
+                },
+                "llm": {
+                  "news": 141,
+                  "not news": 67,
+                  "unlabeled": 2,
+                  "n": 208,
+                  "precision": 0.6778846153846154,
+                  "interval": [
+                    0.6116508574183951,
+                    0.7376669786217421
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 128,
+                  "not_news_found_before": 138,
+                  "not_news_found": 67
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.4,
+              "spikes": 208,
+              "starts": {
+                "same_start": 193,
+                "later_start": 15,
+                "later_median_min": 4.038266666666667,
+                "later_p90_min": 48.35441999999999,
+                "dropped": 98
+              },
+              "sets": {
+                "human": {
+                  "news": 7,
+                  "not news": 10,
+                  "unlabeled": 191,
+                  "n": 17,
+                  "precision": 0.4117647058823529,
+                  "interval": [
+                    0.21611056673991857,
+                    0.6399455751507853
+                  ],
+                  "news_found_before": 6,
+                  "news_found": 6,
+                  "not_news_found_before": 23,
+                  "not_news_found": 9
+                },
+                "llm": {
+                  "news": 140,
+                  "not news": 66,
+                  "unlabeled": 2,
+                  "n": 206,
+                  "precision": 0.6796116504854369,
+                  "interval": [
+                    0.6131028813453493,
+                    0.7395443047469884
+                  ],
+                  "news_found_before": 151,
+                  "news_found": 127,
+                  "not_news_found_before": 138,
+                  "not_news_found": 66
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "later -> earlier",
+          "choose": [
+            "2026-11-06 00:00:00+00:00",
+            "2026-11-11 00:00:00+00:00"
+          ],
+          "evaluate": [
+            "2026-11-03 22:00:00+00:00",
+            "2026-11-06 00:00:00+00:00"
+          ],
+          "choice": {
+            "chosen": 0.5,
+            "candidates": [
+              {
+                "max_anon_share": 1.0,
+                "precision": 0.23333333333333334,
+                "n": 30,
+                "news_lost": 0,
+                "p90_delay_min": null,
+                "eligible": true,
+                "reasons": []
+              },
+              {
+                "max_anon_share": 0.75,
+                "precision": 0.25,
+                "n": 28,
+                "news_lost": 0,
+                "p90_delay_min": 11.915646666666673,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 11.9 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.6,
+                "precision": 0.25,
+                "n": 28,
+                "news_lost": 0,
+                "p90_delay_min": 8.17760166666666,
+                "eligible": true,
+                "reasons": []
+              },
+              {
+                "max_anon_share": 0.5,
+                "precision": 0.30434782608695654,
+                "n": 23,
+                "news_lost": 0,
+                "p90_delay_min": 5.622921666666667,
+                "eligible": true,
+                "reasons": []
+              },
+              {
+                "max_anon_share": 0.45,
+                "precision": 0.4117647058823529,
+                "n": 17,
+                "news_lost": 0,
+                "p90_delay_min": 33.23770666666667,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 33.2 min > 10"
+                ]
+              },
+              {
+                "max_anon_share": 0.4,
+                "precision": 0.4117647058823529,
+                "n": 17,
+                "news_lost": 0,
+                "p90_delay_min": 48.35441999999999,
+                "eligible": false,
+                "reasons": [
+                  "p90 delay 48.4 min > 10"
+                ]
+              }
+            ]
+          },
+          "evaluated": [
+            {
+              "max_anon_share": 1.0,
+              "spikes": 176,
+              "starts": {
+                "same_start": 176,
+                "later_start": 0,
+                "later_median_min": null,
+                "later_p90_min": null,
+                "dropped": 0
+              },
+              "sets": {
+                "human": {
+                  "news": 11,
+                  "not news": 26,
+                  "unlabeled": 139,
+                  "n": 37,
+                  "precision": 0.2972972972972973,
+                  "interval": [
+                    0.1748947857415188,
+                    0.45783136041313083
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 25
+                },
+                "llm": {
+                  "news": 104,
+                  "not news": 72,
+                  "unlabeled": 0,
+                  "n": 176,
+                  "precision": 0.5909090909090909,
+                  "interval": [
+                    0.5170832965468798,
+                    0.660851203089945
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 94,
+                  "not_news_found_before": 72,
+                  "not_news_found": 72
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.75,
+              "spikes": 166,
+              "starts": {
+                "same_start": 159,
+                "later_start": 7,
+                "later_median_min": 1.4288833333333335,
+                "later_p90_min": 21.557380000000013,
+                "dropped": 10
+              },
+              "sets": {
+                "human": {
+                  "news": 11,
+                  "not news": 22,
+                  "unlabeled": 133,
+                  "n": 33,
+                  "precision": 0.3333333333333333,
+                  "interval": [
+                    0.1975022759413631,
+                    0.5039210570639272
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 22
+                },
+                "llm": {
+                  "news": 98,
+                  "not news": 68,
+                  "unlabeled": 0,
+                  "n": 166,
+                  "precision": 0.5903614457831325,
+                  "interval": [
+                    0.5143313418360319,
+                    0.662303975580591
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 89,
+                  "not_news_found_before": 72,
+                  "not_news_found": 68
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.6,
+              "spikes": 156,
+              "starts": {
+                "same_start": 149,
+                "later_start": 8,
+                "later_median_min": 2.0369833333333336,
+                "later_p90_min": 33.98275833333333,
+                "dropped": 19
+              },
+              "sets": {
+                "human": {
+                  "news": 10,
+                  "not news": 22,
+                  "unlabeled": 124,
+                  "n": 32,
+                  "precision": 0.3125,
+                  "interval": [
+                    0.17952541552257512,
+                    0.48566678438918004
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 22
+                },
+                "llm": {
+                  "news": 94,
+                  "not news": 62,
+                  "unlabeled": 0,
+                  "n": 156,
+                  "precision": 0.6025641025641025,
+                  "interval": [
+                    0.5241946618649929,
+                    0.6760037110975834
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 86,
+                  "not_news_found_before": 72,
+                  "not_news_found": 62
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.5,
+              "spikes": 131,
+              "starts": {
+                "same_start": 113,
+                "later_start": 19,
+                "later_median_min": 0.3821333333333333,
+                "later_p90_min": 17.058279999999968,
+                "dropped": 44
+              },
+              "sets": {
+                "human": {
+                  "news": 10,
+                  "not news": 16,
+                  "unlabeled": 105,
+                  "n": 26,
+                  "precision": 0.38461538461538464,
+                  "interval": [
+                    0.22428594334869204,
+                    0.5746515005655976
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 16
+                },
+                "llm": {
+                  "news": 86,
+                  "not news": 45,
+                  "unlabeled": 0,
+                  "n": 131,
+                  "precision": 0.6564885496183206,
+                  "interval": [
+                    0.571753362838136,
+                    0.7323074233633334
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 78,
+                  "not_news_found_before": 72,
+                  "not_news_found": 45
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.45,
+              "spikes": 117,
+              "starts": {
+                "same_start": 110,
+                "later_start": 8,
+                "later_median_min": 5.5477083333333335,
+                "later_p90_min": 76.03523833333333,
+                "dropped": 58
+              },
+              "sets": {
+                "human": {
+                  "news": 10,
+                  "not news": 14,
+                  "unlabeled": 93,
+                  "n": 24,
+                  "precision": 0.4166666666666667,
+                  "interval": [
+                    0.24467602500194355,
+                    0.6116533427566112
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 14
+                },
+                "llm": {
+                  "news": 82,
+                  "not news": 35,
+                  "unlabeled": 0,
+                  "n": 117,
+                  "precision": 0.7008547008547008,
+                  "interval": [
+                    0.6125818383690425,
+                    0.7763575242893366
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 74,
+                  "not_news_found_before": 72,
+                  "not_news_found": 35
+                }
+              }
+            },
+            {
+              "max_anon_share": 0.4,
+              "spikes": 116,
+              "starts": {
+                "same_start": 109,
+                "later_start": 8,
+                "later_median_min": 5.6485166666666675,
+                "later_p90_min": 76.03523833333333,
+                "dropped": 59
+              },
+              "sets": {
+                "human": {
+                  "news": 10,
+                  "not news": 14,
+                  "unlabeled": 92,
+                  "n": 24,
+                  "precision": 0.4166666666666667,
+                  "interval": [
+                    0.24467602500194355,
+                    0.6116533427566112
+                  ],
+                  "news_found_before": 9,
+                  "news_found": 9,
+                  "not_news_found_before": 25,
+                  "not_news_found": 14
+                },
+                "llm": {
+                  "news": 82,
+                  "not news": 34,
+                  "unlabeled": 0,
+                  "n": 116,
+                  "precision": 0.7068965517241379,
+                  "interval": [
+                    0.6184998084985229,
+                    0.7820293610232234
+                  ],
+                  "news_found_before": 94,
+                  "news_found": 74,
+                  "not_news_found_before": 72,
+                  "not_news_found": 34
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "chosen": 1.0,
+      "pooled_human": {
+        "news": 17,
+        "not news": 39,
+        "news_found_before": 15,
+        "news_found": 15,
+        "n": 56,
+        "precision": 0.30357142857142855,
+        "interval": [
+          0.1990032501648838,
+          0.43335865391836864
+        ]
+      }
+    },
     "gate": [
       {
         "max_anon_share": 1.0,

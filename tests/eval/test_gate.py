@@ -185,6 +185,29 @@ def test_one_spike_moving_the_wrong_way_is_no_false_alarm() -> None:
     assert gate.check(result_with(10, 9, 6, 38), stored) != []  # two news bursts lost
 
 
+def with_points(stored: dict, points: float = 0.05) -> dict:
+    return {**stored, "margin_points": points}
+
+
+def test_the_precision_margin_is_points_kept_between_one_and_margin_spikes_spikes() -> None:
+    def drop(news: int, not_news: int) -> float:
+        return gate.allowed_drops(with_points(baseline(news, not_news, 8, 38)))["precision"]
+
+    assert drop(9, 6) == pytest.approx(1 / 15)  # 0.05 is less than one spike: one spike
+    assert drop(15, 15) == pytest.approx(0.05)  # between 1/30 and 2/30: the points
+    assert drop(25, 25) == pytest.approx(2 / 50)  # more than two spikes: two spikes
+    assert gate.allowed_drops(with_points(baseline(9, 6, 8, 38)))["recall"] == 1 / 38
+
+
+def test_on_15_spikes_one_moved_spike_passes_and_more_noise_fails() -> None:
+    """The committed baseline's size since spec 11c: 9 news of 15 spikes."""
+    stored = with_points(baseline(9, 6, 7, 38))
+    assert gate.check(result_with(8, 7, 7, 38), stored) == []  # one label flipped
+    assert gate.check(result_with(9, 7, 7, 38), stored) == []  # one noise spike more
+    assert gate.check(result_with(8, 8, 7, 38), stored) != []  # flipped, and noise
+    assert gate.check(result_with(9, 9, 7, 38), stored) != []  # three noise spikes more
+
+
 def test_better_numbers_pass() -> None:
     assert gate.check(result_with(9, 1, 9, 10), baseline(5, 5, 4, 10)) == []
 
@@ -249,20 +272,15 @@ def test_the_settings_defaults_reproduce_the_baseline(committed: tuple) -> None:
 
 
 def test_a_looser_threshold_fails_on_precision(committed: tuple) -> None:
-    # Spec 02b's loose thresholds. (Its medium ones, 4 edits and 8 / 3 on the long
-    # window, failed here before spec 11c; with the vandalism rule they stay within the
-    # 2-spike margin of the 15-spike baseline: see docs/learning/11c-vandalism-signal.md.)
-    config = DetectorConfig(min_edits=3, min_editors=2, long_min_edits=6, long_min_editors=2)
+    config = DetectorConfig(min_edits=4, long_min_edits=8, long_min_editors=3)
     result, failures = run_gate(committed, config)
     assert result.recall >= committed[3]["recall"]  # it finds more ...
     assert [f.split(" ")[0] for f in failures] == ["precision"]  # ... but mostly noise
 
 
 def test_lowering_min_edits_to_3_fails_on_precision(committed: tuple) -> None:
-    """The demonstration pull request of spec 09c: DETECT_MIN_EDITS 5 -> 3, on the
-    detector it was made for (before spec 11c's vandalism rule; with the rule, this
-    change alone stays within the margin, see docs/learning/11c-vandalism-signal.md)."""
-    _, failures = run_gate(committed, DetectorConfig(min_edits=3, max_anon_share=1.0))
+    """The demonstration pull request of spec 09c: DETECT_MIN_EDITS 5 -> 3."""
+    _, failures = run_gate(committed, DetectorConfig(min_edits=3))
     assert [f.split(" ")[0] for f in failures] == ["precision"]
 
 
@@ -294,4 +312,20 @@ def test_the_cli_passes_on_the_committed_baseline(
     summary = tmp_path / "summary.md"
     assert gate.main(["--markdown", str(summary)]) == 0
     assert "Detection eval gate: PASS" in summary.read_text("utf-8")
-    assert gate.main(["--set", "min_edits=3,min_editors=2"]) == 1
+    assert gate.main(["--set", "count_reverts=true"]) == 1
+
+
+def test_with_the_vandalism_rule_on_the_gate_still_sees_small_regressions(
+    committed: tuple,
+) -> None:
+    """Spec 11c's rule at 0.45 leaves 15 spikes: one spike is 0.067, and the 2-spike
+    margin alone (0.133) let these changes through. The points cap keeps them failing."""
+    info, events, labels, _ = committed
+    rule_on = DetectorConfig(max_anon_share=0.45)
+    result = gate.score(gate.detect(events, rule_on), labels, info.evaluate_from, info.end)
+    stored = gate.baseline_data(result, rule_on, FIXTURE, LABELS)
+    assert result.spikes == 15
+    for change in ({"max_anon_share": 1.0}, {"min_edits": 3}, {"count_reverts": True}):
+        config = rule_on.model_copy(update=change)
+        changed = gate.score(gate.detect(events, config), labels, info.evaluate_from, info.end)
+        assert [f.split(" ")[0] for f in gate.check(changed, stored)] == ["precision"], change
