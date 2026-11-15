@@ -24,10 +24,16 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+import httpx
+
+from wikipulse.config import Settings
 from wikipulse.eval.wiki_client import WikiClient
 from wikipulse.ml.features import PageSnapshot
+
+if TYPE_CHECKING:
+    from wikipulse.ml.summaries import Lead
 
 logger = logging.getLogger(__name__)
 
@@ -221,3 +227,53 @@ def snapshot_of(revision: Revision, created_at: datetime | None) -> PageSnapshot
         refs=revision.refs,
         created_at=created_at,
     )
+
+
+class WikiPages:
+    """Pages at their cutoff revision from the MediaWiki API, through the caches.
+
+    The one way to get page snapshots, for the dataset (`dataset.fetch_snapshots`) and
+    for the live scorer (`serve.score_spikes`) alike (spec 11a). `transport` replaces
+    the network in tests (an `httpx.MockTransport`); `stats` counts the requests of the
+    last `snapshots` call.
+    """
+
+    def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None) -> None:
+        self.settings = settings
+        self.cache = settings.data_dir / "cache" / "ml"
+        self.transport = transport
+        self.stats: dict[str, int] = {}
+
+    def _client(self) -> WikiClient:
+        s = self.settings
+        return WikiClient(
+            s.user_agent, self.cache, s.wiki_api_min_interval_s, transport=self.transport
+        )
+
+    def snapshots(self, revids: set[int]) -> dict[int, PageSnapshot | None]:
+        """Each revision's snapshot (None: its text is hidden); deleted ones are absent."""
+        with self._client() as client:
+            url = self.settings.wiki_api_url
+            revisions = fetch_revisions(
+                client, url, revids, RevisionCache(self.cache / "revisions")
+            )
+            pageids = {r.pageid for r in revisions.values() if r.pageid is not None}
+            created = fetch_creation_times(client, url, pageids)
+            self.stats = {
+                "requests": client.requests,
+                "cache_hits": client.cache_hits,
+                "revisions_wanted": len(revids),
+                "revisions_found": len(revisions),
+            }
+        return {
+            revid: snapshot_of(rev, created.get(rev.pageid) if rev.pageid else None)
+            for revid, rev in revisions.items()
+        }
+
+    def leads(self, revids: set[int]) -> "dict[int, Lead]":
+        """Each revision's lead section (for the models that read text)."""
+        from wikipulse.ml.summaries import LeadCache, fetch_leads
+
+        with self._client() as client:
+            cache = LeadCache(self.cache / "leads")
+            return fetch_leads(client, self.settings.wiki_api_url, revids, cache)

@@ -48,9 +48,10 @@ from wikipulse.db.scores import SpikeScore, SpikeToScore, spikes_to_score, upser
 from wikipulse.logging_setup import setup_logging
 from wikipulse.metrics.catalog import MODEL_SCORED, MODEL_SCORES
 from wikipulse.metrics.server import start_metrics_server
-from wikipulse.ml.cutoff import AtCutoff, at_cutoff, features_at_cutoff
+from wikipulse.ml.cutoff import AtCutoff, at_cutoff, features_at_cutoff, page_edit
 from wikipulse.ml.features import HISTORY, PageEdit, PageSnapshot
 from wikipulse.ml.models import INPUT_COLUMNS, RULE_COLUMN, TEXT_COLUMN
+from wikipulse.ml.pages import WikiPages
 from wikipulse.ml.registry import CHAMPION, alias_version
 from wikipulse.ml.summaries import Lead, summary_text
 from wikipulse.stream.models import EditEvent
@@ -181,52 +182,14 @@ class ModelHolder:
 
 
 class PageSource(Protocol):
-    """Old revisions of pages: their parsed snapshot, and their lead (for text models)."""
+    """Old revisions of pages: their parsed snapshot, and their lead (for text models).
+
+    In production `wikipulse.ml.pages.WikiPages`, the class the dataset build uses too.
+    """
 
     def snapshots(self, revids: set[int]) -> dict[int, PageSnapshot | None]: ...
 
     def leads(self, revids: set[int]) -> dict[int, Lead]: ...
-
-
-class WikiPages:
-    """Revisions from the MediaWiki API, through the caches spec 07a and 07b fill."""
-
-    def __init__(self, settings: Settings) -> None:
-        self.settings = settings
-        self.cache = settings.data_dir / "cache" / "ml"
-
-    def _client(self):
-        from wikipulse.eval.wiki_client import WikiClient
-
-        s = self.settings
-        return WikiClient(s.user_agent, self.cache, s.wiki_api_min_interval_s)
-
-    def snapshots(self, revids: set[int]) -> dict[int, PageSnapshot | None]:
-        from wikipulse.ml.pages import (
-            RevisionCache,
-            fetch_creation_times,
-            fetch_revisions,
-            snapshot_of,
-        )
-
-        with self._client() as client:
-            url = self.settings.wiki_api_url
-            revisions = fetch_revisions(
-                client, url, revids, RevisionCache(self.cache / "revisions")
-            )
-            pageids = {r.pageid for r in revisions.values() if r.pageid is not None}
-            created = fetch_creation_times(client, url, pageids)
-        return {
-            revid: snapshot_of(rev, created.get(rev.pageid) if rev.pageid else None)
-            for revid, rev in revisions.items()
-        }
-
-    def leads(self, revids: set[int]) -> dict[int, Lead]:
-        from wikipulse.ml.summaries import LeadCache, fetch_leads
-
-        with self._client() as client:
-            cache = LeadCache(self.cache / "leads")
-            return fetch_leads(client, self.settings.wiki_api_url, revids, cache)
 
 
 # --- scoring --------------------------------------------------------------------------
@@ -333,21 +296,6 @@ def log_scores(scores: Sequence[SpikeScore], titles: dict[int, str]) -> None:
 
 
 # --- live: edits from the stream ------------------------------------------------------
-
-
-def page_edit(event: EditEvent) -> PageEdit:
-    """The part of an edit the features use (as `dataset.page_edits` reads the lake)."""
-    return PageEdit(
-        time=event.event_time,
-        user=event.user,
-        is_bot=event.is_bot,
-        is_minor=event.is_minor,
-        is_new=event.type == "new",
-        len_old=event.len_old,
-        len_new=event.len_new,
-        rev_new=event.rev_new,
-        comment=event.comment,
-    )
 
 
 @dataclass

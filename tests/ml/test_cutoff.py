@@ -8,9 +8,12 @@
    does have such rows (so the test can fail).
 """
 
+import itertools
 import math
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
+import httpx
 import pandas as pd
 import pyarrow.fs as pafs
 import pytest
@@ -25,6 +28,7 @@ from wikipulse.eval.ground_truth import PortalDay
 from wikipulse.lake.table import events_to_table
 from wikipulse.ml.cutoff import at_cutoff, features_at_cutoff, revision_at
 from wikipulse.ml.dataset import (
+    SPLITS,
     BuildOptions,
     DatasetStore,
     RowSources,
@@ -35,7 +39,8 @@ from wikipulse.ml.dataset import (
 )
 from wikipulse.ml.features import FEATURE_NAMES, PageSnapshot
 from wikipulse.ml.models import INPUT_COLUMNS, RULE_COLUMN, TEXT_COLUMN
-from wikipulse.ml.serve import LoadedModel, score_spikes
+from wikipulse.ml.pages import WikiPages
+from wikipulse.ml.serve import LiveScorer, LoadedModel, ModelHolder, score_spikes
 from wikipulse.stream.models import EditEvent
 
 TITLE = "2026 Example election"
@@ -136,6 +141,240 @@ def test_both_sides_call_the_shared_functions(monkeypatch):
     assert calls == [TITLE, TITLE]
     item = at_cutoff(TITLE, FIRST, START, edits, WINDOW_MIN)
     assert item.window.cutoff == START + timedelta(minutes=WINDOW_MIN)
+
+
+# --- 1b. end to end: the dataset from the lake, the live scorer from the stream ---------
+#
+# The tests above hand both sides the same edits list and snapshot dict. This one runs
+# the production paths from their real inputs: `build` reads a lake (`page_edits`) and
+# fetches snapshots with `WikiPages`; the `LiveScorer` reads the same edits from a fake
+# Redis stream an hour at a time into its pruning `EditBuffer`, polls a fake Postgres for
+# due spikes, and fetches snapshots with its own `WikiPages`. Only the I/O is faked: the
+# stream, the spikes table and the MediaWiki API (an `httpx.MockTransport`).
+
+
+def e2e_events() -> list[EditEvent]:
+    """1 to 7 Nov: bot ticks; from the 2nd each day a burst on a page that bursts daily
+    (its 24 h history matters), a news burst with two edits the evening before, and a
+    slow burst only the long-window rule catches. Revision ids are unique."""
+    events = [e for d in range(1, 8) for e in ticks(d)]
+    revision = iter(range(500_000, 600_000))
+
+    def edit(title: str, when: datetime, user: str, comment: str = "update") -> EditEvent:
+        rev = next(revision)
+        return EditEvent(
+            event_id=f"e2e-{rev}",
+            event_time=when,
+            received_at=when,
+            title=title,
+            type="edit",
+            user=user,
+            is_bot=False,
+            is_minor=False,
+            rev_old=rev - 1,
+            rev_new=rev,
+            len_old=3000,
+            len_new=3080,
+            comment=comment,
+        )
+
+    for d in range(2, 8):
+        daily = at(d, 13 - d)  # 23 hours after the day before's burst
+        events += [edit("Daily", daily + timedelta(minutes=2 * i), f"D{i}") for i in range(6)]
+        events += [edit(f"News {d}", at(d - 1, 20 + i), f"Early {i}") for i in range(2)]
+        news = at(d, 15)
+        events += [
+            edit(f"News {d}", news + timedelta(minutes=2 * i), f"N{i}", "died") for i in range(7)
+        ]
+        slow = at(d, 20)
+        events += [
+            edit(f"Slow {d}", slow + timedelta(minutes=6 * i), f"S{i % 4}") for i in range(12)
+        ]
+    return sorted(events, key=lambda e: (e.event_time, e.event_id))
+
+
+def wiki_api(events: list[EditEvent]) -> httpx.MockTransport:
+    """The MediaWiki API for these edits: each revision's wikitext and page creation."""
+    by_revision = {e.rev_new: e for e in events if e.rev_new is not None}
+    page_ids = {title: 9000 + i for i, title in enumerate(sorted({e.title for e in events}))}
+
+    def revision_page(revid: int) -> dict:
+        e = by_revision[revid]
+        text = "{{Current}}\n[[Category:Living people]]" if "News" in e.title else "Text."
+        return {
+            "pageid": page_ids[e.title],
+            "title": e.title,
+            "revisions": [
+                {
+                    "revid": revid,
+                    "timestamp": e.event_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "slots": {"main": {"content": text}},
+                }
+            ],
+        }
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        params = request.url.params
+        if "revids" in params:
+            pages = [revision_page(int(r)) for r in params["revids"].split("|")]
+            return httpx.Response(200, json={"query": {"pages": pages}})
+        pageid = int(params["pageids"])
+        first = {"revid": 1, "timestamp": f"20{pageid % 20 + 1:02d}-01-01T00:00:00Z"}
+        page = {"pageid": pageid, "revisions": [first]}
+        return httpx.Response(200, json={"query": {"pages": [page]}})
+
+    return httpx.MockTransport(answer)
+
+
+class FakeStream:
+    """A Redis stream that gains one more hour of edits each time a reader waits."""
+
+    def __init__(self, events: list[EditEvent]) -> None:
+        self.entries = [
+            (f"{int(e.event_time.timestamp() * 1000)}-{i}", {"data": e.model_dump_json()})
+            for i, e in enumerate(events)
+        ]
+        self.times = [e.event_time for e in events]
+        self.visible = 0
+        self.reveal()
+
+    def reveal(self) -> None:
+        if self.visible >= len(self.entries):
+            return
+        until = self.times[self.visible].replace(minute=0, second=0) + timedelta(hours=1)
+        while self.visible < len(self.entries) and self.times[self.visible] < until:
+            self.visible += 1
+
+    @staticmethod
+    def key(entry_id: str) -> tuple[int, int]:
+        ms, seq = entry_id.split("-")
+        return int(ms), int(seq)
+
+    def unread(self, last: str) -> list:
+        return [e for e in self.entries[: self.visible] if self.key(e[0]) > self.key(last)]
+
+    def xrevrange(self, stream, count):
+        return [self.entries[self.visible - 1]] if self.visible else []
+
+    def xread(self, streams, count, block=None):
+        (last,) = streams.values()
+        new = self.unread(last)
+        if not new and block is not None:  # waiting: the next hour arrives
+            self.reveal()
+            new = self.unread(last)
+        return [("stream", new[:count])] if new else []
+
+
+class FakeSpikesTable:
+    """`spikes_to_score` and `upsert_scores` over the detector's spikes, in memory."""
+
+    def __init__(self, spikes: list[SpikeToScore], window_min: float) -> None:
+        self.spikes = spikes
+        self.window = timedelta(minutes=window_min)
+        self.scores: dict[int, Any] = {}
+
+    def to_score(self, conn, run_id, window_min, cutoff_until, first_edit_from=None, **_):
+        return [
+            s
+            for s in self.spikes
+            if s.id not in self.scores
+            and s.started_at + self.window <= cutoff_until
+            and (first_edit_from is None or s.first_edit_at >= first_edit_from)
+        ]
+
+    def upsert(self, conn, scores) -> int:
+        for score in scores:
+            self.scores[score.spike_id] = score
+        return len(scores)
+
+
+def e2e_settings(folder) -> Settings:
+    return Settings(
+        _env_file=None,
+        data_dir=folder,
+        wiki_api_min_interval_s=0,
+        ml_valid_days=1,
+        ml_test_days=2,
+        ml_warmup_hours=24,
+    )
+
+
+def test_lake_dataset_and_stream_scorer_agree_end_to_end(tmp_path, monkeypatch):
+    import wikipulse.ml.serve as serve_module
+
+    events = e2e_events()
+    api = wiki_api(events)
+    lake = local_store(tmp_path / "lake")
+    by_hour: dict[datetime, list[EditEvent]] = {}
+    for event in events:
+        by_hour.setdefault(event.event_time.replace(minute=0, second=0), []).append(event)
+    for hour, rows in by_hour.items():
+        lake.write_hour(hour, events_to_table(rows))
+
+    # training: the serving-mode dataset, from the lake, snapshots through WikiPages
+    store = DatasetStore(pafs.LocalFileSystem(), (tmp_path / "datasets").as_posix())
+    settings = e2e_settings(tmp_path / "dataset")
+    options = BuildOptions(
+        labels=tmp_path / "labels.jsonl",
+        use_db=False,
+        lake=lake,
+        datasets=store,
+        portal=[PortalDay(date(2026, 10, 29) + timedelta(days=d), [], []) for d in range(14)],
+        as_of=datetime(2026, 11, 13, tzinfo=UTC),
+        pages=WikiPages(settings, api),
+    )
+    version = build(options, settings)
+    rows = [r for split in SPLITS for r in store.read(version, split).to_pylist()]
+    assert {r["title"].rsplit(" ", 1)[0] for r in rows} == {"Daily", "News", "Slow"}
+    assert all(r["page_snapshot"] for r in rows)  # every page came through the fake API
+
+    # serving: the live scorer, reading the same edits from the stream
+    serve_settings = e2e_settings(tmp_path / "serve")
+    window_min = serve_settings.feature_window_min
+    table = FakeSpikesTable(
+        [
+            SpikeToScore(i, "live", r["title"], r["first_edit_at"], r["started_at"])
+            for i, r in enumerate(rows)
+        ],
+        window_min,
+    )
+    monkeypatch.setattr(serve_module, "spikes_to_score", table.to_score)
+    monkeypatch.setattr(serve_module, "upsert_scores", table.upsert)
+    monkeypatch.setattr(serve_module, "record_score_metrics", lambda scores: None)
+    model = CapturingModel()
+    holder = ModelHolder(
+        "m",
+        resolve=lambda name, alias: "1",
+        load=lambda name, version: LoadedModel(name, version, model, 0.5, needs_text=False),
+    )
+    clock = itertools.count()
+    scorer = LiveScorer(
+        FakeStream(events),
+        conn=None,
+        stream="stream",
+        run_id="live",
+        holder=holder,
+        pages=WikiPages(serve_settings, api),
+        window_min=window_min,
+        lateness=timedelta(seconds=serve_settings.ml_serve_lateness_s),
+        keep=timedelta(hours=serve_settings.ml_serve_buffer_hours),
+        poll_s=1,
+        batch=200,
+        clock=lambda: float(next(clock)),
+    )
+    scorer.run(stop=lambda: False, exit_when_idle=1)
+    assert scorer.buffer.start > events[0].event_time  # the buffer did prune
+
+    assert len(table.scores) == len(rows)
+    for i, row in enumerate(rows):
+        score = table.scores[i]
+        assert score.cutoff == row["cutoff"], row["title"]
+        assert score.page_revision_id == row["page_revision_id"], row["title"]
+        assert score.history_complete, row["title"]
+        for name in FEATURE_NAMES:
+            assert same(row[name], score.features[name]), (row["title"], name)
+    assert any(r["prior_edits_24h"] > 0 for r in rows)  # the history reached both sides
+    assert any(r["cat_living_people"] == 1.0 for r in rows)  # snapshots, not NaN
 
 
 # --- the test split: the newest days whose portal is final ------------------------------

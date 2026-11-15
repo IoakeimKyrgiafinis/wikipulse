@@ -65,14 +65,14 @@ from wikipulse.eval.ground_truth import FINAL_AFTER, PortalDay
 from wikipulse.eval.metrics import Label, day_start, match_spikes, pick_label, spike_end
 from wikipulse.lake.store import LakeStore
 from wikipulse.logging_setup import setup_logging
-from wikipulse.ml.cutoff import at_cutoff, features_at_cutoff
+from wikipulse.ml.cutoff import at_cutoff, features_at_cutoff, page_edit, spike_window
 from wikipulse.ml.features import (
     FEATURE_NAMES,
     FEATURES,
     PageEdit,
     PageSnapshot,
-    SpikeWindow,
 )
+from wikipulse.ml.pages import WikiPages
 from wikipulse.stream.models import EditEvent
 
 logger = logging.getLogger(__name__)
@@ -159,13 +159,9 @@ def select_spikes(
     return [
         s
         for s in spikes
-        if s.first_edit_at >= first_allowed and window_of(s, window_min).cutoff < data_end
+        if s.first_edit_at >= first_allowed
+        and spike_window(s.title, s.first_edit_at, s.started_at, window_min).cutoff < data_end
     ]
-
-
-def window_of(spike: SpikeRecord, window_min: float) -> SpikeWindow:
-    """The only part of a stored spike the features may see."""
-    return SpikeWindow(spike.title, spike.first_edit_at, spike.started_at, window_min)
 
 
 EDIT_COLUMNS = [
@@ -183,26 +179,19 @@ EDIT_COLUMNS = [
 
 
 def page_edits(store: LakeStore, titles: Iterable[str]) -> dict[str, list[PageEdit]]:
-    """All archived edits of the given pages, oldest first (one filtered scan)."""
+    """All archived edits of the given pages, oldest first (one filtered scan).
+
+    Each row becomes a `PageEdit` through `cutoff.page_edit`, the conversion the live
+    scorer applies to the stream's edits.
+    """
     wanted = sorted(set(titles))
     edits: dict[str, list[PageEdit]] = defaultdict(list)
     if not wanted:
         return edits
     table = store.dataset().to_table(columns=EDIT_COLUMNS, filter=ds.field("title").isin(wanted))
     for row in table.to_pylist():
-        edits[row["title"]].append(
-            PageEdit(
-                time=row["event_time"],
-                user=row["user"],
-                is_bot=row["is_bot"],
-                is_minor=row["is_minor"],
-                is_new=row["type"] == "new",
-                len_old=row["len_old"],
-                len_new=row["len_new"],
-                rev_new=row["rev_new"],
-                comment=row["comment"],
-            )
-        )
+        # archived rows were validated when archived: model_construct skips validation
+        edits[row["title"]].append(page_edit(EditEvent.model_construct(**row)))
     for page in edits.values():
         page.sort(key=lambda e: e.time)
     return edits
@@ -729,40 +718,22 @@ def store_runs(settings: Settings, runs: dict[str, list[SpikeRecord]]) -> None:
 
 
 def fetch_snapshots(
-    settings: Settings,
+    pages: WikiPages,
     edits: dict[str, list[PageEdit]],
     spikes: Sequence[SpikeRecord],
     window_min: float,
 ) -> tuple[dict[int, PageSnapshot | None], dict[str, int]]:
-    """Each spike's page at its cutoff revision (MediaWiki API, cached in data/cache/ml)."""
-    from wikipulse.eval.wiki_client import WikiClient
-    from wikipulse.ml.pages import (
-        RevisionCache,
-        fetch_creation_times,
-        fetch_revisions,
-        snapshot_of,
-    )
-
+    """Each spike's page at its cutoff revision, fetched as the live scorer fetches it
+    (`pages.WikiPages`: MediaWiki API, cached in data/cache/ml)."""
     revids = set()
     for spike in spikes:
         page = edits.get(spike.title, [])
         item = at_cutoff(spike.title, spike.first_edit_at, spike.started_at, page, window_min)
         if item.revision is not None:
             revids.add(item.revision)
-    cache = settings.data_dir / "cache" / "ml"
-    with WikiClient(settings.user_agent, cache, settings.wiki_api_min_interval_s) as client:
-        cached = RevisionCache(cache / "revisions")
-        revisions = fetch_revisions(client, settings.wiki_api_url, revids, cached)
-        pageids = {r.pageid for r in revisions.values() if r.pageid is not None}
-        created = fetch_creation_times(client, settings.wiki_api_url, pageids)
-        stats = {"requests": client.requests, "cache_hits": client.cache_hits}
-    snapshots = {
-        revid: snapshot_of(rev, created.get(rev.pageid) if rev.pageid else None)
-        for revid, rev in revisions.items()
-    }
-    stats.update(revisions_wanted=len(revids), revisions_found=len(revisions))
-    logger.info("Page snapshots: %s", stats)
-    return snapshots, stats
+    snapshots = pages.snapshots(revids)
+    logger.info("Page snapshots: %s", pages.stats)
+    return snapshots, dict(pages.stats)
 
 
 def fetch_portal(settings: Settings, first: date, last: date, as_of: datetime) -> list[PortalDay]:
@@ -836,6 +807,7 @@ class BuildOptions:
     portal: list[PortalDay] | None = None  # ... and portal days, so nothing goes online
     dry_run: bool = False  # build and report, but store nothing (no version, no Postgres)
     as_of: datetime | None = None  # labels as of this moment (default: the data's end)
+    pages: WikiPages | None = None  # page snapshots (default: WikiPages(settings))
 
 
 def build(options: BuildOptions, settings: Settings) -> str:
@@ -915,7 +887,8 @@ def build(options: BuildOptions, settings: Settings) -> str:
     snapshots: dict[int, PageSnapshot | None] = {}
     page_stats: dict[str, int] = {}
     if options.use_pages:
-        snapshots, page_stats = fetch_snapshots(settings, edits, spikes, window_min)
+        pages = options.pages or WikiPages(settings)
+        snapshots, page_stats = fetch_snapshots(pages, edits, spikes, window_min)
     rule_by_title: dict[str, list[SpikeRecord]] = defaultdict(list)
     for spike in runs[options.rule_run_id]:
         rule_by_title[spike.title].append(spike)
