@@ -139,6 +139,15 @@ def test_a_burst_of_mostly_anonymous_edits_does_not_start_a_spike() -> None:
     assert [s.title for s in spikes] == ["School"]
 
 
+def test_anon_held_counts_edits_once_even_when_both_windows_are_held() -> None:
+    # Ten anonymous edits from four editors: the short rule passes from the 5th edit on,
+    # the long one (10 edits, 4 editors) on the 10th as well. Each edit counts once.
+    users = [ANON[i % 3] if i % 4 else "~2026-9-1" for i in range(10)]
+    detector, spikes = run(anonymous_burst("School", 0, users), max_anon_share=0.5)
+    assert spikes == []
+    assert detector.clock.stats["anon_held"] == 6
+
+
 def test_the_anonymous_share_may_reach_the_limit_but_not_pass_it() -> None:
     # 3 registered + 2 anonymous editors: 2 of 5 edits (0.4) are anonymous.
     users = ["Alice", ANON[0], "Bob", ANON[1], "Carol"]

@@ -298,6 +298,11 @@ class SpikeDetector:
                 counts.first_edit_long,
             )
         else:
+            if checks["short"][0] or checks["long"][0]:
+                # A start rule passed, the vandalism rule held it back: counted once per
+                # edit (a held-back burst counts on every edit it stays held back).
+                stats = self.clock.stats
+                stats["anon_held"] = stats.get("anon_held", 0) + 1  # not in pre-11c snapshots
             return
         assert first is not None
         editors = self.windows.editors(title, now, window_s)
@@ -339,8 +344,6 @@ class SpikeDetector:
         anonymous = sum(is_anonymous(user) for user in users)
         if not users or anonymous / len(users) <= self.config.max_anon_share:
             return False
-        stats = self.clock.stats
-        stats["anon_held"] = stats.get("anon_held", 0) + 1  # not in pre-11c snapshots
         logger.debug("Start held back: %s (%d of %d edits anonymous)", title, anonymous, len(users))
         return True
 
