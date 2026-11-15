@@ -166,9 +166,10 @@ def score_versions(
 
 SAVE_REPORT = """
 INSERT INTO drift_reports (model_name, model_version, run_id, period_start, period_end,
-                           reference, rows, status, report)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-ON CONFLICT (model_name, model_version, run_id, period_start, period_end) DO UPDATE SET
+                           reference_dataset, reference, rows, status, report)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (model_name, model_version, run_id, period_start, period_end, reference_dataset)
+DO UPDATE SET
     reference = EXCLUDED.reference, rows = EXCLUDED.rows, status = EXCLUDED.status,
     report = EXCLUDED.report, created_at = now()
 """
@@ -184,8 +185,11 @@ def save_drift_report(
     rows: int,
     status: str,
     report: dict[str, Any],
+    reference_dataset: str = "",
 ) -> None:
-    """Store (or replace) the drift report of one model version, run and period."""
+    """Store (or replace) the drift report of one model version, run, period and
+    reference: `reference_dataset` '' for the model's own training data (the monitoring
+    report), else the other dataset version it was compared with (migrations/0010)."""
     text = json.dumps(report, allow_nan=False)  # NaN must have been turned into null
     with conn.transaction():
         conn.execute(
@@ -195,6 +199,7 @@ def save_drift_report(
                 model_version,
                 run_id,
                 *period,
+                reference_dataset,
                 reference,
                 rows,
                 status,
@@ -206,10 +211,11 @@ def save_drift_report(
 def drift_reports(
     conn: psycopg.Connection, model_name: str, run_id: str | None = None
 ) -> list[dict[str, Any]]:
-    """The stored drift reports of a model, newest period first."""
+    """The stored drift reports of a model (comparisons included), newest period first."""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
             "SELECT * FROM drift_reports WHERE model_name = %s "
-            "AND (%s::text IS NULL OR run_id = %s) ORDER BY period_start DESC, model_version",
+            "AND (%s::text IS NULL OR run_id = %s) "
+            "ORDER BY period_start DESC, model_version, reference_dataset",
             (model_name, run_id, run_id),
         ).fetchall()

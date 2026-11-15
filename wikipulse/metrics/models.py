@@ -8,7 +8,8 @@ come from the live scorer or a backfill.
 
 Exported (all gauges):
 
-- per model and detector run, from the newest drift report:
+- per model and detector run, from the newest drift report against the model's own
+  training data (comparisons with another dataset, `--reference-dataset`, are left out):
   `wikipulse_drift_detected` (1 = status drift), `wikipulse_drift_report_rows`,
   `wikipulse_drift_score_psi`, `wikipulse_drift_score_noise_floor`,
   `wikipulse_drift_features_drifted`, `wikipulse_drift_report_period_end_timestamp_seconds`,
@@ -39,6 +40,7 @@ LATEST_DRIFT_REPORTS = """
 SELECT DISTINCT ON (model_name, run_id)
        model_name, model_version, run_id, status, rows, period_end, report
 FROM drift_reports
+WHERE reference_dataset = ''  -- the model's own training data, not a what-if comparison
 ORDER BY model_name, run_id, period_end DESC, created_at DESC
 """
 

@@ -37,7 +37,9 @@ The period has drifted when the score has, or at least `ML_DRIFT_MAX_FEATURES` f
 have. With fewer than `ML_DRIFT_MIN_ROWS` scored spikes the answer is `too_few_rows`:
 even with the floor, a tiny sample can only show huge shifts. Reports go to the table
 `drift_reports`; a drift is logged as a warning (`DRIFT:`), and stage 9 turns that into
-an alert.
+an alert. `--reference-dataset vN` compares with another dataset's training rows instead
+(a what-if); such a report is stored next to the model's own (`reference_dataset`), never
+in its place, and the drift metrics only read the model's own.
 """
 
 import argparse
@@ -335,7 +337,9 @@ def run_drift(
     dataset: str | None = None,
 ) -> DriftReport:
     """Compare one run's scored spikes in [since, until) with the training data, and
-    store the report (replacing an earlier one for the same model, run and period)."""
+    store the report (replacing an earlier one for the same model, run, period and
+    reference). A comparison with another dataset (`dataset`) is stored under its own
+    key, so it never replaces the model's own monitoring report."""
     from wikipulse.db.scores import save_drift_report, score_versions, scored_spikes
 
     scored = scored_spikes(conn, run_id, model.name, model.version, since, until)
@@ -379,6 +383,7 @@ def run_drift(
             report.rows,
             report.status,
             report.to_json(),
+            reference_dataset=dataset or "",
         )
     return report
 
