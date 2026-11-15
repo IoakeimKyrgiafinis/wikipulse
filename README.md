@@ -110,32 +110,50 @@ and prompt-injection evaluations are also committed reports in
 [`evals/results/`](evals/results/). The classifier's numbers live in the notes and MLflow. They are honest, small-sample
 numbers from one laptop and a few recorded days, with their margins.
 
+Most labels behind these numbers come from local LLMs. Where a human has labeled the
+same items, the human-checked number is shown next to the LLM one, with its sample size
+and 95% interval, from the label audit (spec 12b,
+[`evals/results/2026-11-15_audit.md`](evals/results/2026-11-15_audit.md), rerun with
+`uv run python -m wikipulse.eval.audit`). With fewer than 30 human labels a number is
+marked *too few*: it is shown, but it doesn't settle anything.
+
 ### Detection (spec 02b)
 
 Two full days (5 and 6 November 2026), four threshold settings, against Wikipedia's
-"Current events" portal and 50 LLM-labeled spikes per setting:
+"Current events" portal and 50 labeled spikes per setting:
 
-| Thresholds | Spikes | Recall of portal lead stories | Portal precision (lower bound) | Labeled precision (LLM, n = 50) | Time to detection, median |
-|---|---:|---:|---:|---:|---:|
-| strict | 53 | 0.0% | 7.5% | 54% | 9.4 min |
-| default | 135 | 0.0% | 7.4% | 48% | 9.4 min |
-| medium | 268 | 3.8% | 5.2% | 58% | 16.3 min |
-| loose | 1,264 | 13.5% | 3.5% | 50% | 9.3 min |
+| Thresholds | Spikes | Recall of portal lead stories | Portal precision (lower bound) | Labeled precision, LLM (qwen3:4b, n = 50) | Labeled precision, human | Time to detection, median |
+|---|---:|---:|---:|---:|---:|---:|
+| strict | 53 | 0.0% | 7.5% | 54% | 27% [13%, 48%], n = 22, too few | 9.4 min |
+| default | 135 | 0.0% | 7.4% | 48% [35%, 61%] | **27%** [16%, 40%], n = 49 | 9.4 min |
+| medium | 268 | 3.8% | 5.2% | 58% | 26% [13%, 45%], n = 27, too few | 16.3 min |
+| loose | 1,264 | 13.5% | 3.5% | 50% | n = 1, too few | 9.3 min |
 
-About half of the spikes are news by the labels; the portal number is a floor because
-most news on Wikipedia (election results, deaths, releases) never reaches the portal.
-Recall is low for a structural reason: only 11 of the 52 portal lead stories received at
-least 5 edits from 3 people *in total over three days*, so no editing-burst detector can
-see the rest. The labels differ by less than their ±14 pp margin. The CI eval gate
-(spec 09c) holds the default detector at precision 0.526 and recall 0.211 on a committed
-16-hour recording.
+The LLM labels say about half of the spikes are news; the human labels say about a
+quarter. On the 49 default-detector spikes both labeled, the LLM agrees with the human on
+80% [67%, 90%] (Cohen's kappa 0.58 [0.37, 0.79]), and every disagreement goes the same
+way: the LLM calls *news* what the human calls *not news* (sports seasons and players,
+TV shows). The portal number is a floor because most news on Wikipedia (election
+results, deaths, releases) never reaches the portal. Recall is low for a structural
+reason: only 11 of the 52 portal lead stories received at least 5 edits from 3 people
+*in total over three days*, so no editing-burst detector can see the rest. The settings
+differ by less than their ±14 pp margin. The CI eval gate (spec 09c) holds the default
+detector at precision 0.526 and recall 0.211 on a committed 16-hour recording, against
+labels that are still LLM labels (`qwen3:8b`): no human label covers its window yet.
 
 ### Grouping (spec 03b)
 
-On 5 November, 665 spikes became 572 events; pairwise precision **78%** (±11.5 pp), recall
-about **23%**, from 125 LLM-labeled page pairs. The biggest stories came out whole: 16
-pages of the US gubernatorial elections, and the Paraguayan banking crisis (*Ueno Bank*,
-*Pedro Alliana*, *Santiago Peña*, ...) as one event of five pages.
+On 5 November, 665 spikes became 572 events, measured on 125 sampled page pairs:
+
+| Pairwise | LLM labels (qwen3:4b, n = 125) | Human labels (n = 125) |
+|---|---:|---:|
+| Precision (50 pairs put together) | 78% [65%, 87%] | **98%** [90%, 100%] |
+| Recall (stratified estimate) | 23% [18%, 31%] | **25%** [21%, 32%] |
+
+The grouper is more precise than the LLM labels said: the LLM labeler often called two
+pages of one story (for example two US election races) "different". The biggest stories
+came out whole: 16 pages of the US gubernatorial elections, and the Paraguayan banking
+crisis (*Ueno Bank*, *Pedro Alliana*, *Santiago Peña*, ...) as one event of five pages.
 
 ### Knowledge graph extraction (spec 04c)
 
@@ -145,16 +163,20 @@ pages of the US gubernatorial elections, and the Paraguayan banking crisis (*Uen
 |---|---:|
 | Wikidata linking accuracy (484 linked names) | **95.9%** ± 1.8 pp |
 | Relations Wikidata also has (a lower bound) | **31.9%** ± 4.0 pp |
-| Labeled precision of relations (qwen3:8b judge, n = 50) | **93.9%** ± 6.7 pp |
+| Labeled precision of relations, qwen3:8b judge (n = 49) | 93.9% ± 6.7 pp |
+| Labeled precision of relations, human (n = 49) | **98%** [89%, 100%] |
 
-Reading the judge's 50 verdicts by hand suggests about 80% precision: an 8B judge checks
-"does the source mention this" well and "is the subject really the one doing it" poorly.
+The human labels put precision a little higher than the judge, not lower: an earlier
+read of the judge's verdicts had guessed about 80%. Judge and human agree on 92 to 94% of
+the relations, but almost every relation is correct, so kappa (about 0) says nothing
+here; the few disagreements are listed in the audit.
 A second prompt (`extract_v2`) changed nothing beyond the noise, so the graph kept v1.
 
 ### Question answering (spec 05b)
 
 25 fixed questions on a frozen copy of the graph, qwen3:8b, graded by an LLM judge
-(qwen3:4b as a second judge agrees with linear-weighted kappa 0.82):
+(qwen3:4b as a second judge agrees with linear-weighted kappa 0.82). No human has graded
+the answers yet, so these are judge-only numbers (human n = 0):
 
 | Correctness (0 to 2) | Fully correct | Faithfulness | Entity recall | Correct refusals | Median latency |
 |---:|---:|---:|---:|---:|---:|
