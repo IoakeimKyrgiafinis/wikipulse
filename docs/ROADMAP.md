@@ -33,7 +33,7 @@ While it runs, read the learning notes as they appear. That's where you learn th
 
 ## Specs
 
-Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are ready. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
+**The roadmap is finished (16 November 2026).** Every spec is done except two: 11c's vandalism rule is built but kept off by the owner's decision, and 12c is deferred by the owner (optional, needs a usable GPU). The follow-ups below are known improvements, not missing pieces. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
 
 | # | Spec | Status |
 |---|---|---|
@@ -69,12 +69,18 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 11c | A vandalism signal for spike detection | blocked (rule kept off by owner decision; needs human labels on the news bursts it drops) |
 | 12a | Better Cypher generation for question answering | done |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
-| 12c | Fine-tune a small extraction model | ready |
+| 12c | Fine-tune a small extraction model | deferred (owner decision; optional) |
 
 ## Follow-ups
 
 Known problems that were too large for the spec that found them. Each needs its own spec
 (or a place in a later one) before it is fixed.
+
+- **The prompt leak test misses lowercase names** (found in the 12a review).
+  `tests/qa/test_prompts.py` checks expected answer names case-sensitively, so a literal in
+  the lowercase style cypher_v2 teaches (`toLower(n.name) = 'democratic party'`) isn't
+  caught, and the questions' Wikidata IDs aren't checked. cypher_v2 is clean. *Proposed
+  fix:* match case-insensitively and check the IDs, before anyone writes a cypher_v3.
 
 - **Training/serving skew of the news classifier** (found in the 07c review; *partly
   fixed* by spec 11a). Fixed: training and serving compute features through one code

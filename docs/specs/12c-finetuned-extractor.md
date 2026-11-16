@@ -1,6 +1,6 @@
 # Spec 12c: Fine-tune a small extraction model
 
-Status: ready
+Status: deferred (owner decision on 2026-11-16: optional, WikiPulse is finished without it)
 Stage: 12. AI quality
 Owner: agent
 Depends on: 04c, 12b (for the human-checked relation labels, if available)
