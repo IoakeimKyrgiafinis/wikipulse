@@ -166,12 +166,24 @@ def bootstrap_interval(
     return low, high
 
 
+def summary_value(
+    report: dict[str, Any], key: str, aggregate: Callable[[Sequence[Row], dict], float | None]
+) -> float | None:
+    """A metric of a whole report, from its questions; a report written before its
+    questions carried the data (e.g. claim counts) gives its own summary number instead.
+    The bootstrap margin needs the questions, so it stays n/a for such a report."""
+    value = aggregate(report["questions"], report)
+    if value is None:
+        value = report.get("metrics", {}).get(key)
+    return value
+
+
 def compare(reports: Sequence[dict[str, Any]], name: str) -> dict[str, Any]:
     """Every metric for every report, and after − before with its bootstrap margin."""
     before, after = reports[-2], reports[-1]
     metrics = []
     for key, label, aggregate, kind in METRICS:
-        values = [aggregate(r["questions"], r) for r in reports]
+        values = [summary_value(r, key, aggregate) for r in reports]
         change = None if None in values[-2:] else values[-1] - values[-2]
         metrics.append(
             {
@@ -220,6 +232,7 @@ def render_markdown(comparison: dict[str, Any]) -> str:
     lines = [
         f"# QA evaluation comparison: {comparison['name']}",
         "",
+        *([comparison["note"], ""] if comparison.get("note") else []),
         f"Runs: {', '.join(f'`{r}`' for r in runs)}. Before = `{runs[-2]}`, after = "
         f"`{runs[-1]}`. Margin: 95% interval of after − before from a paired bootstrap over "
         f"the questions ({comparison['resamples']} resamples, seed {comparison['seed']}); an "
@@ -273,6 +286,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("reports", nargs="+", type=Path, help="report JSON files, oldest first")
     parser.add_argument("--name", required=True, help="name of the comparison")
+    parser.add_argument("--note", default="", help="a remark printed under the title")
     parser.add_argument("--results-dir", type=Path, default=DEFAULT_RESULTS_DIR)
     args = parser.parse_args(argv)
     if len(args.reports) < 2:
@@ -285,6 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     reports = [json.loads(path.read_text(encoding="utf-8")) for path in args.reports]
     comparison = compare(reports, args.name)
+    comparison["note"] = args.note
     stem = args.results_dir / f"{datetime.now(UTC):%Y-%m-%d}_{args.name}"
     stem.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(comparison, indent=2, ensure_ascii=False) + "\n"

@@ -124,8 +124,18 @@ def test_main_writes_markdown_and_json(tmp_path: Path) -> None:
         path = tmp_path / f"{data['name']}.json"
         path.write_text(json.dumps(data), encoding="utf-8")
         paths.append(str(path))
-    assert main([*paths, "--name", "cmp", "--results-dir", str(tmp_path / "out")]) == 0
+    out = tmp_path / "out"
+    assert main([*paths, "--name", "cmp", "--results-dir", str(out), "--note", "Hello."]) == 0
+    assert "Hello." in next(out.glob("*.md")).read_text(encoding="utf-8")
     written = sorted(p.suffix for p in (tmp_path / "out").iterdir())
     assert written == [".json", ".md"]
     with pytest.raises(SystemExit):
         main([paths[0], "--name", "cmp"])
+
+
+def test_a_report_without_claim_counts_shows_its_own_faithfulness_without_a_margin() -> None:
+    rows = [{k: v for k, v in r.items() if not k.startswith("claims")} for r in BEFORE["questions"]]
+    old = {**report("before", rows), "metrics": {"faithfulness": 0.94}}
+    m = metric(compare([old, AFTER], "t"), "faithfulness")
+    assert m["values"] == [0.94, 1.0] and m["change"] == pytest.approx(0.06)
+    assert m["interval"] is None

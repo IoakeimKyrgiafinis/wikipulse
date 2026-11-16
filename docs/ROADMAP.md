@@ -67,7 +67,7 @@ Specs 00 to 10 are done; stages 11 and 12 improve model and AI quality and are r
 | 11a | Fix the classifier's training/serving skew | done |
 | 11b | Fresh labels for weekly retraining | done |
 | 11c | A vandalism signal for spike detection | blocked (rule kept off by owner decision; needs human labels on the news bursts it drops) |
-| 12a | Better Cypher generation for question answering | ready |
+| 12a | Better Cypher generation for question answering | done |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
 | 12c | Fine-tune a small extraction model | ready |
 

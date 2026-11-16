@@ -1,0 +1,816 @@
+{
+  "name": "12a-cypher",
+  "runs": [
+    "05b-v1",
+    "12a-before",
+    "12a-after"
+  ],
+  "configs": [
+    {
+      "snapshot": "bolt://localhost:7688",
+      "snapshot_now": "2026-11-05T23:22:51.420000+00:00",
+      "snapshot_nodes": {
+        "Entity": 1285,
+        "Event": 233,
+        "Page": 243
+      },
+      "questions": "evals\\labels\\qa_questions.jsonl",
+      "qa_model": [
+        "ollama:qwen3:8b"
+      ],
+      "prompts": [
+        "cypher prompt not recorded",
+        "answer_v1",
+        "correctness_v1",
+        "faithfulness_v1"
+      ],
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "retrieval": {
+        "max_rows": 25,
+        "cypher_repairs": 1,
+        "top_k": 5,
+        "min_cosine": 0.63,
+        "max_facts": 60
+      },
+      "commit": "dcd8f4d4b0157dfff7c9ebf48dda9424bd666534",
+      "dirty": true,
+      "note": "",
+      "primary_judge": "ollama:qwen3:8b",
+      "judges": [
+        "ollama:qwen3:8b",
+        "ollama:qwen3:4b"
+      ]
+    },
+    {
+      "snapshot": "bolt://localhost:7688",
+      "snapshot_now": "2026-11-05T23:22:51.420000+00:00",
+      "snapshot_nodes": {
+        "Entity": 1285,
+        "Event": 233,
+        "Page": 243
+      },
+      "questions": "evals\\labels\\qa_questions.jsonl",
+      "qa_model": [
+        "ollama:qwen3:8b"
+      ],
+      "prompts": [
+        "cypher_v1",
+        "answer_v1",
+        "correctness_v1",
+        "faithfulness_v1"
+      ],
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "retrieval": {
+        "max_rows": 25,
+        "cypher_repairs": 0,
+        "top_k": 5,
+        "min_cosine": 0.63,
+        "max_facts": 60
+      },
+      "commit": "dcd8f4d4b0157dfff7c9ebf48dda9424bd666534",
+      "dirty": true,
+      "note": "spec 12a baseline: 05b's prompt (cypher_v1), no repair, fixed validator",
+      "primary_judge": "ollama:qwen3:8b",
+      "judges": [
+        "ollama:qwen3:8b",
+        "ollama:qwen3:4b"
+      ]
+    },
+    {
+      "snapshot": "bolt://localhost:7688",
+      "snapshot_now": "2026-11-05T23:22:51.420000+00:00",
+      "snapshot_nodes": {
+        "Entity": 1285,
+        "Event": 233,
+        "Page": 243
+      },
+      "questions": "evals\\labels\\qa_questions.jsonl",
+      "qa_model": [
+        "ollama:qwen3:8b"
+      ],
+      "prompts": [
+        "cypher_v2",
+        "answer_v1",
+        "correctness_v1",
+        "faithfulness_v1"
+      ],
+      "channels": [
+        "cypher",
+        "graph",
+        "vector"
+      ],
+      "retrieval": {
+        "max_rows": 25,
+        "cypher_repairs": 1,
+        "top_k": 5,
+        "min_cosine": 0.63,
+        "max_facts": 60
+      },
+      "commit": "dcd8f4d4b0157dfff7c9ebf48dda9424bd666534",
+      "dirty": true,
+      "note": "spec 12a: cypher_v2 with one repair",
+      "primary_judge": "ollama:qwen3:8b",
+      "judges": [
+        "ollama:qwen3:8b",
+        "ollama:qwen3:4b"
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "metric": "correctness",
+      "label": "Correctness (0-2)",
+      "kind": "num",
+      "values": [
+        1.2,
+        1.08,
+        1.44
+      ],
+      "change": 0.3599999999999999,
+      "interval": [
+        0.11999999999999988,
+        0.64
+      ]
+    },
+    {
+      "metric": "fully_correct",
+      "label": "Fully correct",
+      "kind": "pct",
+      "values": [
+        0.48,
+        0.4,
+        0.56
+      ],
+      "change": 0.16000000000000003,
+      "interval": [
+        0.03999999999999998,
+        0.32
+      ]
+    },
+    {
+      "metric": "faithfulness",
+      "label": "Faithfulness (claims)",
+      "kind": "pct",
+      "values": [
+        0.9591836734693877,
+        0.94,
+        1.0
+      ],
+      "change": 0.06000000000000005,
+      "interval": null
+    },
+    {
+      "metric": "entity_recall",
+      "label": "Entity recall",
+      "kind": "pct",
+      "values": [
+        0.9230769230769231,
+        0.9230769230769231,
+        1.0
+      ],
+      "change": 0.07692307692307687,
+      "interval": [
+        0.0,
+        0.2666666666666667
+      ]
+    },
+    {
+      "metric": "event_recall",
+      "label": "Event recall",
+      "kind": "pct",
+      "values": [
+        0.8222222222222223,
+        0.8222222222222223,
+        1.0
+      ],
+      "change": 0.1777777777777777,
+      "interval": [
+        0.012499999999999956,
+        0.3647058823529411
+      ]
+    },
+    {
+      "metric": "correct_refusals",
+      "label": "Correct refusals",
+      "kind": "pct",
+      "values": [
+        0.8,
+        0.8,
+        1.0
+      ],
+      "change": 0.19999999999999996,
+      "interval": [
+        0.0,
+        0.6666666666666667
+      ]
+    },
+    {
+      "metric": "false_refusals",
+      "label": "False refusals",
+      "kind": "pct",
+      "values": [
+        0.2,
+        0.15,
+        0.0
+      ],
+      "change": -0.15,
+      "interval": [
+        -0.3333333333333333,
+        0.0
+      ]
+    },
+    {
+      "metric": "failed_queries",
+      "label": "Cypher queries that never ran",
+      "kind": "int",
+      "values": [
+        4.0,
+        3.0,
+        0.0
+      ],
+      "change": -3.0,
+      "interval": [
+        -6.0,
+        0.0
+      ]
+    },
+    {
+      "metric": "latency_median_s",
+      "label": "Latency median (s)",
+      "kind": "sec",
+      "values": [
+        4.813,
+        5.281,
+        5.234
+      ],
+      "change": -0.04699999999999971,
+      "interval": [
+        -1.5150000000000001,
+        2.1719999999999997
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "q01",
+      "type": "time",
+      "question": "What happened today?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q02",
+      "type": "time",
+      "question": "What happened in the last two hours?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q03",
+      "type": "time",
+      "question": "What happened between 20:00 and 21:00 UTC today?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q04",
+      "type": "time",
+      "question": "What happened this afternoon (12:00 to 18:00 UTC)?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q05",
+      "type": "time",
+      "question": "What is the latest news?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q06",
+      "type": "event",
+      "question": "Who is involved in the event \"2026 U.S. gubernatorial and House elections held\"?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q07",
+      "type": "event",
+      "question": "Who is involved in event 316?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q08",
+      "type": "event",
+      "question": "Who is involved in the news story about the Wikipedia page \"2026 United States Senate election in Texas\"?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q09",
+      "type": "event",
+      "question": "Which people are involved in event 481?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q10",
+      "type": "event",
+      "question": "Which organizations are involved in the event \"Anti-CEC protests in India demand resignation of Chief Election Commissioner\"?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q11",
+      "type": "connection",
+      "question": "How are Democratic Party and Amy Acton connected?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q12",
+      "type": "connection",
+      "question": "What is the connection between Bangladesh Football Federation and Fortis?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q13",
+      "type": "connection",
+      "question": "How is James Talarico related to 2026 United States Senate election in Texas?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q14",
+      "type": "connection",
+      "question": "What links Richard Allen Davis and California?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q15",
+      "type": "connection",
+      "question": "How are Brighton & Hove Albion F.C. and AFC Bournemouth connected?",
+      "runs": [
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q16",
+      "type": "aggregation",
+      "question": "Which places appear in at least three events today?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 1.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q17",
+      "type": "aggregation",
+      "question": "How many events started today?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q18",
+      "type": "aggregation",
+      "question": "Which event touched the most Wikipedia pages?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q19",
+      "type": "aggregation",
+      "question": "Which person is involved in the most events?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": false,
+          "cypher": "failed"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q20",
+      "type": "aggregation",
+      "question": "How many events is Democratic Party involved in?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": true,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q21",
+      "type": "unanswerable",
+      "question": "What did the Federal Reserve decide about interest rates today?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q22",
+      "type": "unanswerable",
+      "question": "Who won the Eurovision Song Contest 2026?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q23",
+      "type": "unanswerable",
+      "question": "What happened yesterday?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q24",
+      "type": "unanswerable",
+      "question": "Who was the chief executive of Ueno Bank?",
+      "runs": [
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 0.0,
+          "answered": true,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        }
+      ]
+    },
+    {
+      "id": "q25",
+      "type": "unanswerable",
+      "question": "What did Apple announce at its product event today?",
+      "runs": [
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        },
+        {
+          "correctness": 2.0,
+          "answered": false,
+          "cypher": "ran"
+        }
+      ]
+    }
+  ],
+  "resamples": 2000,
+  "seed": 12,
+  "note": "Spec 12a, all on snapshot 2026-11-05 (neo4j-eval), QA model ollama:qwen3:8b, judges qwen3:8b (primary) and qwen3:4b. `05b-v1` is the committed 05b run (cypher_v1, old validator, no repair; its report re-rendered from the stored answers and judgements so the failed queries can be counted; its 'Cypher repairs' and prompt entries below come from that re-render and are wrong: it had no repair and used cypher_v1). `12a-before`: cypher_v1, no repair, the fixed validator, current code. `12a-after`: cypher_v2 with one repair. The before report predates per-question claim counts, so its faithfulness is the report's own number and has no margin. One run each: a second pair could not run (Docker stopped)."
+}
