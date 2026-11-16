@@ -6,7 +6,7 @@
 #   (spec 07c: MLflow, scikit-learn, CPU-only PyTorch, ...; requirements-ml.txt).
 # Tasks start `<venv>/bin/python -m wikipulse.jobs...` with the repository mounted at
 # /opt/wikipulse, so their dependencies never clash with Airflow's.
-FROM apache/airflow:3.3.2-python3.12
+FROM apache/airflow:3.4.0-python3.12
 
 COPY requirements-jobs.txt /tmp/requirements-jobs.txt
 COPY requirements-ml.txt /tmp/requirements-ml.txt
