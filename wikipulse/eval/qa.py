@@ -119,6 +119,7 @@ def record_answer(run: str, question: QAQuestion, result: Answer) -> AnswerRecor
         cypher=context.cypher if context else None,
         cypher_rows=context.cypher_rows if context else None,
         cypher_prompt=context.cypher_prompt if context else None,
+        cypher_repairs=context.cypher_repairs if context else None,
         cypher_ran=context.cypher_ran if context else None,
         cypher_failures=list(context.cypher_failures) if context else [],
         notes=list(context.notes) if context else [],
@@ -348,10 +349,11 @@ def report_config(
     args: argparse.Namespace, settings: Settings, snapshot: Snapshot, answers: list[AnswerRecord]
 ) -> dict[str, Any]:
     """The settings and snapshot behind a QA report."""
-    chosen = eval_settings(settings, args.neo4j_uri, args.cypher_prompt, args.cypher_repairs)
-    retrieval = RetrievalConfig.from_settings(chosen)
-    # The prompt that wrote each answer's query is stored with it (since spec 12a).
+    retrieval = RetrievalConfig.from_settings(settings)
+    # The prompt and the repairs behind each answer's query are stored with it (since
+    # spec 12a); for older answers they are unknown, not today's settings.
     cypher_prompts = sorted({a.cypher_prompt or "cypher prompt not recorded" for a in answers})
+    repairs = sorted({str(a.cypher_repairs) for a in answers if a.cypher_repairs is not None})
     counts = {row["label"]: row["count"] for row in snapshot.rows(SNAPSHOT_COUNTS)}
     models = sorted({a.model for a in answers if a.model})
     return {
@@ -364,7 +366,7 @@ def report_config(
         "channels": sorted(args.channels),
         "retrieval": {
             "max_rows": retrieval.max_rows,
-            "cypher_repairs": retrieval.cypher_repairs,
+            "cypher_repairs": ", ".join(repairs) or "not recorded",
             "top_k": retrieval.top_k,
             "min_cosine": retrieval.min_cosine,
             "max_facts": retrieval.max_facts,

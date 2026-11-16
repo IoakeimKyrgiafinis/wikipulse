@@ -459,6 +459,7 @@ class Retriever:
         writer = self.cypher_writer
         assert writer is not None
         context.cypher_prompt = getattr(writer, "prompt_version", None)
+        context.cypher_repairs = self.config.cypher_repairs
         max_rows = self.config.max_rows
         try:
             raw = writer.write(question, times, max_rows)

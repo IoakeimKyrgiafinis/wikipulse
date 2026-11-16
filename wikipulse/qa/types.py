@@ -69,6 +69,7 @@ class Context(BaseModel):
     cypher: str | None = None  # the generated query that ran (or the last one tried)
     cypher_rows: int | None = None
     cypher_prompt: str | None = None  # the prompt version that wrote the query
+    cypher_repairs: int | None = None  # how many corrected tries were allowed
     cypher_ran: bool = False  # a generated query ran (possibly after a repair)
     # Why each generated query that could not run failed, in order: a validator
     # rejection or a Neo4j error. With a repair, one entry means it was fixed.

@@ -51,6 +51,7 @@ class AnswerRecord(BaseModel):
     cypher: str | None = None
     cypher_rows: int | None = None
     cypher_prompt: str | None = None  # None in records made before spec 12a
+    cypher_repairs: int | None = None  # None in records made before spec 12a
     cypher_ran: bool | None = None  # None in records made before spec 12a
     cypher_failures: list[str] = Field(default_factory=list)  # one per query that couldn't run
     notes: list[str] = Field(default_factory=list)

@@ -131,8 +131,9 @@ stored in Neo4j with its source page and revision. Neo4j Browser: http://localho
 Answers questions about current events from the knowledge graph, citing the Wikipedia
 pages and revisions every claim comes from. Retrieval combines three channels: graph
 traversal around the entities and events the question names, one read-only Cypher query
-written by the LLM (`QA_MODEL`, default `ollama:qwen3:8b`) and checked before it runs,
-and vector search over page summaries and events. "Today" and "this week" are event
+written by the LLM (`QA_MODEL`, default `ollama:qwen3:8b`; prompt `QA_CYPHER_PROMPT`,
+default `cypher_v2`) and checked before it runs (a query that is rejected or fails gets
+one corrected try, `QA_CYPHER_REPAIRS`), and vector search over page summaries and events. "Today" and "this week" are event
 time: relative to the newest event in the graph.
 
 | Command | What it does |

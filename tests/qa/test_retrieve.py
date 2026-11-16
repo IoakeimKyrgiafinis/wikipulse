@@ -235,7 +235,7 @@ def test_a_rejected_query_gets_one_repair_with_the_reason() -> None:
     assert [q[0] for q in graph.queries] == [GOOD + "\nLIMIT 25"]  # only the fixed one ran
     assert context.cypher_ran and context.cypher == GOOD + "\nLIMIT 25"
     assert context.cypher_failures == ["rejected: not a read-only query (uses DELETE, DETACH)"]
-    assert context.cypher_prompt == "fixed"
+    assert context.cypher_prompt == "fixed" and context.cypher_repairs == 1
     assert "cypher: the corrected query ran." in context.notes
     assert [f.kind for f in context.facts] == ["query"]
 

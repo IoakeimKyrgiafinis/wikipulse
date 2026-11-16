@@ -311,8 +311,10 @@ def test_record_answer_keeps_what_happened_to_the_generated_query() -> None:
     result = answer_for("Ueno Bank collapsed [F1].")
     assert result.context is not None
     result.context.cypher_prompt = "cypher_v2"
+    result.context.cypher_repairs = 1
     result.context.cypher_ran = True
     result.context.cypher_failures = ["rejected: no RETURN"]
     record = record_answer("r1", question("q1"), result)
     assert record.cypher_prompt == "cypher_v2" and record.cypher_ran
+    assert record.cypher_repairs == 1
     assert record.cypher_failures == ["rejected: no RETURN"]
