@@ -6,8 +6,10 @@ A generated query is untrusted input. Three layers keep it harmless:
    and admin clauses (CREATE, MERGE, SET, DELETE, CALL, LOAD CSV, ...), several
    statements, and paths without an upper bound of at most `MAX_HOPS` (`-[*]-`,
    `-[*2..]-`, quantified patterns such as `-[:R]-+`, `-->*` or `{1,}`, and so any
-   SHORTEST search without a bound). It also forces a result limit on every branch
-   of a UNION: a missing LIMIT is added, a larger one lowered.
+   SHORTEST search without a bound). A "+" or "*" after a group without any
+   relationship, as in `date($today_start) + duration({days: 1})`, is arithmetic and
+   allowed. It also forces a result limit on every branch of a UNION: a missing LIMIT
+   is added, a larger one lowered.
 2. `QAGraph.run_query()` runs it in a READ transaction, which Neo4j itself refuses to
    write in, with a transaction timeout, and reads at most the limit of rows.
 3. Results are only ever shown to the answering model as facts; they are never executed.
@@ -16,17 +18,20 @@ The checks work on the query with its strings, comments and `quoted` names blank
 so `WHERE n.name = 'Set'` is fine while a real SET clause is not.
 """
 
+import json
 import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from wikipulse.llm import LLMClient
+from wikipulse.llm import LLMClient, Message
 
 logger = logging.getLogger(__name__)
 
-PROMPT_VERSION = "cypher_v1"
+PROMPT_VERSION = "cypher_v2"  # the default; QA_CYPHER_PROMPT chooses another
+PROMPT_VERSIONS = ("cypher_v1", "cypher_v2")
+MAX_ERROR_CHARS = 400  # of an error message shown to the model in a repair request
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 MAX_QUERY_CHARS = 3000
 MAX_HOPS = 6  # longest path pattern allowed, e.g. -[*1..6]- or -[:R]-{1,6}
@@ -72,6 +77,8 @@ _HOPS = re.compile(r"\*\s*(\d*)\s*(\.\.\s*(\d*))?")
 # A quantifier after a group "(...)" or a relationship ("-[...]-", "-->", "<--"):
 # + (one or more), * (any number), {n}, {n,m}, {n,} or {,m}.
 _QUANTIFIER = re.compile(r"[-)>]\s*(\{\s*(\d*)\s*(,\s*(\d*))?\s*\}|\+|\*)")
+# Any piece of a relationship pattern: --, -[, ]-, ->, <- (Cypher allows spaces between).
+_RELATIONSHIP = re.compile(r"-\s*-|-\s*\[|\]\s*-|-\s*>|<\s*-")
 _LIMIT = re.compile(r"\bLIMIT\b", re.IGNORECASE)
 _UNION = re.compile(r"\bUNION(\s+ALL)?\b", re.IGNORECASE)
 # Clauses that can follow a LIMIT; when one does, that LIMIT is not the final one.
@@ -79,6 +86,15 @@ _CLAUSE = re.compile(
     r"\b(MATCH|OPTIONAL|WITH|UNWIND|RETURN|WHERE|ORDER|SKIP|OFFSET|UNION)\b", re.IGNORECASE
 )
 _FENCE = re.compile(r"^```[a-zA-Z]*\s*|\s*```$")
+# Neo4j's parser also accepts these characters as the "-", "<" and ">" of a
+# relationship (e.g. an en dash: `(a)–[*]–(b)`), so the path checks see them as ASCII.
+_ARROW_CHARS = str.maketrans(
+    {
+        **dict.fromkeys("\u00ad\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe58\ufe63\uff0d", "-"),
+        **dict.fromkeys("\u27e8\u3008\ufe64\uff1c", "<"),
+        **dict.fromkeys("\u27e9\u3009\ufe65\uff1e", ">"),
+    }
+)
 
 
 class UnsafeCypherError(ValueError):
@@ -122,8 +138,40 @@ def _depths(masked: str) -> list[int]:
     return depths
 
 
+def _group_start(skeleton: str, close: int) -> int | None:
+    """Where the "(" that the ")" at `close` closes is, or None if it is unbalanced."""
+    depth = 0
+    for index in range(close, -1, -1):
+        if skeleton[index] == ")":
+            depth += 1
+        elif skeleton[index] == "(":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def _is_arithmetic(skeleton: str, found: re.Match[str]) -> bool:
+    """True when a "+", "*" or "{" after ")" belongs to an expression, not a path.
+
+    A quantified path pattern repeats a group that holds at least one relationship
+    (`((a)-->(b))+`; Neo4j requires one). A group without any relationship, such as the
+    call `date($today_start)` in `date($today_start) + duration({days: 1})` or
+    `count(*)` in `count(*) * 2`, can't be one, so the symbol after it is arithmetic.
+    When in doubt (an unbalanced bracket, any arrow inside), the quantifier is checked.
+    """
+    if skeleton[found.start()] != ")":
+        return False
+    start = _group_start(skeleton, found.start())
+    if start is None:
+        return False
+    return _RELATIONSHIP.search(skeleton[start : found.start() + 1]) is None
+
+
 def _check_quantifiers(skeleton: str) -> None:
     for found in _QUANTIFIER.finditer(skeleton):
+        if _is_arithmetic(skeleton, found):
+            continue
         symbol, lower, comma, upper = found.groups()
         limit = None if symbol in "+*" else (upper if comma else lower)
         if not limit:
@@ -211,7 +259,7 @@ def validate_cypher(query: str, max_rows: int = 25) -> str:
         raise UnsafeCypherError(f"not a read-only query (uses {', '.join(forbidden)})")
     if "RETURN" not in words:
         raise UnsafeCypherError("the query returns nothing (no RETURN)")
-    _check_hops(skeleton)
+    _check_hops(skeleton.translate(_ARROW_CHARS))
     # A LIMIT inside the query (e.g. after a WITH) is fine, but the final result always
     # gets its own.
     return _with_limit(query, max_rows)
@@ -222,6 +270,8 @@ def validate_cypher(query: str, max_rows: int = 25) -> str:
 
 def load_prompt(version: str = PROMPT_VERSION) -> str:
     """The Cypher prompt of the given version."""
+    if version not in PROMPT_VERSIONS:
+        raise ValueError(f"unknown Cypher prompt {version!r} (one of {', '.join(PROMPT_VERSIONS)})")
     return (PROMPTS_DIR / f"{version}.md").read_text(encoding="utf-8")
 
 
@@ -256,8 +306,21 @@ def build_message(question: str, times: TimeParameters, max_rows: int) -> str:
     )
 
 
+def repair_message(error: str) -> str:
+    """The follow-up that asks the model to fix a query that could not run."""
+    error = " ".join(error.split())
+    if len(error) > MAX_ERROR_CHARS:
+        error = error[: MAX_ERROR_CHARS - 3] + "..."
+    return (
+        f"That query could not run: {error}\n"
+        "Write a corrected query for the same question, following the rules and the "
+        "examples. If no query over this graph can help, answer with an empty string."
+    )
+
+
 class CypherWriter:
-    """Asks the LLM for one read-only Cypher query that helps answer a question."""
+    """Asks the LLM for one read-only Cypher query that helps answer a question, and,
+    when that query can't run, for one corrected version (`repair`)."""
 
     def __init__(self, client: LLMClient, prompt_version: str = PROMPT_VERSION) -> None:
         self.client = client
@@ -266,11 +329,24 @@ class CypherWriter:
 
     def write(self, question: str, times: TimeParameters, max_rows: int = 25) -> str:
         """The model's query (unchecked; may be empty when no query would help)."""
+        return self._ask([Message.user(build_message(question, times, max_rows))], question)
+
+    def repair(
+        self, question: str, times: TimeParameters, max_rows: int, query: str, error: str
+    ) -> str:
+        """A corrected query, after `query` was rejected or failed with `error`.
+
+        The model sees its own earlier answer and the error, as a short conversation."""
+        conversation = [
+            Message.user(build_message(question, times, max_rows)),
+            Message.assistant(json.dumps({"cypher": query}, ensure_ascii=False)),
+            Message.user(repair_message(error)),
+        ]
+        return self._ask(conversation, question)
+
+    def _ask(self, conversation: list[Message], question: str) -> str:
         response = self.client.chat(
-            build_message(question, times, max_rows),
-            system=self.prompt,
-            json_schema=CYPHER_SCHEMA,
-            temperature=0,
+            conversation, system=self.prompt, json_schema=CYPHER_SCHEMA, temperature=0
         )
         data = response.data if isinstance(response.data, dict) else {}
         query = str(data.get("cypher", "")).strip()

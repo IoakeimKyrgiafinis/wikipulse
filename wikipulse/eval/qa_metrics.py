@@ -50,6 +50,10 @@ class AnswerRecord(BaseModel):
     events: list[str] = Field(default_factory=list)  # events retrieval looked at
     cypher: str | None = None
     cypher_rows: int | None = None
+    cypher_prompt: str | None = None  # None in records made before spec 12a
+    cypher_repairs: int | None = None  # None in records made before spec 12a
+    cypher_ran: bool | None = None  # None in records made before spec 12a
+    cypher_failures: list[str] = Field(default_factory=list)  # one per query that couldn't run
     notes: list[str] = Field(default_factory=list)
     limits: list[str] = Field(default_factory=list)
     removed_sentences: list[str] = Field(default_factory=list)
@@ -101,6 +105,32 @@ def share(hits: Sequence[bool]) -> float | None:
     return sum(hits) / len(hits) if hits else None
 
 
+# --- The generated query ----------------------------------------------------------------
+
+CYPHER_OUTCOMES = ("ran", "repaired", "failed", "none")
+_CYPHER_FAILURE_NOTES = ("cypher: query rejected", "cypher: the query failed")
+
+
+def cypher_outcome(record: AnswerRecord) -> str:
+    """What happened to the question's generated Cypher query:
+
+    - `ran`: it ran at the first try;
+    - `repaired`: the first query was rejected or failed, and the corrected one ran;
+    - `failed`: a query was written but none ran (rejected by the validator, or an
+      error in Neo4j);
+    - `none`: no query (the model wrote none, the channel was off, or the system failed).
+
+    Records made before spec 12a have no `cypher_ran`; their notes tell the same.
+    """
+    if record.cypher_ran is not None:
+        if record.cypher_ran:
+            return "repaired" if record.cypher_failures else "ran"
+        return "failed" if record.cypher_failures else "none"
+    if any(note.startswith(_CYPHER_FAILURE_NOTES) for note in record.notes):
+        return "failed"
+    return "ran" if record.cypher_rows is not None else "none"
+
+
 # --- One question's scores ------------------------------------------------------------------
 
 
@@ -120,6 +150,7 @@ class QuestionScore:
     claims_judged: int = 0
     seconds: float | None = None
     error: str | None = None
+    cypher: str = "none"  # `cypher_outcome()`
 
     @property
     def entity_recall(self) -> float | None:
@@ -163,6 +194,7 @@ def score_question(
         claims_judged=len(judged),
         seconds=record.seconds.get("total"),
         error=record.error,
+        cypher=cypher_outcome(record),
     )
 
 
@@ -215,6 +247,12 @@ def summarize(scores: Sequence[QuestionScore]) -> dict[str, Any]:
         "latency_p90_s": percentile(seconds, 90),
         "latency_max_s": max(seconds) if seconds else None,
         "errors": sum(1 for s in scores if s.error),
+        # Generated Cypher: queries that ran (at once or after a repair), and questions
+        # whose query never ran.
+        "cypher_ran": sum(1 for s in scores if s.cypher in ("ran", "repaired")),
+        "cypher_repaired": sum(1 for s in scores if s.cypher == "repaired"),
+        "cypher_failed": sum(1 for s in scores if s.cypher == "failed"),
+        "cypher_failed_ids": [s.id for s in scores if s.cypher == "failed"],
     }
 
 

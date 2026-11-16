@@ -87,6 +87,7 @@ class QuestionEmbedder(Protocol):
 class RetrievalConfig:
     max_rows: int = 25  # rows of a generated query
     timeout_s: float = 5.0  # of a generated query
+    cypher_repairs: int = 1  # more tries when a generated query is rejected or fails
     top_k: int = 5  # vector hits per index
     min_cosine: float = 0.63  # vector hits below this are ignored
     max_facts: int = 60
@@ -104,6 +105,7 @@ class RetrievalConfig:
         return cls(
             max_rows=settings.qa_cypher_max_rows,
             timeout_s=settings.qa_cypher_timeout_s,
+            cypher_repairs=settings.qa_cypher_repairs,
             top_k=settings.qa_vector_top_k,
             min_cosine=settings.qa_vector_min_cosine,
             max_facts=settings.qa_max_facts,
@@ -449,30 +451,51 @@ class Retriever:
         ]
         return facts
 
-    def _query(self, question: str, times: TimeParameters, context: Context, found: _Found) -> None:
-        assert self.cypher_writer is not None
+    def _run_generated(
+        self, question: str, times: TimeParameters, context: Context
+    ) -> list[dict[str, Any]] | None:
+        """Write a query, check it and run it. When it is rejected or fails, the model
+        gets the error and up to `cypher_repairs` more tries. None: nothing ran."""
+        writer = self.cypher_writer
+        assert writer is not None
+        context.cypher_prompt = getattr(writer, "prompt_version", None)
+        context.cypher_repairs = self.config.cypher_repairs
+        max_rows = self.config.max_rows
         try:
-            raw = self.cypher_writer.write(question, times, self.config.max_rows)
+            raw = writer.write(question, times, max_rows)
+            for attempt in range(self.config.cypher_repairs + 1):
+                if not raw:
+                    context.notes.append("cypher: the model wrote no query for this question.")
+                    return None
+                context.cypher = raw
+                try:
+                    cypher = validate_cypher(raw, max_rows)
+                    context.cypher = cypher
+                    rows = self.graph.run_query(
+                        cypher, times.as_params(), self.config.timeout_s, max_rows
+                    )
+                except UnsafeCypherError as error:
+                    failure, shown = f"rejected: {error}", f"query rejected, {error}"
+                except Neo4jError as error:
+                    failure = f"failed: {error.code}: {error.message}"
+                    shown = f"the query failed ({error.code})"
+                else:
+                    context.cypher_ran = True
+                    if attempt:
+                        context.notes.append("cypher: the corrected query ran.")
+                    return rows
+                context.cypher_failures.append(failure)
+                context.notes.append(f"cypher: {shown}")
+                logger.info("Generated query (try %d) %s\n%s", attempt + 1, failure, raw)
+                if attempt < self.config.cypher_repairs:
+                    raw = writer.repair(question, times, max_rows, raw, failure)
         except LLMError as error:
             context.notes.append(f"cypher: the model gave no query ({error})")
-            return
-        if not raw:
-            context.notes.append("cypher: the model wrote no query for this question.")
-            return
-        try:
-            cypher = validate_cypher(raw, self.config.max_rows)
-        except UnsafeCypherError as error:
-            context.cypher = raw
-            context.notes.append(f"cypher: query rejected, {error}")
-            return
-        context.cypher = cypher
-        try:
-            rows = self.graph.run_query(
-                cypher, times.as_params(), self.config.timeout_s, self.config.max_rows
-            )
-        except Neo4jError as error:
-            context.notes.append(f"cypher: the query failed ({error.code})")
-            logger.info("Generated query failed: %s\n%s", error, cypher)
+        return None
+
+    def _query(self, question: str, times: TimeParameters, context: Context, found: _Found) -> None:
+        rows = self._run_generated(question, times, context)
+        if rows is None:
             return
         context.cypher_rows = len(rows)
         if not rows:

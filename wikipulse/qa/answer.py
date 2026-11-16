@@ -283,7 +283,7 @@ class QASession:
         client = get_client(model or settings.qa_model, settings)
         retriever = Retriever(
             graph,
-            cypher_writer=CypherWriter(client),
+            cypher_writer=CypherWriter(client, settings.qa_cypher_prompt),
             embedder=Embedder(settings.events_embed_model),
             config=RetrievalConfig.from_settings(settings),
             channels=channels,

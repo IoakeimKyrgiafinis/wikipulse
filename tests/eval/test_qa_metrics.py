@@ -12,6 +12,7 @@ from wikipulse.eval.qa_metrics import (
     claim_agreement,
     cohen_kappa,
     correctness_agreement,
+    cypher_outcome,
     entity_hits,
     event_hits,
     failure_class,
@@ -232,3 +233,33 @@ def test_claim_agreement_skips_unjudged_claims() -> None:
     assert result["agreement"] == 0.75
     assert result["supported_a"] == 0.75 and result["supported_b"] == 0.5
     assert result["mean_answer_gap"] == pytest.approx((1 / 3 + 0) / 2)
+
+
+def test_the_cypher_outcome_of_new_and_old_records() -> None:
+    # Records since spec 12a say themselves whether a query ran.
+    assert cypher_outcome(record([], cypher_ran=True)) == "ran"
+    assert cypher_outcome(record([], cypher_ran=True, cypher_failures=["rejected: x"])) == (
+        "repaired"
+    )
+    assert cypher_outcome(record([], cypher_ran=False, cypher_failures=["failed: x"])) == "failed"
+    assert cypher_outcome(record([], cypher_ran=False)) == "none"
+    # 05b's records only have notes.
+    rejected = ["cypher: query rejected, quantified path pattern ') +' needs an upper bound"]
+    assert cypher_outcome(record([], notes=rejected)) == "failed"
+    failed = ["cypher: the query failed (Neo.ClientError.Statement.SyntaxError)"]
+    assert cypher_outcome(record([], notes=failed)) == "failed"
+    assert cypher_outcome(record([], cypher_rows=0)) == "ran"
+    assert cypher_outcome(record([], notes=["cypher: the model wrote no query"])) == "none"
+
+
+def test_summarize_counts_failed_and_repaired_queries() -> None:
+    m = summarize(
+        [
+            score(id="q1", cypher="ran"),
+            score(id="q2", cypher="repaired"),
+            score(id="q3", cypher="failed"),
+            score(id="q4", cypher="none"),
+        ]
+    )
+    assert (m["cypher_ran"], m["cypher_repaired"], m["cypher_failed"]) == (2, 1, 1)
+    assert m["cypher_failed_ids"] == ["q3"]

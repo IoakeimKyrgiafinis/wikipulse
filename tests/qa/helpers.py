@@ -131,18 +131,29 @@ class FakeGraph:
 
 
 class FixedWriter:
-    """A CypherWriter stand-in that returns a prepared query."""
+    """A CypherWriter stand-in that returns a prepared query, and for a repair the next
+    of `repairs` (or the same query again when there are none)."""
 
-    def __init__(self, query: str = "", error: Exception | None = None) -> None:
+    prompt_version = "fixed"
+
+    def __init__(
+        self, query: str = "", error: Exception | None = None, repairs: list[str] | None = None
+    ) -> None:
         self.query = query
         self.error = error
+        self.repairs = list(repairs or [])
         self.questions: list[str] = []
+        self.errors: list[str] = []  # the errors shown in repair requests
 
     def write(self, question: str, times: Any, max_rows: int = 25) -> str:
         self.questions.append(question)
         if self.error:
             raise self.error
         return self.query
+
+    def repair(self, question: str, times: Any, max_rows: int, query: str, error: str) -> str:
+        self.errors.append(error)
+        return self.repairs.pop(0) if self.repairs else query
 
 
 class FakeEmbedder:

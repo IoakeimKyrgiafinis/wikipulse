@@ -277,6 +277,12 @@ class Settings(BaseSettings):
     # many seconds (the Neo4j transaction timeout).
     qa_cypher_max_rows: int = Field(default=25, ge=1, le=200)
     qa_cypher_timeout_s: float = Field(default=5, gt=0)
+    # Prompt version of the Cypher writer (wikipulse/qa/prompts/<version>.md); spec 12a
+    # added cypher_v2, cypher_v1 is the prompt that 05b measured.
+    qa_cypher_prompt: Literal["cypher_v1", "cypher_v2"] = "cypher_v2"
+    # When a generated query is rejected by the validator or fails in Neo4j, the model
+    # sees the error and gets this many more tries (0 turns the repair off).
+    qa_cypher_repairs: int = Field(default=1, ge=0, le=1)
     # Vector search: pages and events returned per question, and the lowest cosine
     # similarity (question vs. text) that still counts as relevant.
     qa_vector_top_k: int = Field(default=5, ge=1)

@@ -1,6 +1,6 @@
 # Spec 12a: Better Cypher generation for question answering
 
-Status: ready
+Status: done
 Stage: 12. AI quality
 Owner: agent
 Depends on: 05b
