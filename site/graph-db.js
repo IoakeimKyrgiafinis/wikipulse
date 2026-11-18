@@ -12,6 +12,10 @@ import { bindTimes, validateCypher } from "./cypher-check.js";
 
 export const VISITOR_MAX_ROWS = 100; // rows of a query typed into the page
 export const NAMED_MAX_ROWS = 200; // rows of a shipped query, whatever its $limit
+export const FULL_ROWS = 10000; // "no limit": the full result behind a LIMIT (tie check)
+// Datetime parameters of the shipped queries (EVENTS_BETWEEN, TRENDING). JSON carries
+// them as ISO text, so runNamed() wraps each use in datetime(), as for $now.
+export const NAMED_TIME_PARAMETERS = ["start", "end", "since"];
 const HIDDEN_PROPERTIES = new Set(["embedding", "embedding_hash", "embedding_model"]);
 
 export class GraphDb {
@@ -50,11 +54,52 @@ export class GraphDb {
     if (result.error) throw new Error(`loading the graph failed: ${result.error} (${statement.slice(0, 80)})`);
   }
 
-  // A shipped query by name (graph.json `queries`), with JSON parameters.
+  // A shipped query by name (graph.json `queries`), with JSON parameters; datetime
+  // parameters ($start, $end, $since) are given as ISO text.
   runNamed(name, params) {
     const query = this.data.queries[name];
     if (!query) return { error: `no query named ${name}` };
-    return this.result(this.execute(query, params), NAMED_MAX_ROWS);
+    return this.result(this.execute(bindTimes(query, NAMED_TIME_PARAMETERS), params), NAMED_MAX_ROWS);
+  }
+
+  // A prepared question's Cypher, run live, with its comparison to Neo4j's stored rows.
+  runPrepared(id) {
+    const question = this.data.prepared.find((q) => q.id === id);
+    if (!question) return { error: `no prepared question ${id}` };
+    const live = this.runCypher(question.cypher, this.data.max_rows);
+    if (live.refused || live.error) return live;
+    return { ...live, comparison: this.comparePrepared(question, live) };
+  }
+
+  // {verdict, same, note}; "tie" only when the question's tie evidence proves it.
+  comparePrepared(question, live) {
+    if (live.columns.join("|") !== question.neo4j.columns.join("|")) {
+      return { verdict: "different", same: false, note: "Other columns." };
+    }
+    const comparison = compareRows(live.rows, question.neo4j.rows);
+    if (comparison.same || !question.tie || !this.provesTie(question, live.rows)) return comparison;
+    const keys = question.tie.order_by.join(", ") || "nothing (no ORDER BY)";
+    return {
+      verdict: "tie",
+      same: true,
+      orderBy: question.tie.order_by,
+      note:
+        `The same rows down to the LIMIT. At the cut-off several rows tie on the sort key (${keys}), ` +
+        "and each engine keeps a different few of them; without the LIMIT both return the same rows.",
+    };
+  }
+
+  // Runs the question's query again returning its ORDER BY keys, with its own LIMIT and
+  // with FULL_ROWS, and checks the difference with tieAtLimit() against Neo4j's evidence.
+  provesTie(question, liveRows) {
+    const { tie } = question;
+    const keys = tie.order_by.length;
+    const keyed = this.runCypher(tie.cypher, this.data.max_rows);
+    const full = this.runCypher(tie.full_cypher, FULL_ROWS);
+    if (keyed.refused || keyed.error || full.refused || full.error || full.capped) return false;
+    if (!sameMultiset(dropKeys(keyed.rows, keys), liveRows)) return false;
+    if (!sameMultiset(dropKeys(tie.neo4j.rows, keys), question.neo4j.rows)) return false;
+    return tieAtLimit(keyed.rows, tie.neo4j.rows, full.rows, tie.neo4j_full_keys, keys);
   }
 
   // Cypher from outside (typed by a visitor, or an LLM-written prepared question): it
@@ -166,35 +211,9 @@ function sameMultiset(a, b) {
   return left.every((row, i) => row === right[i]);
 }
 
-function monotonic(values) {
-  const comparable = values.every((v) => typeof v === "number") || values.every((v) => typeof v === "string");
-  if (!comparable) return null;
-  const down = values.every((v, i) => i === 0 || values[i - 1] >= v);
-  const up = values.every((v, i) => i === 0 || values[i - 1] <= v);
-  return down || up;
-}
-
-// The column on which two equally long, equally sorted results differ only among the
-// rows that tie with the last row (which of the tied rows a LIMIT keeps is up to the
-// engine). null if there is none.
-export function tieColumn(live, stored) {
-  if (live.length !== stored.length || !live.length) return null;
-  const width = live[0].length;
-  for (let c = 0; c < width; c += 1) {
-    const a = live.map((row) => row[c]);
-    const b = stored.map((row) => row[c]);
-    if (!monotonic(a) || !monotonic(b)) continue;
-    const boundary = a[a.length - 1];
-    if (text(boundary) !== text(b[b.length - 1])) continue;
-    const before = (rows) => rows.filter((row) => text(row[c]) !== text(boundary)).map(unordered);
-    const tiedA = live.filter((row) => text(row[c]) === text(boundary));
-    if (tiedA.length < 2) continue;
-    if (sameMultiset(before(live), before(stored))) return c;
-  }
-  return null;
-}
-
-// How the live rows compare with the stored ones: {verdict, same, note}.
+// How the live rows compare with the stored ones: {verdict, same, note}. Rows that
+// differ only in which tied rows a LIMIT kept are "different" here; GraphDb.comparePrepared()
+// calls that a tie only when tieAtLimit() proves it.
 export function compareRows(live, stored) {
   if (text(live) === text(stored)) return { verdict: "identical", same: true, note: "The same rows in the same order." };
   if (sameMultiset(live, stored)) {
@@ -207,16 +226,53 @@ export function compareRows(live, stored) {
       note: "The same rows; lists inside them are in another order (the query collects them without a full order).",
     };
   }
-  const column = tieColumn(live, stored);
-  if (column !== null) {
-    return {
-      verdict: "tie",
-      same: true,
-      column,
-      note:
-        "The same rows down to the LIMIT; at the cut-off several rows tie, and each engine " +
-        "keeps a different few of them.",
-    };
-  }
   return { verdict: "different", same: false, note: "The rows differ." };
+}
+
+// --- Ties at a LIMIT -------------------------------------------------------------------------
+// The same check as tie_at_limit() in scripts/export_graph.py. All rows come from a query
+// that also returns its ORDER BY keys as its last `keys` columns: `live` and `stored` with
+// the query's own LIMIT (Relate's and Neo4j's), `fullLive` with a much larger one;
+// `fullStoredKeys` are the keys of Neo4j's full result, in its order. A tie needs: the
+// LIMIT cut the result and both full results have the same keys; both limited results
+// are rows of the full result with the same key sequence; the rows above the last row's
+// key are the same in both and as many, with the same keys, as the full result ranks
+// above it; and more rows share that key in the full result than the LIMIT kept.
+function counts(values) {
+  const out = new Map();
+  for (const value of values) out.set(value, (out.get(value) || 0) + 1);
+  return out;
+}
+
+function sameCounts(a, b) {
+  return a.size === b.size && [...a].every(([key, n]) => b.get(key) === n);
+}
+
+function within(rows, full) {
+  const have = counts(full.map((row) => text(unordered(row))));
+  return [...counts(rows.map((row) => text(unordered(row))))].every(([key, n]) => (have.get(key) || 0) >= n);
+}
+
+export function dropKeys(rows, keys) {
+  return rows.map((row) => row.slice(0, row.length - keys));
+}
+
+export function tieAtLimit(live, stored, fullLive, fullStoredKeys, keys) {
+  const count = live.length;
+  if (!count || stored.length !== count || fullLive.length !== fullStoredKeys.length) return false;
+  if (fullLive.length <= count) return false;
+  const key = (row) => text(row.slice(row.length - keys));
+  const fullKeys = fullStoredKeys.map((k) => text(k));
+  if (!sameCounts(counts(fullLive.map(key)), counts(fullKeys))) return false;
+  if (!within(live, fullLive) || !within(stored, fullLive)) return false;
+  if (text(live.map(key)) !== text(stored.map(key))) return false;
+  const boundary = key(live[live.length - 1]);
+  const aboveLive = live.filter((row) => key(row) !== boundary);
+  const aboveStored = stored.filter((row) => key(row) !== boundary);
+  const rankedAbove = fullKeys.indexOf(boundary);
+  if (aboveLive.length !== rankedAbove || !sameMultiset(aboveLive.map(unordered), aboveStored.map(unordered))) {
+    return false;
+  }
+  if (!sameCounts(counts(aboveLive.map(key)), counts(fullKeys.slice(0, rankedAbove)))) return false;
+  return fullKeys.filter((k) => k === boundary).length > count - rankedAbove;
 }

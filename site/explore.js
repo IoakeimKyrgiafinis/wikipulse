@@ -12,7 +12,6 @@
 // and Wikidata links become clickable.
 
 import { luceneTerms } from "./cypher-check.js";
-import { compareRows } from "./graph-db.js";
 
 const QUERY_LIMIT_MS = 5000;
 const LOAD_LIMIT_MS = 60000;
@@ -88,6 +87,7 @@ class GraphClient {
     this.nextId = 1;
     this.queue = Promise.resolve();
     this.meta = null;
+    this.broken = null; // why the database is gone for good (a reload failed), or null
   }
 
   async start() {
@@ -131,6 +131,7 @@ class GraphClient {
   // instance) is answered with an error, and the graph is reloaded in a new worker.
   run(message) {
     const job = this.queue.then(async () => {
+      if (this.broken) return { ok: false, error: this.broken, elapsed: 0 };
       const started = performance.now();
       const reply = await this.send(message, QUERY_LIMIT_MS);
       const elapsed = performance.now() - started;
@@ -142,7 +143,13 @@ class GraphClient {
           "busy",
         );
         this.worker.terminate();
-        await this.start();
+        try {
+          await this.start();
+        } catch (error) {
+          this.broken = `the graph database could not restart (${error.message}); reload the page to try again`;
+          this.onStatus(`The ${this.broken}.`, "error");
+          return { ...reply, elapsed, restartFailed: true };
+        }
         this.onStatus(readyText(this.meta, "Graph reloaded"), "ready");
       }
       return { ...reply, elapsed };
@@ -448,7 +455,9 @@ function renderPrepared(prepared) {
 async function runPrepared(q) {
   const box = $(`live-${q.id}`);
   box.replaceChildren(el("p", { class: "muted" }, "Running..."));
-  const reply = await client.run({ op: "cypher", text: q.cypher, maxRows: client.meta.max_rows });
+  // The worker runs it and compares it with Neo4j's rows (GraphDb.runPrepared); a
+  // difference at the LIMIT is a "tie" only when the worker proves it.
+  const reply = await client.run({ op: "prepared", question: q.id });
   const outcome = cypherOutcome(reply);
   if (!outcome.ok) {
     box.replaceChildren(outcome.node);
@@ -456,10 +465,8 @@ async function runPrepared(q) {
     return "error";
   }
   const result = reply.result;
-  const sameColumns = result.columns.join("|") === q.neo4j.columns.join("|");
-  const comparison = sameColumns ? compareRows(result.rows, q.neo4j.rows) : { verdict: "different", same: false, note: "Other columns." };
-  const note =
-    comparison.column !== undefined ? `${comparison.note} (They tie on “${result.columns[comparison.column]}”.)` : comparison.note;
+  const { comparison } = result;
+  const note = comparison.note;
   box.dataset.verdict = comparison.verdict;
   box.replaceChildren(
     el(
@@ -487,12 +494,16 @@ async function runAllPrepared() {
   summary.textContent =
     `${same} of ${prepared.length} match Neo4j's rows: ${counts.identical || 0} identical, ` +
     `${counts["same rows"] || 0} the same rows in another order, ${counts.tie || 0} differ only ` +
-    "among rows tied at the LIMIT. Open a question to see its rows.";
+    "among rows tied at the LIMIT (proved by running them without it). Open a question to see its rows.";
   summary.dataset.done = JSON.stringify(counts);
 }
 
 // 5. Your own Cypher --------------------------------------------------------------------------
 function cypherOutcome(reply) {
+  if (reply.restartFailed) {
+    const why = reply.timedOut ? `Stopped after ${QUERY_LIMIT_MS / 1000} s` : "The database crashed";
+    return { ok: false, node: el("p", { class: "error" }, `${why}, and the graph database could not restart: reload the page.`) };
+  }
   if (reply.timedOut) {
     return {
       ok: false,

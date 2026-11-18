@@ -6,6 +6,7 @@
 // and, after its time limit, terminates the worker and starts a fresh one.
 //
 // Messages in:  {id, op: "load"} | {id, op: "named", name, params} | {id, op: "cypher", text, maxRows}
+//               | {id, op: "prepared", question}
 // Messages out: {id, ok: true, result} | {id, ok: false, error, trap}
 // Everything is fetched from this site: relate.js and relate_bg.wasm (vendored by
 // scripts/vendor_relate.py) and data/graph.json.
@@ -45,6 +46,7 @@ async function load() {
 function handle(message) {
   if (message.op === "named") return graph.runNamed(message.name, message.params);
   if (message.op === "cypher") return graph.runCypher(message.text, message.maxRows);
+  if (message.op === "prepared") return graph.runPrepared(message.question);
   throw new Error(`unknown operation ${message.op}`);
 }
 

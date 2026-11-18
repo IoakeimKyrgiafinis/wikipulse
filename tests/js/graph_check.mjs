@@ -15,7 +15,7 @@ import { importFrom, stage } from "./stage.mjs";
 const siteDir = process.argv[2] || "site";
 const dir = stage(siteDir, { vendor: true });
 const relate = await importFrom(dir, "vendor/relate/relate.js");
-const { GraphDb, compareRows, VISITOR_MAX_ROWS } = await importFrom(dir, "graph-db.js");
+const { GraphDb, compareRows, tieAtLimit, VISITOR_MAX_ROWS } = await importFrom(dir, "graph-db.js");
 const { luceneTerms } = await importFrom(dir, "cypher-check.js");
 
 const failures = [];
@@ -55,18 +55,20 @@ const paths = graph.runNamed("PATHS", { a: pena, b: ueno, limit: 3 });
 const pathMs = performance.now() - started;
 expect(!paths.error && paths.rows.length > 0, "a path from Santiago Peña to Ueno Bank", { paths });
 
-// 4. Prepared questions: live rows against Neo4j's.
+// 4. Prepared questions: live rows against Neo4j's, as the page compares them (a tie
+// only when the full results prove it).
 const verdicts = {};
 for (const question of data.prepared) {
-  const live = graph.runCypher(question.cypher, data.max_rows);
+  const live = graph.runPrepared(question.id);
   if (live.error || live.refused) {
     expect(false, `prepared ${question.id} ran`, { live });
     continue;
   }
-  const same = live.columns.join("|") === question.neo4j.columns.join("|");
-  const comparison = compareRows(live.rows, question.neo4j.rows);
-  verdicts[question.id] = comparison.verdict;
-  expect(same && comparison.same, `prepared ${question.id} matches Neo4j`, { comparison, live: live.rows.slice(0, 3) });
+  verdicts[question.id] = live.comparison.verdict;
+  expect(live.comparison.same, `prepared ${question.id} matches Neo4j`, {
+    comparison: live.comparison,
+    live: live.rows.slice(0, 3),
+  });
 }
 
 // 5. Read-only: a write is refused before it reaches the database.
@@ -90,6 +92,28 @@ const many = graph.runCypher("MATCH (n) RETURN n.name AS name");
 expect(many.rows?.length === VISITOR_MAX_ROWS && many.query.endsWith(`LIMIT ${VISITOR_MAX_ROWS}`), "row cap", {
   rows: many.rows?.length,
 });
+
+// 7. Shipped queries with datetime parameters take them as ISO text.
+const between = graph.runNamed("EVENTS_BETWEEN", { start: "2026-11-05T18:00:00Z", end: "2026-11-05T20:00:00Z", limit: 15 });
+expect(!between.error && between.rows.length > 0, "EVENTS_BETWEEN with ISO text", { between });
+const trending = graph.runNamed("TRENDING", { since: "2026-11-05T22:00:00Z", limit: 10 });
+expect(!trending.error && trending.rows.length > 0, "TRENDING with ISO text", { trending });
+
+// 8. The comparison rules (the same cases as tests/test_demo_graph.py).
+expect(compareRows([["x", "a"], ["x", "b"]], [["x", "c"], ["x", "d"]]).verdict === "different", "a constant column is no tie");
+const FULL = [["a", 9, 9], ["b", 5, 5], ["c", 5, 5], ["d", 5, 5], ["e", 1, 1]];
+const FULL_KEYS = [[9], [5], [5], [5], [1]];
+const tieCases = [
+  [true, FULL.slice(0, 3), [FULL[0], FULL[3], FULL[1]], FULL, FULL_KEYS, 1],
+  [false, FULL.slice(0, 3), [FULL[1], FULL[2], FULL[3]], FULL, FULL_KEYS, 1],
+  [false, FULL.slice(0, 3), [FULL[0], FULL[1], ["z", 5, 5]], FULL, FULL_KEYS, 1],
+  [false, FULL.slice(0, 3), [FULL[0], FULL[3], FULL[1]], FULL, [[9], [5], [5], [1], [1]], 1],
+  [false, FULL.slice(0, 3), [FULL[0], FULL[3], FULL[1]], FULL.slice(0, 3), FULL_KEYS.slice(0, 3), 1],
+  [false, FULL.slice(0, 4), [FULL[0], FULL[3], FULL[1], FULL[2]], FULL, FULL_KEYS, 1],
+  [false, [["x", "a", 3], ["x", "b", 2]], [["x", "c", 1], ["x", "d", 0]],
+    [["x", "a", 3], ["x", "b", 2], ["x", "c", 1], ["x", "d", 0]], [[3], [2], [1], [0]], 1],
+];
+tieCases.forEach(([wanted, ...args], index) => expect(tieAtLimit(...args) === wanted, `tie rule ${index}`));
 
 const report = {
   init_ms: Math.round(initMs),
