@@ -1,6 +1,6 @@
 # Spec 13a: The knowledge graph, live in the browser
 
-Status: ready
+Status: done
 Stage: 13. Showcase
 Owner: agent
 Depends on: 10, 12a

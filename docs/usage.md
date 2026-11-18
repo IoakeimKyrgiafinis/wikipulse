@@ -323,3 +323,18 @@ the namespace, the Secret, the Helm release), with the secrets from your setting
 |---------|--------------|
 | `uv run python -m wikipulse.eval.audit` | Compares every LLM labeler and judge with the human labels in `evals/labels/` (accuracy, Cohen's kappa, confusion matrices, bootstrap intervals) and recomputes the headline numbers from LLM and from human labels side by side; writes `evals/results/<today>_audit.md` and `.json`. Read-only on the labels, no network, a few seconds: run it after every labeling session. A paid judge is only allowed with `ANTHROPIC_API_KEY` and `JUDGE_AUDIT_ALLOW_PAID=true` (the audit has no paid step yet). |
 | `uv run python scripts/make_gate_fixture.py --labels-only --no-llm` | Rebuilds the CI gate's labels from the committed fixture, taking human labels from `spike_labels.jsonl` where they cover a gate burst and keeping the gate's LLM labels otherwise. Then `uv run python -m wikipulse.eval.gate --write-baseline`, and commit both for the owner's review ([12b](learning/12b-judge-audit.md)). |
+
+## Stage 13: the public demo
+
+The static demo in `site/` (GitHub Pages, `.github/workflows/pages.yml`) replays one
+recorded day and, since [13a](learning/13a-graph-in-the-browser.md), runs that day's
+knowledge graph in the visitor's browser (Relate, compiled to WebAssembly).
+
+| Command | What it does |
+|---------|--------------|
+| `uv run python scripts/export_demo.py` | Writes `site/data/day.json` (the replay) from Postgres and Neo4j. |
+| `uv run python scripts/export_graph.py` | Writes `site/data/graph.json` from the frozen snapshot in `neo4j-eval` (`docker compose --profile eval up -d`) and the 12a evaluation's answers: the graph without embeddings, the retrieval queries of `wikipulse/qa/graph.py`, and the prepared questions with Neo4j's rows. |
+| `python scripts/vendor_relate.py` | Downloads `@relate/relate-wasm` 1.1.0 from npm, checks its integrity hash, and extracts it into `site/vendor/relate/` (git-ignored). `--check` only verifies. The Pages workflow runs it too; a mismatch fails the run. |
+| `uv run python -m http.server 8765 --bind 127.0.0.1 --directory site` | Serves the demo at <http://127.0.0.1:8765/> (the `demo-site` preview). Run the vendoring script first, or "Explore the graph" can't start. `?graph=1` starts the graph section at once. |
+| `node tests/js/graph_check.mjs site` | Runs the page's database code with the vendored WebAssembly in Node: load time, search, a path, every prepared question against Neo4j's rows, a refused write. `uv run pytest tests/test_demo_graph_js.py` runs it too (skipped until vendored). |
+| `uv run pytest -m integration tests/test_demo_graph_neo4j.py` | Runs every shipped query and prepared question on Neo4j (`neo4j-eval`) and on Relate (`relate-db`, a dev dependency) and compares the results. |
