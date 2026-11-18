@@ -402,6 +402,12 @@ The owner's feedback on the live page led to two changes:
   and scrolled, which looked like nothing happened. Now `setPathEnd()` fills that end and
   searches at once when the other end names a different entity; otherwise it empties the
   other end and puts the cursor there.
+- **The grey explanations are gone** from "Explore the graph" (the owner's choice, for a
+  cleaner page): the note that free-form questions need the local LLM (requirement 8
+  asked for it), the hints under search and connections, and the description of the
+  read-only check. The check, the row cap and the 5 s limit still apply and still explain
+  themselves when they act (a refused query, a stopped one). The Entity box is hidden until
+  an entity is picked.
 
 ## Questions to test your understanding
 

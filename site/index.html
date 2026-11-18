@@ -65,6 +65,10 @@
       <p id="loading" class="muted">Loading the recorded day...</p>
       <p id="events-empty" class="muted" hidden>No events yet at this time. Press Play, or move the slider.</p>
       <ol id="event-list" class="event-list"></ol>
+      <p id="events-fold" class="actions events-fold" hidden>
+        <button type="button" id="events-show-more"></button>
+        <button type="button" id="events-show-fewer" hidden>Show fewer</button>
+      </p>
       <p id="events-more" class="muted" hidden></p>
     </section>
 
@@ -124,11 +128,6 @@
       compiled to WebAssembly: no server, nothing sent anywhere. Starting it downloads about
       8 MB from this site.
     </p>
-    <p class="muted">
-      No LLM and no embeddings run here, so there are no free-form questions: those need
-      WikiPulse's local LLM. You can see example questions with WikiPulse's answers and run
-      the Cypher behind them, or write your own.
-    </p>
     <button type="button" id="graph-start">Start the graph database</button>
     <p id="graph-status" class="graph-status" role="status" aria-live="polite"></p>
 
@@ -141,7 +140,6 @@
             <input type="search" id="graph-search" placeholder="pena, ueno bank, newsom..." autocomplete="off">
             <button type="submit">Search</button>
           </form>
-          <p class="muted">Full-text search that ignores accents: "pena" finds "Peña".</p>
           <div id="graph-search-results"></div>
         </section>
 
@@ -154,23 +152,17 @@
             <input type="text" id="path-to" value="Ueno Bank" autocomplete="off">
             <button type="submit">Find connections</button>
           </form>
-          <p class="muted">The shortest paths over relations and shared events, as WikiPulse's retrieval finds them.</p>
           <div id="path-results" aria-live="polite"></div>
         </section>
       </div>
 
-      <section aria-labelledby="graph-entity-heading">
+      <section id="graph-entity-section" aria-labelledby="graph-entity-heading" hidden>
         <h3 id="graph-entity-heading">Entity</h3>
-        <div id="graph-entity" aria-live="polite"><p class="muted">Search for an entity and pick one.</p></div>
+        <div id="graph-entity" aria-live="polite"></div>
       </section>
 
       <section aria-labelledby="prepared-heading">
         <h3 id="prepared-heading">Example questions</h3>
-        <p class="muted">
-          Questions asked of this day's graph. For each, WikiPulse's local LLM wrote a Cypher
-          query and answered from its rows; independent LLM judges scored the answer. "Run it"
-          runs that query here, live in your browser.
-        </p>
         <div id="prepared-list" class="prepared"></div>
       </section>
 
@@ -189,11 +181,6 @@
             <button type="button" class="chip" data-example="write">A write</button>
           </p>
         </form>
-        <p class="muted">
-          Queries go through the same read-only check as WikiPulse's own text-to-Cypher: no
-          writes, no procedure calls, bounded paths, at most 100 rows. A query that runs longer
-          than 5 seconds is stopped and the graph reloaded.
-        </p>
         <div id="cypher-results" aria-live="polite"></div>
       </section>
     </div>
