@@ -71,7 +71,7 @@ While it runs, read the learning notes as they appear. That's where you learn th
 | 12a | Better Cypher generation for question answering | done |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
 | 12c | Fine-tune a small extraction model | deferred (owner decision; optional) |
-| 13a | The knowledge graph, live in the browser | done (deploying waits for the owner's approval) |
+| 13a | The knowledge graph, live in the browser | done |
 
 ## Follow-ups
 
