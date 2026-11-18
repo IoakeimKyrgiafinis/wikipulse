@@ -1817,6 +1817,19 @@ wheels = [
 ]
 
 [[package]]
+name = "relate-db"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/d2/1b6179f79a1e5de39039e092cb1dd157c82479e4837ff5d551f943ff55d3/relate_db-1.1.0.tar.gz", hash = "sha256:9a31b061f0adce4f7a0bac0410a33464ec1240a29119a387f525e369b6fa4450", size = 4958509, upload-time = "2026-11-17T15:21:01.213Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/18/a15c967d18263631103c70ac0c596a1f12cef72d7e89e9d9c054ec6d2525/relate_db-1.1.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:da05e13b6473fd135f58c7e2c313f42c51bfb77a4a7eedd1f825e3925a24047e", size = 10174597, upload-time = "2026-11-17T15:20:45.978Z" },
+    { url = "https://files.pythonhosted.org/packages/19/26/bb96b72f9cfd95035b146871efbf255cbfcf9c10a6987919d53b1210705d/relate_db-1.1.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:7f27dfb11c8e3370b922d261789f2a6048ede07e5fa2c6714657ffbf9b972c37", size = 9458957, upload-time = "2026-11-17T15:20:48.97Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/55/6da947ff50fb1c49dc435ac03cb9b024aa0852b13c79de9f821c1d74eb7d/relate_db-1.1.0-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f6b148d540d3ed4812eeb1117a77d9473c1b3b0953a4a726f18cd61d69acb2bf", size = 9932365, upload-time = "2026-11-17T15:20:51.774Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/34/6630f31646b10e02738333f9b72f3534b9bd380ee76df5d4aaad6d05e80e/relate_db-1.1.0-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:8e4f80a8eb0f6085e53ddd97ad778ee12dfdff620afe8dfd00258f6b5562b612", size = 10495011, upload-time = "2026-11-17T15:20:55.668Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/85/43f5ec2107ccfada458144cbc7d7d83e3075c00a423b7f0905a425ff4edb/relate_db-1.1.0-cp39-abi3-win_amd64.whl", hash = "sha256:f6c7f7634d559fb571103f84e1607ce9dded237a13870b4ef7e532bf9c33327c", size = 10210220, upload-time = "2026-11-17T15:20:58.589Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2429,6 +2442,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pyyaml" },
+    { name = "relate-db" },
     { name = "ruff" },
 ]
 
@@ -2467,6 +2481,7 @@ dev = [
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "relate-db", specifier = "==1.1.0" },
     { name = "ruff", specifier = ">=0.8" },
 ]
 

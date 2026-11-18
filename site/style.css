@@ -170,6 +170,100 @@ button {
   min-width: 5rem;
 }
 
+/* "Explore the graph" (explore.js): the graph database, live in the browser. */
+.explore {
+  margin: 0 1.25rem 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-width: 0;
+}
+.explore p { max-width: 60rem; }
+.explore h2, .explore h3, .explore form { scroll-margin-top: 7rem; }
+.explore h3 { font-size: 1rem; margin: 1rem 0 0.4rem; }
+.explore h4 { font-size: 1rem; margin: 0.5rem 0 0.3rem; overflow-wrap: anywhere; }
+.explore h5 { font-size: 0.9rem; margin: 0.8rem 0 0.2rem; }
+.explore ul, .explore ol { margin: 0.2rem 0; padding-left: 1.3rem; }
+.explore li { margin: 0.15rem 0; overflow-wrap: anywhere; }
+.explore-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
+.graph-status { font-size: 0.9rem; margin: 0.5rem 0; }
+.graph-status.busy { color: var(--recorded); }
+.graph-status.ready { color: var(--active); }
+.graph-status:empty { display: none; }
+.error { color: var(--error); }
+.match { color: var(--active); }
+
+.inline-form, .path-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; }
+.inline-form input { flex: 1 1 10rem; min-width: 0; }
+.path-form input { flex: 1 1 9rem; min-width: 0; }
+.explore input, .explore textarea {
+  font: inherit;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text);
+  max-width: 100%;
+}
+.explore textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.85rem;
+}
+.explore input:focus, .explore textarea:focus, .explore button:focus-visible,
+.explore summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.hits { list-style: none; padding-left: 0; }
+.hits button, button.chip {
+  min-width: 0;
+  padding: 0.1rem 0.6rem;
+  background: var(--card);
+  color: var(--accent);
+}
+button.chip { margin: 0.1rem 0.2rem 0.1rem 0; border-radius: 999px; font-size: 0.85rem; }
+button:disabled { opacity: 0.6; cursor: progress; }
+.neighbours { margin: 0.2rem 0; }
+.path-names { margin: 0.2rem 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.explore pre {
+  margin: 0.3rem 0;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.prepared details { border-top: 1px solid var(--line); padding: 0.4rem 0; }
+.prepared summary { cursor: pointer; }
+.prepared details.stored { border: 0; }
+
+/* Result rows: a table, and on narrow screens one block per row, so nothing scrolls sideways. */
+table.rows { border-collapse: collapse; width: 100%; font-size: 0.82rem; margin: 0.3rem 0; }
+table.rows caption { text-align: left; color: var(--muted); }
+table.rows th, table.rows td {
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.35rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+table.rows th { background: var(--bg); }
+
+@media (max-width: 800px) {
+  .explore { margin: 0 0.75rem 1rem; }
+  .explore-grid { grid-template-columns: 1fr; }
+  table.rows thead { display: none; }
+  table.rows, table.rows tbody, table.rows tr, table.rows td { display: block; width: 100%; }
+  table.rows tr { border: 1px solid var(--line); margin-bottom: 0.4rem; }
+  table.rows td { border: 0; border-top: 1px solid var(--line); }
+  table.rows td::before { content: attr(data-col) ": "; color: var(--muted); }
+}
+
 footer { padding: 0.5rem 1.25rem 1.5rem; font-size: 0.85rem; max-width: 60rem; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 # Spec 13a: The knowledge graph, live in the browser
 
-Status: ready
+Status: done (the Pages branch run passed on 2026-11-19: upload succeeded, deploy skipped off main)
 Stage: 13. Showcase
 Owner: agent
 Depends on: 10, 12a

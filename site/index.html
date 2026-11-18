@@ -4,12 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="description" content="WikiPulse replays one recorded day of breaking news detected from Wikipedia's edit stream.">
   <title>WikiPulse: a recorded day (demo)</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
+  <script type="module" src="explore.js"></script>
 </head>
 <body>
   <header>
@@ -24,7 +25,8 @@
     This page replays one real day of English Wikipedia editing as WikiPulse processed it:
     pages that suddenly attracted unusual editing, grouped into events, with the people,
     organizations and places a local LLM found in them.
-    <a href="#about">How it works</a>
+    <a href="#about">How it works</a> ·
+    <a href="#explore">Explore the graph</a>, live in your browser
   </p>
 
   <section class="replay" aria-label="Replay controls">
@@ -75,7 +77,8 @@
       <section class="answers" aria-labelledby="answers-heading">
         <h2 id="answers-heading">Prepared answers</h2>
         <p class="muted">
-          Asking the knowledge graph needs the local LLM, so this static page can't. These are
+          Answering a question in plain English needs the local LLM, so this static page can't
+          (the graph itself you can query below, in "Explore the graph"). These are
           real answers from the question-answering evaluation, asked against a frozen copy of
           this day's graph and scored 0 to 2 by two LLM judges (the full set of 25 scored 48%
           fully correct). Wrong ones are included.
@@ -112,6 +115,94 @@
     </section>
   </main>
 
+  <section class="explore" id="explore" aria-labelledby="explore-heading">
+    <h2 id="explore-heading">Explore the graph</h2>
+    <p>
+      The knowledge graph of this day (frozen on 5 November 2026: people, organisations,
+      places and events, with every fact's source revision), queried live in your browser.
+      It runs on <strong>Relate</strong>, an embedded graph database that speaks Cypher,
+      compiled to WebAssembly: no server, nothing sent anywhere. Starting it downloads about
+      8 MB from this site.
+    </p>
+    <p class="muted">
+      No LLM and no embeddings run here, so there are no free-form questions: those need
+      WikiPulse's local LLM. You can run the Cypher queries the LLM wrote for the evaluation's
+      questions, and your own.
+    </p>
+    <button type="button" id="graph-start">Start the graph database</button>
+    <p id="graph-status" class="graph-status" role="status" aria-live="polite"></p>
+
+    <div id="graph-tools" hidden>
+      <div class="explore-grid">
+        <section aria-labelledby="graph-search-heading">
+          <h3 id="graph-search-heading">Find an entity</h3>
+          <form id="graph-search-form" class="inline-form">
+            <label for="graph-search">Name</label>
+            <input type="search" id="graph-search" placeholder="pena, ueno bank, newsom..." autocomplete="off">
+            <button type="submit">Search</button>
+          </form>
+          <p class="muted">Full-text search that ignores accents: "pena" finds "Peña".</p>
+          <div id="graph-search-results"></div>
+        </section>
+
+        <section aria-labelledby="path-heading">
+          <h3 id="path-heading">How are two entities connected?</h3>
+          <form id="path-form" class="path-form">
+            <label for="path-from">From</label>
+            <input type="text" id="path-from" value="Santiago Peña" autocomplete="off">
+            <label for="path-to">To</label>
+            <input type="text" id="path-to" value="Ueno Bank" autocomplete="off">
+            <button type="submit">Find connections</button>
+          </form>
+          <p class="muted">The shortest paths over relations and shared events, as WikiPulse's retrieval finds them.</p>
+          <div id="path-results" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section aria-labelledby="graph-entity-heading">
+        <h3 id="graph-entity-heading">Entity</h3>
+        <div id="graph-entity" aria-live="polite"><p class="muted">Search for an entity and pick one.</p></div>
+      </section>
+
+      <section aria-labelledby="prepared-heading">
+        <h3 id="prepared-heading">The evaluation's questions, live</h3>
+        <p class="muted">
+          For each of the 25 questions of the question-answering evaluation (run 12a), the LLM
+          wrote a Cypher query. "Run it" runs that query here and compares the rows with the
+          ones Neo4j returned; the stored answer and the judges' scores are shown with it.
+        </p>
+        <p class="actions">
+          <button type="button" id="prepared-run-all">Run all and compare</button>
+          <span id="prepared-summary" class="muted" aria-live="polite"></span>
+        </p>
+        <div id="prepared-list" class="prepared"></div>
+      </section>
+
+      <section aria-labelledby="cypher-heading">
+        <h3 id="cypher-heading">Try your own Cypher</h3>
+        <form id="cypher-form">
+          <label for="cypher-text">Query (read-only; $now, $today_start and $week_start are the graph's clock)</label>
+          <textarea id="cypher-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+          <p class="actions">
+            <button type="submit">Run</button>
+            <span class="muted">Examples:</span>
+            <button type="button" class="chip" data-example="relations">Ueno Bank's relations</button>
+            <button type="button" class="chip" data-example="busiest">Busiest entities</button>
+            <button type="button" class="chip" data-example="recent">The last hour</button>
+            <button type="button" class="chip" data-example="slow">A slow one</button>
+            <button type="button" class="chip" data-example="write">A write</button>
+          </p>
+        </form>
+        <p class="muted">
+          Queries go through the same read-only check as WikiPulse's own text-to-Cypher: no
+          writes, no procedure calls, bounded paths, at most 100 rows. A query that runs longer
+          than 5 seconds is stopped and the graph reloaded.
+        </p>
+        <div id="cypher-results" aria-live="polite"></div>
+      </section>
+    </div>
+  </section>
+
   <footer class="muted">
     <p>
       Times are event times in UTC. Page titles, short descriptions and the text the models
@@ -120,7 +211,9 @@
       fact links to its article or the exact revision. Entity identifiers come from
       <a href="https://www.wikidata.org/">Wikidata</a> (CC0). Headlines, descriptions, entities,
       relations, briefings and answers were written by local language models and can be wrong.
-      No editor names, IP addresses or edit summaries are included.
+      No editor names, IP addresses or edit summaries are included. The graph database is
+      Relate by Neo4j, under the Apache License 2.0
+      (<a href="vendor/relate/LICENSE">licence</a>).
     </p>
   </footer>
 </body>

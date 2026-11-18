@@ -1,9 +1,19 @@
 # The public demo (site/): a static page that replays one recorded day in the browser,
 # deployed to GitHub Pages. Nothing is built: site/ is uploaded as it is.
 #
-# When: a push to main that changes site/, and by hand (Actions tab, "Run workflow").
-# The data in site/data/ comes from scripts/export_demo.py, run on a laptop with the
-# stores; CI's unit tests (tests/test_demo_site.py) check its schema and privacy.
+# When: a push to main that changes site/ or what checks or ships it (the pinned Relate
+# version and licence, the Node checks and the validator's shared cases), and by hand
+# (Actions tab, "Run workflow"). Only a run on main deploys: a run on another branch
+# builds and checks the site but skips the deploy job (and the github-pages
+# environment only accepts main anyway).
+# The data in site/data/ comes from scripts/export_demo.py and scripts/export_graph.py,
+# run on a laptop with the stores; CI's unit tests (tests/test_demo_site.py,
+# tests/test_demo_graph.py) check its schema and privacy.
+#
+# Spec 13a: the graph section runs Relate (WebAssembly) in the browser. Its build is not
+# in git: scripts/vendor_relate.py downloads the pinned npm tarball and fails on any
+# integrity mismatch, which fails this workflow before anything is uploaded. Then Node
+# runs the page's database code on it (tests/js/graph_check.mjs).
 #
 # Supply chain: every action is pinned to a full commit SHA (the comment names its
 # version, as in ci.yml), and the checkout leaves no token in .git/config.
@@ -14,6 +24,10 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "scripts/vendor_relate.py"
+      - "scripts/vendor/relate-wasm-LICENSE.txt"
+      - "tests/js/**"
+      - "tests/fixtures/cypher_cases.json"
   workflow_dispatch:
 
 # Nothing by default; each job asks for what it needs.
@@ -34,6 +48,17 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      - name: Vendor Relate's WebAssembly build (pinned, integrity-checked)
+        run: python3 scripts/vendor_relate.py
+      - name: Set up Node (pinned, the version the checks were written against)
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24.21.0"
+      - name: Check the browser's code with Node (read-only check, graph database)
+        run: |
+          node --version
+          node tests/js/cypher_cases.mjs site tests/fixtures/cypher_cases.json
+          node tests/js/graph_check.mjs site
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Upload site/
@@ -43,6 +68,8 @@ jobs:
 
   deploy:
     needs: upload
+    # Publishing is for main only; a branch run stops after the checks and the upload.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write # publish the artifact

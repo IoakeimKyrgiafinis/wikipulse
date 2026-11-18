@@ -13,7 +13,11 @@ runs on a laptop, for free.
 
 **Live demo:** [ioakeimkyrgiafinis.github.io/wikipulse](https://ioakeimkyrgiafinis.github.io/wikipulse/)
 replays the recorded 5 November 2026 in your browser (a static page from `site/`, no
-server; see `scripts/export_demo.py`).
+server; see `scripts/export_demo.py`). Its "Explore the graph" section runs that day's
+knowledge graph live in the browser, on Relate compiled to WebAssembly: search, entity
+views, how two entities are connected, the evaluation's LLM-written Cypher run and
+compared with Neo4j's answers, and your own read-only Cypher
+([13a](docs/learning/13a-graph-in-the-browser.md)).
 
 ![The live page while the quickstart replays 5 November 2026](docs/images/quickstart.gif)
 
@@ -312,6 +316,6 @@ Blog drafts built from the notes: [docs/blog/](docs/blog/).
 | `tests/` | Unit tests (no network, no Docker) and `integration`/`live` tests (opt in) |
 | `evals/` | Evaluation results, labels and the CI gate's baseline |
 | `demo/sample/` | The quickstart's recording |
-| `site/` | The static GitHub Pages demo: one recorded day replayed in the browser (`scripts/export_demo.py` writes its data) |
+| `site/` | The static GitHub Pages demo: one recorded day replayed in the browser, and its knowledge graph queried live on Relate (WebAssembly) (`scripts/export_demo.py` and `scripts/export_graph.py` write its data; `scripts/vendor_relate.py` fetches the pinned Relate build) |
 | `charts/`, `k8s/`, `infra/`, `observability/`, `dags/`, `docker/` | Helm chart, raw manifests, Terraform, dashboards and alerts, Airflow DAGs, service images |
 | `docs/` | Roadmap, specs, reviews, learning notes, architecture, usage, blog drafts |

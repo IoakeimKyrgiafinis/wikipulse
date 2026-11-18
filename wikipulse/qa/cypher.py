@@ -3,10 +3,10 @@
 A generated query is untrusted input. Three layers keep it harmless:
 
 1. `validate_cypher()` (here) rejects anything that is not a single read query: write
-   and admin clauses (CREATE, MERGE, SET, DELETE, CALL, LOAD CSV, ...), several
-   statements, and paths without an upper bound of at most `MAX_HOPS` (`-[*]-`,
-   `-[*2..]-`, quantified patterns such as `-[:R]-+`, `-->*` or `{1,}`, and so any
-   SHORTEST search without a bound). A "+" or "*" after a group without any
+   and admin clauses (CREATE, MERGE, SET, DELETE, CALL, LOAD CSV, GQL's INSERT, ...),
+   several statements (";" or GQL's NEXT), and paths without an upper bound of at
+   most `MAX_HOPS` (`-[*]-`, `-[*2..]-`, quantified patterns such as `-[:R]-+`, `-->*`
+   or `{1,}`, and so any SHORTEST search without a bound). A "+" or "*" after a group without any
    relationship, as in `date($today_start) + duration({days: 1})`, is arithmetic and
    allowed. It also forces a result limit on every branch of a UNION: a missing LIMIT
    is added, a larger one lowered.
@@ -38,8 +38,13 @@ MAX_HOPS = 6  # longest path pattern allowed, e.g. -[*1..6]- or -[:R]-{1,6}
 
 # Clauses that write, call procedures, or administer the database. CALL is refused as a
 # whole: procedures can write, and CALL { ... } IN TRANSACTIONS is a write tool too.
+# GQL, the ISO standard Cypher is converging on, adds INSERT (a CREATE), NODETACH DELETE
+# and NEXT (which chains a second statement onto the first). Neo4j's newer Cypher and
+# Relate, the browser demo's engine (spec 13a), accept them, so they are refused too.
+# GQL's read-only additions (LET, FILTER, FOR, FINISH) stay allowed.
 FORBIDDEN_WORDS = (
     "CREATE",
+    "INSERT",
     "MERGE",
     "DELETE",
     "DETACH",
@@ -60,6 +65,8 @@ FORBIDDEN_WORDS = (
     "STOP",
     "ENABLE",
     "RENAME",
+    "NODETACH",
+    "NEXT",
 )
 READ_STARTS = ("MATCH", "OPTIONAL", "WITH", "UNWIND", "RETURN")
 
@@ -221,7 +228,8 @@ def _limit_branch(text: str, masked: str, max_rows: int) -> str:
     last = limits[-1] if limits else None
     if last is not None and not _CLAUSE.search(masked[last.end() :]):
         value = masked[last.end() :].strip()
-        if value.isdigit() and int(value) <= max_rows:
+        # isdecimal, not isdigit: int() can't read a digit like "²" that isdigit accepts.
+        if value.isdecimal() and int(value) <= max_rows:
             return text
         trailing = text[len(text.rstrip()) :]
         return text[: last.start()] + f"LIMIT {max_rows}" + trailing

@@ -22,7 +22,21 @@ export_demo = importlib.util.module_from_spec(spec)
 sys.modules["export_demo"] = export_demo
 spec.loader.exec_module(export_demo)
 
+VENDOR_SCRIPT = ROOT / "scripts" / "vendor_relate.py"
+vendor_spec = importlib.util.spec_from_file_location("vendor_relate", VENDOR_SCRIPT)
+assert vendor_spec is not None and vendor_spec.loader is not None
+vendor_relate = importlib.util.module_from_spec(vendor_spec)
+sys.modules["vendor_relate"] = vendor_relate
+vendor_spec.loader.exec_module(vendor_relate)
+
+# Committed files under site/ (spec 10's cap). The vendored Relate build in site/vendor/
+# (git-ignored, written by scripts/vendor_relate.py) has its own limit,
+# vendor_relate.MAX_VENDOR_BYTES, and is only downloaded when the visitor opens the
+# graph section.
 MAX_SITE_BYTES = 3 * 1024 * 1024
+VENDOR = SITE / "vendor"
+# The page's own scripts (the vendored ones are checked by their pinned hashes).
+SCRIPTS = sorted(SITE.glob("*.js"))
 # Keys that would hold something about a person who edited, or the edit itself.
 PERSONAL_KEYS = {
     "user",
@@ -134,9 +148,27 @@ def test_answers_and_briefings_cite_wikipedia_revisions(day) -> None:
         assert answer["correctness"], f"{answer['id']} has no judge scores"
 
 
-def test_the_whole_site_is_small() -> None:
-    size = sum(f.stat().st_size for f in SITE.rglob("*") if f.is_file())
-    assert size < MAX_SITE_BYTES, f"site/ is {size / 1e6:.1f} MB"
+def committed_files() -> list[Path]:
+    return [f for f in SITE.rglob("*") if f.is_file() and VENDOR not in f.parents]
+
+
+def test_the_committed_site_is_small() -> None:
+    size = sum(f.stat().st_size for f in committed_files())
+    assert size < MAX_SITE_BYTES, f"site/ without vendor/ is {size / 1e6:.1f} MB"
+
+
+def test_the_vendored_files_stay_under_their_own_limit() -> None:
+    """Pinned by hash, so their size is fixed; checked here when they are present."""
+    if not VENDOR.exists():
+        pytest.skip("site/vendor/ not vendored here (python scripts/vendor_relate.py)")
+    assert vendor_relate.problems() == []
+    size = vendor_relate.vendored_bytes()
+    assert size < vendor_relate.MAX_VENDOR_BYTES, f"site/vendor/ is {size / 1e6:.1f} MB"
+
+
+def test_the_vendored_files_are_never_committed() -> None:
+    ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "site/vendor/" in ignore
 
 
 # --- Privacy --------------------------------------------------------------------------------
@@ -251,16 +283,30 @@ def test_the_page_declares_a_same_origin_content_security_policy() -> None:
     assert "default-src 'none'" in policy
     for directive in ("script-src", "style-src", "connect-src", "img-src"):
         assert f"{directive} 'self'" in policy
-    assert "http" not in policy and "*" not in policy and "unsafe" not in policy
+    # Spec 13a: WebAssembly needs 'wasm-unsafe-eval' in script-src, and nothing else
+    # is loosened (no 'unsafe-eval', no 'unsafe-inline', no other origin).
+    directives = dict(d.strip().split(" ", 1) for d in policy.split(";") if d.strip())
+    assert directives["script-src"] == "'self' 'wasm-unsafe-eval'"
+    rest = policy.replace("'wasm-unsafe-eval'", "")
+    assert "http" not in rest and "*" not in rest and "unsafe" not in rest
+    assert "worker-src" not in policy  # workers fall back to script-src 'self'
 
 
 def test_scripts_and_styles_reach_no_other_origin() -> None:
-    script = (SITE / "app.js").read_text(encoding="utf-8")
-    for url in absolute_urls(script):
-        assert url.startswith(LINK_PREFIXES) or url == SVG_NAMESPACE, url
-    for call in LOADING_CALL.findall(script):
-        assert "http" not in call and "//" not in call, call
-    assert 'DATA_URL = "data/day.json"' in script  # relative: works under /wikipulse/
+    assert {s.name for s in SCRIPTS} >= {"app.js", "explore.js", "graph-worker.js"}
+    for path in SCRIPTS:
+        script = path.read_text(encoding="utf-8")
+        for url in absolute_urls(script):
+            assert url.startswith(LINK_PREFIXES) or url == SVG_NAMESPACE, (path.name, url)
+        for call in LOADING_CALL.findall(script):
+            assert "http" not in call and "//" not in call, (path.name, call)
+        for source in re.findall(r"^import .* from \"([^\"]+)\"", script, re.MULTILINE):
+            assert source.startswith("./"), (path.name, source)
+    app = (SITE / "app.js").read_text(encoding="utf-8")
+    assert 'DATA_URL = "data/day.json"' in app  # relative: works under /wikipulse/
+    worker = (SITE / "graph-worker.js").read_text(encoding="utf-8")
+    assert 'GRAPH_URL = "data/graph.json"' in worker
+    assert 'from "./vendor/relate/relate.js"' in worker  # the .wasm comes from this site
     for css in SITE.rglob("*.css"):
         text = css.read_text(encoding="utf-8")
         assert "url(" not in text and "@import" not in text, css
@@ -273,4 +319,24 @@ def test_scripts_and_styles_reach_no_other_origin() -> None:
 def test_the_site_needs_no_build_step() -> None:
     names = {f.name for f in SITE.rglob("*") if f.is_file()}
     assert {"index.html", "app.js", "style.css", "day.json"} <= names
+    assert {"explore.js", "graph-worker.js", "graph-db.js", "cypher-check.js"} <= names
+    assert "graph.json" in names
     assert not names & {"package.json", "package-lock.json", "node_modules"}
+
+
+def test_the_replay_does_not_load_the_database() -> None:
+    """Only the graph section's button starts the worker, which alone loads Relate."""
+    html = (SITE / "index.html").read_text(encoding="utf-8")
+    assert "vendor/" not in re.sub(r'<a href="vendor/relate/LICENSE">', "", html)
+    assert "graph-worker" not in html and ".wasm" not in html and "graph.json" not in html
+    app = (SITE / "app.js").read_text(encoding="utf-8")
+    assert "Worker" not in app and "graph" not in re.findall(r"fetch\(([^)]*)\)", app)[0]
+    for path in SCRIPTS:
+        text = re.sub(r"^\s*//.*$", "", path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+        if path.name != "graph-worker.js":
+            assert "vendor/relate" not in text and "graph.json" not in text, path.name
+    explore = (SITE / "explore.js").read_text(encoding="utf-8")
+    assert explore.count("new Worker(") == 1
+    start = explore.index("async start()")
+    assert explore.index("new Worker(") > start  # created in start(), never at load
+    assert '$("graph-start").addEventListener("click", openExplorer)' in explore
