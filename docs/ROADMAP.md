@@ -20,6 +20,7 @@ A live system that detects breaking news from Wikipedia's edit stream, builds a 
 | 10. Polish | Cleanup, one-command setup | A stranger can run it and understand it |
 | 11. Model quality | Skew fix, fresh labels in retraining, vandalism signal | Classifier trained the way it serves; precision up on the gate |
 | 12. AI quality | Better Cypher, judge audit, fine-tuned extractor | Numbers checked against human labels; failures down |
+| 13. Showcase | The knowledge graph live in the browser (Relate by Neo4j, WebAssembly) | Visitors query the real graph on the public demo, with no server |
 
 Your 16 GB laptop won't run every component at once, and doesn't need to: each stage can be run and demonstrated on its own.
 
@@ -33,7 +34,7 @@ While it runs, read the learning notes as they appear. That's where you learn th
 
 ## Specs
 
-**The roadmap is finished (16 November 2026).** Every spec is done except two: 11c's vandalism rule is built but kept off by the owner's decision, and 12c is deferred by the owner (optional, needs a usable GPU). The follow-ups below are known improvements, not missing pieces. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
+**The roadmap is finished (16 November 2026).** Every spec is done except two: 11c's vandalism rule is built but kept off by the owner's decision, and 12c is deferred by the owner (optional, needs a usable GPU). The follow-ups below are known improvements, not missing pieces. Stage 13 is an optional showcase added afterwards. Agents adapt later specs to what earlier stages actually built and record any deviations in the learning notes. Each spec has a "What you'll learn" section.
 
 | # | Spec | Status |
 |---|---|---|
@@ -70,6 +71,7 @@ While it runs, read the learning notes as they appear. That's where you learn th
 | 12a | Better Cypher generation for question answering | done |
 | 12b | Audit the LLM labelers and judges against human labels (needs 50+ human spike labels) | done |
 | 12c | Fine-tune a small extraction model | deferred (owner decision; optional) |
+| 13a | The knowledge graph, live in the browser | ready |
 
 ## Follow-ups
 
