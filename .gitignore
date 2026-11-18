@@ -21,3 +21,5 @@ crash.*.log
 *.tfplan
 # A kubeconfig the kind provider writes when kubeconfig_path is not set (client key).
 infra/cluster/*-config
+# The Relate WebAssembly build, vendored by scripts/vendor_relate.py (spec 13a): never committed.
+site/vendor/
