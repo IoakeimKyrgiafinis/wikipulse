@@ -174,7 +174,13 @@ def test_workflow_tokens_have_the_least_permissions() -> None:
 
 def test_the_demo_deploys_from_main_with_only_the_pages_permissions() -> None:
     flow = workflow("pages.yml")
-    paths = ["site/**", "scripts/vendor_relate.py"]
+    paths = [
+        "site/**",
+        "scripts/vendor_relate.py",
+        "scripts/vendor/relate-wasm-LICENSE.txt",
+        "tests/js/**",
+        "tests/fixtures/cypher_cases.json",
+    ]
     assert flow["on"]["push"] == {"branches": ["main"], "paths": paths}
     assert "workflow_dispatch" in flow["on"]
     # A run by hand on another branch never publishes (spec 13a).
@@ -188,6 +194,14 @@ def test_the_demo_deploys_from_main_with_only_the_pages_permissions() -> None:
         if "upload-pages" in s.get("uses", "")
     )
     assert vendor < check < upload_at  # verified and checked before anything is uploaded
+    # The checks run on a pinned Node, not whatever the runner happens to have.
+    node = next(
+        i
+        for i, s in enumerate(flow["jobs"]["upload"]["steps"])
+        if s.get("uses", "").startswith("actions/setup-node@")
+    )
+    version = flow["jobs"]["upload"]["steps"][node]["with"]["node-version"]
+    assert node < check and re.fullmatch(r"\d+\.\d+\.\d+", version)
     assert flow["permissions"] == {}
     granted = {name: job["permissions"] for name, job in flow["jobs"].items()}
     assert granted == {

@@ -21,7 +21,7 @@ Supply chain:
   paths), into `site/vendor/relate/`, which is git-ignored: the binary never enters git.
 - **Licence:** the package is Apache-2.0 but ships no LICENSE file, so the licence text
   (`scripts/vendor/relate-wasm-LICENSE.txt`, from the same project's `relate-db` wheel)
-  is copied next to the files it covers.
+  is copied next to the files it covers, and checked by its SHA-256 like the others.
 
 Standard library only, so the Pages workflow runs it with the runner's own Python,
 without installing the project. Nothing here talks to Wikimedia.
@@ -71,6 +71,9 @@ FILES = {
     ),
 }
 LICENSE_NAME = "LICENSE"
+# SHA-256 of that licence text (LF line endings): byte for byte the LICENSE of the
+# relate_db-1.1.0 wheel apart from its line endings ("Copyright 2026 The Relate Authors").
+LICENSE_SHA256 = "ac87d12e27d69f09130a7b4178e48e995ab131e4b476aa188e58ffac7ed7fab3"
 # What the vendored files may add to the site (tests/test_demo_site.py checks it too).
 MAX_VENDOR_BYTES = 8 * 1024 * 1024
 MAX_TARBALL_BYTES = 16 * 1024 * 1024
@@ -132,8 +135,11 @@ def problems(target: Path = VENDOR_DIR, files: dict = FILES) -> list[str]:
             found.append(f"missing {relative}")
         elif sha256(path.read_bytes()) != digest:
             found.append(f"{relative} differs from the pinned file")
-    if not (target / LICENSE_NAME).is_file():
+    licence = target / LICENSE_NAME
+    if not licence.is_file():
         found.append(f"missing {LICENSE_NAME}")
+    elif sha256(licence.read_bytes()) != LICENSE_SHA256:
+        found.append(f"{LICENSE_NAME} differs from the pinned licence text")
     return found
 
 

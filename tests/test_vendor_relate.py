@@ -68,9 +68,18 @@ def test_problems_list_what_is_missing_or_changed(tmp_path: Path) -> None:
     assert "missing a.js" in vendor_relate.problems(tmp_path, files)
     (tmp_path / "a.js").write_bytes(b"2")
     (tmp_path / "LICENSE").write_text("Apache", encoding="utf-8")
-    assert vendor_relate.problems(tmp_path, files) == ["a.js differs from the pinned file"]
+    assert vendor_relate.problems(tmp_path, files) == [
+        "a.js differs from the pinned file",
+        "LICENSE differs from the pinned licence text",
+    ]
     (tmp_path / "a.js").write_bytes(b"1")
+    (tmp_path / "LICENSE").write_bytes(vendor_relate.LICENSE_SOURCE.read_bytes())
     assert vendor_relate.problems(tmp_path, files) == []
+
+
+def test_the_committed_licence_is_the_pinned_text() -> None:
+    licence = vendor_relate.LICENSE_SOURCE.read_bytes()
+    assert vendor_relate.sha256(licence) == vendor_relate.LICENSE_SHA256
 
 
 def test_check_mode_never_downloads(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

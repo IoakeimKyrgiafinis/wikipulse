@@ -1,7 +1,8 @@
 # The public demo (site/): a static page that replays one recorded day in the browser,
 # deployed to GitHub Pages. Nothing is built: site/ is uploaded as it is.
 #
-# When: a push to main that changes site/ (or the pinned Relate version), and by hand
+# When: a push to main that changes site/ or what checks or ships it (the pinned Relate
+# version and licence, the Node checks and the validator's shared cases), and by hand
 # (Actions tab, "Run workflow"). Only a run on main deploys: a run on another branch
 # builds and checks the site but skips the deploy job (and the github-pages
 # environment only accepts main anyway).
@@ -24,6 +25,9 @@ on:
     paths:
       - "site/**"
       - "scripts/vendor_relate.py"
+      - "scripts/vendor/relate-wasm-LICENSE.txt"
+      - "tests/js/**"
+      - "tests/fixtures/cypher_cases.json"
   workflow_dispatch:
 
 # Nothing by default; each job asks for what it needs.
@@ -46,6 +50,10 @@ jobs:
           persist-credentials: false
       - name: Vendor Relate's WebAssembly build (pinned, integrity-checked)
         run: python3 scripts/vendor_relate.py
+      - name: Set up Node (pinned, the version the checks were written against)
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24.21.0"
       - name: Check the browser's code with Node (read-only check, graph database)
         run: |
           node --version
