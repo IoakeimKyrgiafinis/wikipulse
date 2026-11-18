@@ -15,9 +15,6 @@ What it reads, all of it read-only:
 - **Neo4j**: for the events the graph extraction (04b) processed, the headline and
   description, the revision of each page the model read, the entities with their
   Wikidata ids, the relations, and the analyst's briefing (05d) where one exists.
-- **The question-answering evaluation (05b)**: a few real answers, with the judges'
-  scores, from `evals/results/<date>_05b-v1.json` and the cited revisions from
-  `data/qa_eval/05b-v1/answers.jsonl`. Skipped if that file is missing.
 
 Privacy: the export names every field it writes (the pydantic models below, with
 `extra="forbid"`), and none of them holds an editor, an IP address, an edit summary or
@@ -47,14 +44,9 @@ from wikipulse.logging_setup import setup_logging  # noqa: E402
 logger = logging.getLogger("export_demo")
 
 OUT_FILE = ROOT / "site" / "data" / "day.json"
-QA_RESULTS = ROOT / "evals" / "results" / "2026-11-08_05b-v1.json"
-QA_ANSWERS = ROOT / "data" / "qa_eval" / "05b-v1" / "answers.jsonl"
 SCHEMA_VERSION = 1
 WIKIPEDIA_PAGE = "https://en.wikipedia.org/wiki/"
 SOURCES_HEADER = "\n\nSources:\n"
-# Real answers of the 05b evaluation shown as prepared examples: six the judges scored
-# fully correct and two they scored wrong, so the demo shows both sides.
-ANSWER_IDS = ("q07", "q11", "q12", "q14", "q18", "q22", "q19", "q24")
 
 
 def utc_text(moment: datetime) -> str:
@@ -131,17 +123,6 @@ class DemoEvent(Strict):
     briefing: DemoBriefing | None = None
 
 
-class DemoAnswer(Strict):
-    id: str
-    question: str
-    answer: str
-    sources: list[DemoSource]
-    notes: list[str] = Field(default_factory=list)
-    model: str | None = None
-    seconds: float | None = None
-    correctness: dict[str, float] = Field(description="Judge model -> score 0 to 2.")
-
-
 class DemoDay(Strict):
     schema_version: int
     day: date
@@ -154,7 +135,6 @@ class DemoDay(Strict):
     extraction_model: str | None = None
     counts: dict[str, int]
     events: list[DemoEvent]
-    answers: list[DemoAnswer] = Field(default_factory=list)
 
 
 # --- Reading Postgres ---------------------------------------------------------------------
@@ -340,48 +320,11 @@ def build_event(
     )
 
 
-def parse_citation(text: str) -> DemoSource:
-    """'Ueno Bank, revision 1383953174' -> a source with a permanent link."""
-    title, sep, revision = text.rpartition(", revision ")
-    if sep and revision.isdigit():
-        url = f"https://en.wikipedia.org/w/index.php?oldid={revision}"
-        return DemoSource(title=title, url=url, revision=int(revision))
-    return DemoSource(title=text)
-
-
-def build_answers(
-    results: Mapping[str, Any], answers: Iterable[Mapping[str, Any]], ids: Sequence[str]
-) -> list[DemoAnswer]:
-    """The chosen questions of the 05b report, with their answers' cited revisions."""
-    scores = {q["id"]: q.get("correctness") or {} for q in results["questions"]}
-    chosen = {a["question_id"]: a for a in answers if a["question_id"] in ids}
-    out = []
-    for qid in ids:
-        answer = chosen.get(qid)
-        if answer is None:
-            logger.warning("Answer %s is not in the answers file; left out", qid)
-            continue
-        out.append(
-            DemoAnswer(
-                id=qid,
-                question=answer["question"],
-                answer=answer["text"],
-                sources=[parse_citation(c) for c in answer.get("citations", [])],
-                notes=list(answer.get("notes", [])),
-                model=answer.get("model"),
-                seconds=(answer.get("seconds") or {}).get("total"),
-                correctness={k: float(v) for k, v in scores.get(qid, {}).items()},
-            )
-        )
-    return out
-
-
 def build_day(
     day: date,
     run_id: str,
     pg: Mapping[str, Any],
     graph: Mapping[str, Any],
-    answers: list[DemoAnswer],
 ) -> DemoDay:
     """The whole export from what was read."""
     start = datetime.combine(day, time(), tzinfo=UTC)
@@ -420,7 +363,6 @@ def build_day(
             "briefings": sum(1 for e in events if e.briefing),
         },
         events=events,
-        answers=answers,
     )
 
 
@@ -430,22 +372,11 @@ def to_json(export: DemoDay) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
 
 
-def read_answers(ids: Sequence[str]) -> list[DemoAnswer]:
-    """The prepared answers, or none if the 05b files are not on this machine."""
-    if not QA_RESULTS.exists() or not QA_ANSWERS.exists():
-        logger.warning("No 05b answers found (%s); exporting none", QA_ANSWERS)
-        return []
-    results = json.loads(QA_RESULTS.read_text(encoding="utf-8"))
-    lines = QA_ANSWERS.read_text(encoding="utf-8").splitlines()
-    return build_answers(results, (json.loads(line) for line in lines if line.strip()), ids)
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--run-id", default="03b-default-fix", help="Grouping run to export.")
     parser.add_argument("--day", default="2026-11-05", help="The day (UTC), YYYY-MM-DD.")
     parser.add_argument("--out", type=Path, default=OUT_FILE)
-    parser.add_argument("--no-answers", action="store_true", help="Leave out the 05b answers.")
     return parser.parse_args(argv)
 
 
@@ -462,17 +393,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     password = settings.neo4j_password.get_secret_value()
     graph = read_graph(settings.neo4j_uri, settings.neo4j_user, password, args.run_id)
-    answers = [] if args.no_answers else read_answers(ANSWER_IDS)
-    export = build_day(day, args.run_id, pg, graph, answers)
+    export = build_day(day, args.run_id, pg, graph)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     text = to_json(export)
     args.out.write_text(text, encoding="utf-8", newline="\n")
     logger.info(
-        "Wrote %s (%.0f KB): %s, %d answers",
+        "Wrote %s (%.0f KB): %s",
         args.out,
         len(text.encode("utf-8")) / 1024,
         export.counts,
-        len(export.answers),
     )
     return 0
 
