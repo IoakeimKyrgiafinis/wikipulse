@@ -122,7 +122,7 @@ a { color: var(--accent); }
 .badge.bad { color: var(--error); border-color: var(--error); }
 
 .side { display: grid; gap: 1rem; min-width: 0; }
-.detail, .answers, .about {
+.detail, .about {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -157,9 +157,6 @@ a { color: var(--accent); }
 .legend .place::before { color: #1a7f37; }
 .legend .event::before { color: #b45309; }
 .legend .other::before { color: #6b6b66; }
-
-.answers details { border-top: 1px solid var(--line); padding: 0.4rem 0; }
-.answers summary { cursor: pointer; }
 
 button {
   font: inherit;

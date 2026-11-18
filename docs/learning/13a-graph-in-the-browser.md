@@ -408,6 +408,15 @@ The owner's feedback on the live page led to two changes:
   read-only check. The check, the row cap and the 5 s limit still apply and still explain
   themselves when they act (a refused query, a stopped one). The Entity box is hidden until
   an entity is picked.
+- **The "Prepared answers" box is gone** from the replay's side column. It came with
+  the first demo (spec 10, eight stored answers of the 05b evaluation), when the page had
+  no database; the 25 "Example questions" of Explore the graph now show the same kind of
+  thing, newer and runnable. `scripts/export_demo.py` no longer exports answers, and the
+  committed `site/data/day.json` lost only its `answers` field (removed in place, checked
+  to be otherwise identical, so no re-export from Postgres and Neo4j was needed).
+- **The event list shows the 6 latest events** before "Show more" (`FIRST_CARDS` in
+  `site/app.js`), on every screen width. Fitting it to the side column's height was tried
+  first; a fixed number is simpler and what the owner asked for.
 
 ## Questions to test your understanding
 

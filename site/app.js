@@ -17,7 +17,7 @@
 const DATA_URL = "data/day.json";
 const START_AT = 16 * 3600; // the replay starts at 16:00 UTC, when the graph data begins
 const MAX_CARDS = 200; // most cards drawn at once
-const PHONE_CARDS = 8; // cards shown before "Show more" when the columns stack
+const FIRST_CARDS = 6; // latest events shown before "Show more"
 const MORE_CARDS = 20; // cards each "Show more" adds
 const NEW_S = 20 * 60; // an event is "new" for 20 minutes of event time
 const FLASH_MS = 1500;
@@ -36,7 +36,7 @@ const state = {
   selected: null,
   signatures: new Map(), // event number -> what the card showed last time
   detailSignature: "",
-  extraCards: 0, // cards shown beyond what fits next to the side column ("Show more")
+  extraCards: 0, // cards shown beyond the first ones ("Show more")
 };
 
 const $ = (id) => document.getElementById(id);
@@ -256,19 +256,11 @@ function renderList(force = false, flash = false) {
   fitList();
 }
 
-// The list stops where the side column (event, prepared answers, about) ends, so it doesn't
-// stretch the page; older cards hide behind "Show more". With stacked columns (phones) a
-// fixed number shows instead.
+// The 6 latest events show; older cards hide behind "Show more", so the list doesn't
+// stretch the page.
 function fitList() {
   const cards = [...$("event-list").children];
-  for (const card of cards) card.hidden = false;
-  let fit = PHONE_CARDS;
-  if (!window.matchMedia("(max-width: 800px)").matches) {
-    const bottom = document.querySelector("main .side").getBoundingClientRect().bottom;
-    const room = bottom - $("events-fold").offsetHeight - 8;
-    fit = Math.max(3, cards.filter((card) => card.getBoundingClientRect().bottom <= room).length);
-  }
-  const shown = Math.min(cards.length, fit + state.extraCards);
+  const shown = Math.min(cards.length, FIRST_CARDS + state.extraCards);
   cards.forEach((card, i) => {
     card.hidden = i >= shown && card.dataset.id !== String(state.selected);
   });
@@ -311,7 +303,6 @@ function renderDetail() {
   if (sig === state.detailSignature) return;
   state.detailSignature = sig;
   $("detail").replaceChildren(...detailNodes(ev, view));
-  fitList(); // the side column changed height
 }
 
 function detailNodes(ev, view) {
@@ -487,46 +478,6 @@ function graphNode(ev) {
   return el("div", {}, drawing, legend);
 }
 
-// --- Prepared answers ----------------------------------------------------------------------
-function renderAnswers(answers) {
-  const box = $("answer-list");
-  if (!answers.length) {
-    box.replaceChildren(el("p", { class: "muted" }, "None in this export."));
-    return;
-  }
-  box.replaceChildren(
-    ...answers.map((a) => {
-      const scores = Object.entries(a.correctness);
-      const correct = scores.length && scores.every(([, s]) => s >= 2);
-      const wrong = scores.length && scores.every(([, s]) => s <= 0);
-      const verdict = correct ? "correct" : wrong ? "wrong" : "partly";
-      const judged = scores.map(([judge, s]) => `${judge.replace("ollama:", "")} ${s}/2`).join(", ");
-      const nodes = [cited(a.answer, a.sources, "answer-text")];
-      if (a.sources.length) nodes.push(sourceList(a.sources));
-      nodes.push(
-        el(
-          "p",
-          { class: "muted" },
-          `Answered by ${a.model ? a.model.replace("ollama:", "") : "no model (nothing retrieved)"}` +
-            (a.seconds ? ` in ${a.seconds.toFixed(1)} s` : "") +
-            `. Judges: ${judged}.`,
-        ),
-      );
-      return el(
-        "details",
-        {},
-        el(
-          "summary",
-          {},
-          el("span", { class: `badge ${correct ? "good" : wrong ? "bad" : ""}` }, verdict),
-          a.question,
-        ),
-        ...nodes,
-      );
-    }),
-  );
-}
-
 // --- The clock -----------------------------------------------------------------------------
 function setTime(seconds, flash = false) {
   state.t = Math.max(0, Math.min(seconds, 86400));
@@ -590,7 +541,6 @@ async function start() {
   $("loading").hidden = true;
   state.events = prepare(state.day);
   describeData(state.day);
-  renderAnswers(state.day.answers || []);
 
   $("play").addEventListener("click", () => {
     if (!state.playing && state.t >= 86400) setTime(0);
@@ -602,9 +552,6 @@ async function start() {
   $("scrubber").addEventListener("input", (e) => setTime(Number(e.target.value)));
   $("events-show-more").addEventListener("click", () => showMoreCards(true));
   $("events-show-fewer").addEventListener("click", () => showMoreCards(false));
-  // The side column grows and shrinks (a picked event, the answers): refit the list.
-  new ResizeObserver(() => fitList()).observe(document.querySelector("main .side"));
-  window.addEventListener("resize", () => fitList());
   document.addEventListener("keydown", (e) => {
     const typing = ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(e.target.tagName);
     if (e.key === " " && !typing && !e.target.classList.contains("card")) {

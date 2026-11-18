@@ -137,15 +137,12 @@ def test_every_event_is_replayable(day) -> None:
             assert event["headline"], f"facts without a headline in {event['number']}"
 
 
-def test_answers_and_briefings_cite_wikipedia_revisions(day) -> None:
-    sources = [s for a in day["answers"] for s in a["sources"]]
-    sources += [s for e in day["events"] if e["briefing"] for s in e["briefing"]["sources"]]
+def test_briefings_cite_wikipedia_revisions(day) -> None:
+    sources = [s for e in day["events"] if e["briefing"] for s in e["briefing"]["sources"]]
     for source in sources:
         if source["url"] is not None:
             assert source["url"].startswith("https://en.wikipedia.org/w/index.php?oldid=")
             assert source["url"].endswith(f"oldid={source['revision']}")
-    for answer in day["answers"]:
-        assert answer["correctness"], f"{answer['id']} has no judge scores"
 
 
 def committed_files() -> list[Path]:
@@ -214,7 +211,7 @@ def test_the_export_keeps_only_declared_columns() -> None:
     }
     pg = {"events": [row], "members": [member], "model": None}
     graph = {"events": [], "entities": [], "relations": []}
-    export = export_demo.build_day(moment.date(), "run", pg, graph, [])
+    export = export_demo.build_day(moment.date(), "run", pg, graph)
     text = export_demo.to_json(export)
     for leaked in ("Someone", "an edit summary", "abc", '"user"', '"comment"'):
         assert leaked not in text
@@ -253,14 +250,6 @@ def test_a_briefing_is_split_from_its_sources() -> None:
     assert export_demo.build_briefing({"briefing": None}) is None
 
 
-def test_citations_become_permanent_links() -> None:
-    source = export_demo.parse_citation("Ueno Bank, revision 1383953174")
-    assert source.title == "Ueno Bank" and source.revision == 1383953174
-    assert source.url == "https://en.wikipedia.org/w/index.php?oldid=1383953174"
-    assert export_demo.parse_citation("Something else").url is None
-
-
-# --- No external origins --------------------------------------------------------------------
 def absolute_urls(text: str) -> list[str]:
     return re.findall(r"(?:https?:)?//[^\s\"'`)<>]+", text)
 
