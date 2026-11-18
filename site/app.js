@@ -17,6 +17,8 @@
 const DATA_URL = "data/day.json";
 const START_AT = 16 * 3600; // the replay starts at 16:00 UTC, when the graph data begins
 const MAX_CARDS = 200; // most cards drawn at once
+const PHONE_CARDS = 8; // cards shown before "Show more" when the columns stack
+const MORE_CARDS = 20; // cards each "Show more" adds
 const NEW_S = 20 * 60; // an event is "new" for 20 minutes of event time
 const FLASH_MS = 1500;
 const MAX_GRAPH_NODES = 14;
@@ -34,6 +36,7 @@ const state = {
   selected: null,
   signatures: new Map(), // event number -> what the card showed last time
   detailSignature: "",
+  extraCards: 0, // cards shown beyond what fits next to the side column ("Show more")
 };
 
 const $ = (id) => document.getElementById(id);
@@ -250,6 +253,36 @@ function renderList(force = false, flash = false) {
     }
   }
   if (state.selected !== null) renderDetail();
+  fitList();
+}
+
+// The list stops where the side column (event, prepared answers, about) ends, so it doesn't
+// stretch the page; older cards hide behind "Show more". With stacked columns (phones) a
+// fixed number shows instead.
+function fitList() {
+  const cards = [...$("event-list").children];
+  for (const card of cards) card.hidden = false;
+  let fit = PHONE_CARDS;
+  if (!window.matchMedia("(max-width: 800px)").matches) {
+    const bottom = document.querySelector("main .side").getBoundingClientRect().bottom;
+    const room = bottom - $("events-fold").offsetHeight - 8;
+    fit = Math.max(3, cards.filter((card) => card.getBoundingClientRect().bottom <= room).length);
+  }
+  const shown = Math.min(cards.length, fit + state.extraCards);
+  cards.forEach((card, i) => {
+    card.hidden = i >= shown && card.dataset.id !== String(state.selected);
+  });
+  const hiddenCount = cards.filter((card) => card.hidden).length;
+  $("events-fold").hidden = hiddenCount === 0 && state.extraCards === 0;
+  $("events-show-more").hidden = hiddenCount === 0;
+  $("events-show-more").textContent = `Show more (${hiddenCount} older)`;
+  $("events-show-fewer").hidden = state.extraCards === 0;
+}
+
+function showMoreCards(more) {
+  state.extraCards = more ? state.extraCards + MORE_CARDS : 0;
+  fitList();
+  if (!more) $("events-heading").scrollIntoView({ block: "nearest" });
 }
 
 function updateProgress(views) {
@@ -278,6 +311,7 @@ function renderDetail() {
   if (sig === state.detailSignature) return;
   state.detailSignature = sig;
   $("detail").replaceChildren(...detailNodes(ev, view));
+  fitList(); // the side column changed height
 }
 
 function detailNodes(ev, view) {
@@ -566,6 +600,11 @@ async function start() {
     state.speed = Number(e.target.value);
   });
   $("scrubber").addEventListener("input", (e) => setTime(Number(e.target.value)));
+  $("events-show-more").addEventListener("click", () => showMoreCards(true));
+  $("events-show-fewer").addEventListener("click", () => showMoreCards(false));
+  // The side column grows and shrinks (a picked event, the answers): refit the list.
+  new ResizeObserver(() => fitList()).observe(document.querySelector("main .side"));
+  window.addEventListener("resize", () => fitList());
   document.addEventListener("keydown", (e) => {
     const typing = ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(e.target.tagName);
     if (e.key === " " && !typing && !e.target.classList.contains("card")) {
