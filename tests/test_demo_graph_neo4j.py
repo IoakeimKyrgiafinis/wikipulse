@@ -8,7 +8,10 @@ The committed `site/data/graph.json` is loaded into Relate (`relate-db`, the sam
 version as the WebAssembly build the page runs) exactly as the page loads it. Then every
 shipped query, with many parameter sets, and every prepared question's Cypher run on
 both engines. Results must match, row order ignored where the query leaves it open
-(`export_graph.compare_rows`). What may still differ is listed in `KNOWN_DIFFERENCES`
+(`export_graph.compare_rows`). Rows that differ only in which tied rows a LIMIT kept
+count as a "tie" only when it is proved: the query is run again on both engines,
+returning its ORDER BY keys, with its own LIMIT and without one (`prove_tie`,
+`export_graph.tie_at_limit`). What may still differ is listed in `KNOWN_DIFFERENCES`
 with the reason, and the test checks that it still differs exactly that way.
 """
 
@@ -109,30 +112,64 @@ def original(name: str, data: dict) -> str:
     return text % data["max_hops"] if name == "PATHS" else text
 
 
+def prove_tie(
+    relate_query: str,
+    neo4j_query: str,
+    params: tuple[dict, dict],
+    widen: Any,
+    rows: tuple[list[list], list[list]],
+    data_db_neo4j: tuple[Any, Any],
+) -> bool:
+    """True when Relate's and Neo4j's rows (`rows`) differ only among rows tied at the
+    LIMIT: both queries are rewritten to return their ORDER BY keys, then run on both
+    engines with their own LIMIT and with `widen` (the query and parameters with a much
+    larger LIMIT); the full results must agree and `tie_at_limit` must hold."""
+    keyed_relate, keyed_neo4j = (
+        export_graph.order_keys(relate_query),
+        export_graph.order_keys(neo4j_query),
+    )
+    if keyed_relate is None or keyed_neo4j is None:
+        return False
+    db, neo4j = data_db_neo4j
+    relate_params, neo4j_params_ = params
+    keys = len(keyed_neo4j.order_by)
+    live = run_relate(db, keyed_relate.cypher, relate_params)
+    stored = run_neo4j(neo4j, keyed_neo4j.cypher, neo4j_params_)
+    full_relate, full_relate_params = widen(keyed_relate.cypher, relate_params)
+    full_neo4j, full_neo4j_params = widen(keyed_neo4j.cypher, neo4j_params_)
+    full_live = run_relate(db, full_relate, full_relate_params)
+    full_stored = run_neo4j(neo4j, full_neo4j, full_neo4j_params)
+    # The keyed queries must give the rows the comparison was about ...
+    plain_live, plain_stored = rows
+    if not (
+        export_graph.same_multiset(export_graph.drop_keys(live, keys), plain_live)
+        and export_graph.same_multiset(export_graph.drop_keys(stored, keys), plain_stored)
+    ):
+        return False
+    # ... the full results must agree, row for row ...
+    if export_graph.compare_rows(full_live, full_stored) == "different":
+        return False
+    # ... and only rows tied with the last one at the cut-off may differ.
+    full_keys = [row[len(row) - keys :] for row in full_stored]
+    return export_graph.tie_at_limit(live, stored, full_live, full_keys, keys)
+
+
 def compare_query(name: str, params: dict, data: dict, db: Any, neo4j: Any) -> str:
-    """The comparison of one shipped query; "limit tie" when the results differ only in
-    which rows a LIMIT keeps, and the full results behind it agree."""
+    """The comparison of one shipped query, "tie" when it is proved (`prove_tie`)."""
     relate_query = export_graph.bind_times(data["queries"][name], TIME_NAMES)
     neo4j_query = original(name, data)
     live = run_relate(db, relate_query, params)
     stored = run_neo4j(neo4j, neo4j_query, neo4j_params(params))
     verdict = export_graph.compare_rows(live, stored)
-    # "tie" guesses the sort key from the returned columns; for a shipped query the
-    # full results behind the LIMIT are checked instead.
-    if verdict not in ("different", "tie") or "limit" not in params:
+    if verdict != "different" or "limit" not in params:
         return verdict
-    bigger = {**params, "limit": BIG_LIMIT}
-    full_live = run_relate(db, relate_query, bigger)
-    full_stored = run_neo4j(neo4j, neo4j_query, neo4j_params(bigger))
-    if export_graph.compare_rows(full_live, full_stored) == "different":
-        return "different"
-    full = sorted(json.dumps(export_graph.unordered(r), sort_keys=True) for r in full_stored)
-    for rows in (live, stored):
-        for row in rows:
-            text = json.dumps(export_graph.unordered(row), sort_keys=True)
-            if text not in full:
-                return "different"
-    return "limit tie" if len(live) == len(stored) else "different"
+
+    def widen(query: str, query_params: dict) -> tuple[str, dict]:
+        return query, {**query_params, "limit": BIG_LIMIT}
+
+    both = (params, neo4j_params(params))
+    proved = prove_tie(relate_query, neo4j_query, both, widen, (live, stored), (db, neo4j))
+    return "tie" if proved else "different"
 
 
 def parameter_sets(neo4j: Any) -> list[tuple[str, dict]]:
@@ -225,10 +262,28 @@ def test_every_prepared_question_gives_neo4js_rows(data: dict, neo4j: Any, db: A
     clock = data["clock"]
     neo4j_clock = {k: datetime.fromisoformat(v.replace("Z", "+00:00")) for k, v in clock.items()}
     verdicts = {}
+
+    def widen(query: str, params: dict) -> tuple[str, dict]:
+        return export_graph.with_final_limit(query, BIG_LIMIT), params
+
     for question in data["prepared"]:
-        fresh = run_neo4j(neo4j, question["cypher"], neo4j_clock)
-        assert fresh == question["neo4j"]["rows"], f"{question['id']}: graph.json is stale"
-        live = run_relate(db, export_graph.bind_times(question["cypher"]), clock)
-        verdicts[question["id"]] = export_graph.compare_rows(live, fresh)
+        qid, cypher = question["id"], question["cypher"]
+        fresh = run_neo4j(neo4j, cypher, neo4j_clock)
+        assert fresh == question["neo4j"]["rows"], f"{qid}: graph.json is stale"
+        tie = question["tie"]
+        if tie is not None:  # the browser's evidence is Neo4j's current answer too
+            assert run_neo4j(neo4j, tie["cypher"], neo4j_clock) == tie["neo4j"]["rows"], qid
+            full = run_neo4j(neo4j, tie["full_cypher"], neo4j_clock)
+            keys = len(tie["order_by"])
+            assert [row[len(row) - keys :] for row in full] == tie["neo4j_full_keys"], qid
+        relate_query = export_graph.bind_times(cypher)
+        live = run_relate(db, relate_query, clock)
+        verdict = export_graph.compare_rows(live, fresh)
+        if verdict == "different":
+            both = (clock, neo4j_clock)
+            proved = prove_tie(relate_query, cypher, both, widen, (live, fresh), (db, neo4j))
+            verdict = "tie" if proved else "different"
+            assert tie is not None or not proved, f"{qid}: a tie the browser can't prove"
+        verdicts[qid] = verdict
     print(f"\nPrepared questions: {verdicts}")
     assert "different" not in verdicts.values(), verdicts

@@ -14,8 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from wikipulse.config import Settings
 from wikipulse.qa import graph as qa_graph
 from wikipulse.qa.cypher import validate_cypher
+from wikipulse.qa.retrieve import RetrievalConfig
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH_FILE = ROOT / "site" / "data" / "graph.json"
@@ -179,6 +181,24 @@ def test_the_shipped_queries_are_exactly_the_python_constants_after_the_rewrite(
 def test_the_bound_of_the_connection_finder_is_the_retrievals(graph) -> None:
     assert f"*..{graph['max_hops']}]" in graph["queries"]["PATHS"]
     assert graph["max_hops"] <= 6  # the validator's MAX_HOPS
+    # Read from WikiPulse, not copied: a change there changes the export.
+    assert export_graph.MAX_HOPS is RetrievalConfig.max_hops == graph["max_hops"]
+    assert graph["max_rows"] == Settings.model_fields["qa_cypher_max_rows"].default
+
+
+def test_prepared_tie_evidence_is_the_questions_query_with_its_order_keys(graph) -> None:
+    for question in graph["prepared"]:
+        tie = question["tie"]
+        if tie is None:
+            continue
+        keyed = export_graph.order_keys(question["cypher"])
+        assert keyed is not None and tie["cypher"] == keyed.cypher, question["id"]
+        assert tie["order_by"] == keyed.order_by
+        assert tie["full_cypher"] == export_graph.with_final_limit(tie["cypher"], 10_000)
+        keys = len(tie["order_by"])
+        assert export_graph.drop_keys(tie["neo4j"]["rows"], keys) == question["neo4j"]["rows"]
+        assert len(tie["neo4j_full_keys"]) > len(question["neo4j"]["rows"])  # the LIMIT cut
+        assert validate_cypher(tie["full_cypher"], 10_000) == tie["full_cypher"]
 
 
 def test_prepared_questions_are_validated_queries_with_neo4js_rows(graph) -> None:
@@ -247,8 +267,77 @@ def test_compare_rows() -> None:
     assert compare([[2], [1]], [[1], [2]]) == "other order"
     assert compare([["x", [1, 2]]], [["x", [2, 1]]]) == "list order"
     # ORDER BY pages DESC LIMIT 3: rows above the cut-off agree, the tied ones differ.
+    # From the rows alone that can't be told from a real difference: only
+    # tie_at_limit(), with the ORDER BY keys and the full results, may call it a tie.
     live = [["a", 5], ["b", 1], ["c", 1]]
     stored = [["a", 5], ["d", 1], ["e", 1]]
-    assert compare(live, stored) == "tie"
+    assert compare(live, stored) == "different"
     assert compare([["a", 5], ["b", 1]], [["z", 5], ["b", 1]]) == "different"
     assert compare([["a"]], [["b"]]) == "different"
+    # The review's example: a constant column made any two results "tie".
+    assert compare([["x", "a"], ["x", "b"]], [["x", "c"], ["x", "d"]]) == "different"
+
+
+# ORDER BY score DESC LIMIT 3 over five rows (name, score, then the key column).
+FULL = [["a", 9, 9], ["b", 5, 5], ["c", 5, 5], ["d", 5, 5], ["e", 1, 1]]
+FULL_KEYS = [[9], [5], [5], [5], [1]]
+
+
+def test_a_tie_at_the_limit_needs_the_order_keys_and_the_full_results() -> None:
+    tie = export_graph.tie_at_limit
+    live, stored = FULL[:3], [FULL[0], FULL[3], FULL[1]]  # each keeps two of b, c, d
+    assert tie(live, stored, FULL, FULL_KEYS, keys=1)
+    # Not a tie: a row above the cut-off differs ...
+    assert not tie(live, [FULL[1], FULL[2], FULL[3]], FULL, FULL_KEYS, keys=1)
+    # ... a row that isn't in the full result ...
+    assert not tie(live, [FULL[0], FULL[1], ["z", 5, 5]], FULL, FULL_KEYS, keys=1)
+    # ... the full results disagree ...
+    assert not tie(live, stored, FULL, [[9], [5], [5], [1], [1]], keys=1)
+    # ... the LIMIT cut nothing, or nothing was left to choose from at the cut-off.
+    assert not tie(live, stored, FULL[:3], FULL_KEYS[:3], keys=1)
+    assert not tie(FULL[:4], [FULL[0], FULL[3], FULL[1], FULL[2]], FULL, FULL_KEYS, keys=1)
+    # The review's example: with the real ORDER BY key, a constant column helps nothing.
+    full = [["x", "a", 3], ["x", "b", 2], ["x", "c", 1], ["x", "d", 0]]
+    keys = [[3], [2], [1], [0]]
+    assert not tie(full[:2], full[2:], full, keys, keys=1)
+    # Without ORDER BY (keys=0) every row ties: any rows of the full result will do.
+    plain = [row[:2] for row in FULL]
+    assert tie(plain[:2], plain[3:], plain, [[]] * 5, keys=0)
+    assert not tie(plain[:2], [plain[3], ["z", 0]], plain, [[]] * 5, keys=0)
+
+
+def test_order_keys_returns_the_final_order_by_keys_as_columns() -> None:
+    keyed = export_graph.order_keys(
+        "MATCH (ev:Event) RETURN ev.key AS k, ev.page_count AS pages "
+        "ORDER BY pages DESC, ev.started_at LIMIT 25"
+    )
+    assert keyed is not None and keyed.order_by == ["pages", "ev.started_at"]
+    assert keyed.cypher == (
+        "MATCH (ev:Event) RETURN ev.key AS k, ev.page_count AS pages, "
+        "ev.page_count AS _order_key0, ev.started_at AS _order_key1 "
+        "ORDER BY pages DESC, ev.started_at LIMIT 25"
+    )
+    same = "MATCH (n) WITH n, count(*) AS c RETURN DISTINCT n.name AS name, c ORDER BY c"
+    assert export_graph.order_keys(same).cypher.endswith(", c AS _order_key0 ORDER BY c")
+    unordered_query = "MATCH (n) RETURN n.name AS name LIMIT 5"
+    assert export_graph.order_keys(unordered_query).cypher == unordered_query
+    assert export_graph.order_keys("MATCH (n) WITH n ORDER BY n.x RETURN n LIMIT 5") is None
+    union = "MATCH (n) RETURN 1 AS x ORDER BY x UNION MATCH (m) RETURN 2 AS x"
+    assert export_graph.order_keys(union) is None
+    assert export_graph.with_final_limit("MATCH (n) RETURN n LIMIT 25", 99).endswith("LIMIT 99")
+    assert export_graph.with_final_limit("MATCH (n) RETURN n", 99).endswith("\nLIMIT 99")
+
+
+class FakeNode(dict):
+    """Looks like a driver Node to canonical(): element_id, labels, items()."""
+
+    element_id = "4:x:1"
+    labels = frozenset({"Entity"})
+
+
+def test_whole_nodes_in_prepared_rows_keep_only_exported_properties() -> None:
+    node = FakeNode(name="Ueno Bank", key="Q1", secret="x", embedding=[0.1])
+    assert export_graph.canonical(node) == {
+        "labels": ["Entity"],
+        "properties": {"key": "Q1", "name": "Ueno Bank"},
+    }

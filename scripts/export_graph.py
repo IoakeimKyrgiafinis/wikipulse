@@ -38,7 +38,7 @@ import logging
 import math
 import re
 import sys
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
@@ -48,12 +48,13 @@ from pydantic import BaseModel, ConfigDict, Field
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # so `wikipulse` imports when run as a script
 
-from wikipulse.config import get_settings  # noqa: E402
+from wikipulse.config import Settings, get_settings  # noqa: E402
 from wikipulse.graph.store import SCHEMA  # noqa: E402
 from wikipulse.logging_setup import setup_logging  # noqa: E402
 from wikipulse.qa import graph as qa_graph  # noqa: E402
 from wikipulse.qa.cypher import mask  # noqa: E402
 from wikipulse.qa.index import FULLTEXT_INDEXES  # noqa: E402
+from wikipulse.qa.retrieve import RetrievalConfig  # noqa: E402
 
 logger = logging.getLogger("export_graph")
 
@@ -64,8 +65,11 @@ ANSWERS_FILE = ROOT / "data" / "qa_eval" / RUN / "answers.jsonl"
 RESULTS_FILE = ROOT / "evals" / "results" / f"2026-11-16_{RUN}.json"
 SCHEMA_VERSION = 1
 BATCH = 500  # rows per load statement, as the browser sends them
-MAX_HOPS = 4  # QAGraph.paths()' default: the connection finder's bound
-MAX_ROWS = 25  # the evaluation's row limit for generated queries
+# Read from WikiPulse itself, never copied: the retrieval's connection bound, and the row
+# limit of generated queries (the setting's default, as in the 12a evaluation; a .env
+# value doesn't change the export).
+MAX_HOPS = RetrievalConfig.max_hops
+MAX_ROWS = Settings.model_fields["qa_cypher_max_rows"].default
 
 # Every property the export writes, by node label and relationship type.
 NODE_PROPERTIES: dict[str, tuple[str, ...]] = {
@@ -128,6 +132,19 @@ class Source(Strict):
     revision: int | None = None
 
 
+class TieEvidence(Strict):
+    """What the browser needs to tell a tie at the LIMIT from a real difference
+    (`tie_at_limit()`): present when the question's LIMIT cut Neo4j's result."""
+
+    order_by: list[str] = Field(description="The final ORDER BY expressions, as written.")
+    cypher: str = Field(description="The question's query also returning its ORDER BY keys.")
+    full_cypher: str = Field(description="`cypher` with a final LIMIT of FULL_ROWS.")
+    neo4j: Rows = Field(description="What Neo4j returns for `cypher` (keys last).")
+    neo4j_full_keys: list[list[Any]] = Field(
+        description="The ORDER BY keys of every row Neo4j returns for `full_cypher`, in order."
+    )
+
+
 class PreparedQuestion(Strict):
     id: str
     question: str
@@ -135,6 +152,7 @@ class PreparedQuestion(Strict):
     cypher: str = Field(description="The query the LLM wrote, as validated and run in 12a.")
     stored_row_count: int = Field(description="Rows the 12a run got (the answers file).")
     neo4j: Rows = Field(description="What Neo4j returns for `cypher` on the snapshot.")
+    tie: TieEvidence | None = None
     answer: str
     sources: list[Source]
     model: str | None = None
@@ -238,14 +256,16 @@ def canonical(value: Any) -> Any:
 
     Works on the Neo4j driver's values and on Relate's (`relate-db`), by shape: nodes
     become {"labels", "properties"}, relationships {"type", "properties"}, paths
-    {"nodes", "relationships"} (embeddings left out); datetimes UTC ISO text with six
-    fraction digits; integral floats integers (JSON from WebAssembly writes 1.0 as 1);
-    map keys sorted. The browser's `canonical()` (site/graph-db.js) does the same to
-    the WebAssembly build's JSON."""
+    {"nodes", "relationships"} (only the exported properties: `_props()`); datetimes
+    UTC ISO text with six fraction digits; integral floats integers (JSON from
+    WebAssembly writes 1.0 as 1); map keys sorted. The browser's `canonical()`
+    (site/graph-db.js) does the same to the WebAssembly build's JSON."""
     if hasattr(value, "element_id") and hasattr(value, "labels"):
-        return {"labels": sorted(value.labels), "properties": _props(dict(value.items()))}
+        props = _props(dict(value.items()), value.labels, NODE_PROPERTIES)
+        return {"labels": sorted(value.labels), "properties": props}
     if hasattr(value, "element_id") and hasattr(value, "type"):
-        return {"type": value.type, "properties": _props(dict(value.items()))}
+        props = _props(dict(value.items()), [value.type], REL_PROPERTIES)
+        return {"type": value.type, "properties": props}
     if hasattr(value, "nodes") and hasattr(value, "relationships"):
         return {
             "nodes": [canonical(n) for n in value.nodes],
@@ -274,9 +294,15 @@ def canonical(value: Any) -> Any:
     return str(value)  # e.g. relate.Duration: its ISO text
 
 
-def _props(props: Mapping[str, Any]) -> dict[str, Any]:
-    hidden = qa_graph.HIDDEN_PROPERTIES
-    return {k: canonical(props[k]) for k in sorted(props) if k not in hidden}
+def _props(
+    props: Mapping[str, Any], kinds: Iterable[str], allowlist: Mapping[str, tuple[str, ...]]
+) -> dict[str, Any]:
+    """A node's or relationship's properties, only those the export names for its labels
+    or type (`NODE_PROPERTIES`, `REL_PROPERTIES`): a query that returns a whole node
+    can't put any other property into the prepared rows. Embeddings never."""
+    allowed = {name for kind in kinds for name in allowlist.get(kind, ())}
+    names = (set(props) & allowed) - qa_graph.HIDDEN_PROPERTIES
+    return {k: canonical(props[k]) for k in sorted(names)}
 
 
 def canonical_rows(columns: Sequence[str], records: Iterable[Mapping[str, Any]]) -> Rows:
@@ -302,45 +328,186 @@ def same_multiset(a: Sequence[Any], b: Sequence[Any]) -> bool:
     return sorted(map(_text, a)) == sorted(map(_text, b))
 
 
-def _monotonic(values: list[Any]) -> bool:
-    numbers = all(isinstance(v, int | float) and not isinstance(v, bool) for v in values)
-    if not (numbers or all(isinstance(v, str) for v in values)):
-        return False
-    pairs = list(zip(values, values[1:], strict=False))
-    return all(a >= b for a, b in pairs) or all(a <= b for a, b in pairs)
-
-
-def tie_column(live: Sequence[list], stored: Sequence[list]) -> int | None:
-    """The column on which two equally long, equally sorted results differ only among
-    the rows that tie with the last row (which tied rows a LIMIT keeps is up to the
-    engine); None if there is none."""
-    if len(live) != len(stored) or not live:
-        return None
-    for c in range(len(live[0])):
-        a, b = [row[c] for row in live], [row[c] for row in stored]
-        if not (_monotonic(a) and _monotonic(b)) or _text(a[-1]) != _text(b[-1]):
-            continue
-        boundary = _text(a[-1])
-        if sum(1 for v in a if _text(v) == boundary) < 2:
-            continue
-        before_a = [unordered(r) for r in live if _text(r[c]) != boundary]
-        before_b = [unordered(r) for r in stored if _text(r[c]) != boundary]
-        if same_multiset(before_a, before_b):
-            return c
-    return None
-
-
 def compare_rows(live: Sequence[list], stored: Sequence[list]) -> str:
-    """ "identical", "other order", "list order", "tie" (see `tie_column`) or "different"."""
+    """ "identical", "other order", "list order" or "different".
+
+    Rows that differ only in which tied rows a LIMIT kept are "different" here: that
+    can't be told from the rows alone (any column that happens to be constant would look
+    like a tie). `tie_at_limit()` decides it from the ORDER BY keys and the full results."""
     if _text(list(live)) == _text(list(stored)):
         return "identical"
     if same_multiset(live, stored):
         return "other order"
     if same_multiset([unordered(r) for r in live], [unordered(r) for r in stored]):
         return "list order"
-    if tie_column(live, stored) is not None:
-        return "tie"
     return "different"
+
+
+# --- Ties at a LIMIT: proved with the ORDER BY keys and the full results --------------------
+# `ORDER BY pages DESC LIMIT 25`, when the 25th to 40th events all have 1 page, leaves
+# open which of them make the cut, and each engine may keep different ones. To call that
+# a tie, the query is run again returning its ORDER BY keys as extra columns
+# (`order_keys()`), once with its own LIMIT and once with a much larger one, on both
+# engines; `tie_at_limit()` then checks that only rows tied with the last row differ.
+FULL_ROWS = 10_000  # "no limit": the full result behind a LIMIT
+KEY_COLUMN = "_order_key"  # the extra columns: _order_key0, _order_key1, ...
+_RETURN = re.compile(r"\bRETURN\b", re.IGNORECASE)
+_ORDER_BY = re.compile(r"\bORDER\s+BY\b", re.IGNORECASE)
+_AFTER_ORDER = re.compile(r"\b(SKIP|OFFSET|LIMIT)\b", re.IGNORECASE)
+_UNION = re.compile(r"\bUNION\b", re.IGNORECASE)
+_DISTINCT = re.compile(r"\s*DISTINCT\b", re.IGNORECASE)
+_DIRECTION = re.compile(r"\s+(ASC|ASCENDING|DESC|DESCENDING)\s*$", re.IGNORECASE)
+_ALIAS = re.compile(r"\s+AS\s+(\w+|`[^`]*`)\s*$", re.IGNORECASE)
+_FINAL_LIMIT = re.compile(r"\bLIMIT\s+(\d+|\$\w+)\s*$", re.IGNORECASE)
+
+
+class OrderKeys(Strict):
+    """A query rewritten to also return its final ORDER BY keys."""
+
+    order_by: list[str] = Field(description="The ORDER BY expressions, as written.")
+    cypher: str = Field(description="The query, also returning them as _order_key0, ...")
+
+
+def _levels(masked: str) -> list[int]:
+    """The bracket depth at each character (0: outside any (), [] or {})."""
+    levels, depth = [], 0
+    for char in masked:
+        if char in ")]}":
+            depth -= 1
+        levels.append(depth)
+        if char in "([{":
+            depth += 1
+    return levels
+
+
+def _items(masked: str, levels: list[int], start: int, end: int) -> list[tuple[int, int]]:
+    """The spans of the comma-separated items of masked[start:end] (top-level commas)."""
+    spans, begin = [], start
+    for i in range(start, end):
+        if masked[i] == "," and levels[i] == 0:
+            spans.append((begin, i))
+            begin = i + 1
+    return [*spans, (begin, end)]
+
+
+def _plain(expression: str) -> str:
+    return " ".join(expression.replace("`", "").split())
+
+
+def order_keys(query: str) -> OrderKeys | None:
+    """`query` with its final ORDER BY keys added to the final RETURN as columns.
+
+    `RETURN ev.key AS k, ev.page_count AS pages ORDER BY pages DESC LIMIT 25` becomes
+    `RETURN ev.key AS k, ev.page_count AS pages, ev.page_count AS _order_key0 ORDER BY
+    pages DESC LIMIT 25` (an alias is replaced by its expression, which RETURN can
+    see). Without an ORDER BY, no key is added: all rows tie. None when the order can't
+    be read this way: a UNION, or an ORDER BY that isn't the final RETURN's."""
+    masked = mask(query)
+    levels = _levels(masked)
+
+    def top(pattern: re.Pattern[str], start: int = 0) -> list[re.Match[str]]:
+        return [m for m in pattern.finditer(masked, start) if levels[m.start()] == 0]
+
+    returns, orders = top(_RETURN), top(_ORDER_BY)
+    if top(_UNION) or not returns:
+        return None
+    if not orders:
+        return OrderKeys(order_by=[], cypher=query)
+    order = orders[-1]
+    if len(orders) > 1 or order.start() < returns[-1].start():
+        return None
+    ends = top(_AFTER_ORDER, order.end())
+    order_end = ends[0].start() if ends else len(query)
+    expressions: dict[str, str] = {}  # a column's name -> its expression
+    for start, end in _items(masked, levels, returns[-1].end(), order.start()):
+        distinct = _DISTINCT.match(masked, start, end)
+        start = distinct.end() if distinct else start
+        alias = _ALIAS.search(masked[start:end])
+        expression = query[start : start + alias.start()] if alias else query[start:end]
+        name = query[start + alias.start(1) : start + alias.end(1)] if alias else expression
+        expressions[_plain(name)] = expression.strip()
+    order_by = []
+    for start, end in _items(masked, levels, order.end(), order_end):
+        direction = _DIRECTION.search(masked[start:end])
+        order_by.append(query[start : start + direction.start() if direction else end].strip())
+    columns = [expressions.get(_plain(key), key) for key in order_by]
+    added = ", ".join(f"{expr} AS {KEY_COLUMN}{i}" for i, expr in enumerate(columns))
+    body_end = len(query[: order.start()].rstrip())
+    return OrderKeys(order_by=order_by, cypher=f"{query[:body_end]}, {added}{query[body_end:]}")
+
+
+def with_final_limit(query: str, rows: int) -> str:
+    """`query` with its final LIMIT set to `rows` (added when it has none)."""
+    found = _FINAL_LIMIT.search(mask(query))
+    if found is None:
+        return f"{query.rstrip()}\nLIMIT {rows}"
+    return query[: found.start(1)] + str(rows) + query[found.end(1) :]
+
+
+def drop_keys(rows: Sequence[list], keys: int) -> list[list]:
+    """Rows of an `order_keys()` query without its key columns."""
+    return [list(row[: len(row) - keys]) for row in rows]
+
+
+def _counts(values: Iterable[Any]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for value in values:
+        text = value if isinstance(value, str) else _text(value)
+        out[text] = out.get(text, 0) + 1
+    return out
+
+
+def _within(rows: Sequence[list], full: Sequence[list]) -> bool:
+    """Every row of `rows` is one of `full`'s (as often as it appears there)."""
+    have = _counts(unordered(r) for r in full)
+    return all(have.get(k, 0) >= n for k, n in _counts(unordered(r) for r in rows).items())
+
+
+def tie_at_limit(
+    live: Sequence[list],
+    stored: Sequence[list],
+    full_live: Sequence[list],
+    full_stored_keys: Sequence[list],
+    keys: int,
+) -> bool:
+    """True when two LIMITed results differ only among rows tied at the cut-off.
+
+    All rows come from an `order_keys()` query, whose last `keys` columns are the ORDER
+    BY keys: `live` and `stored` with the query's own LIMIT (one per engine), `full_live`
+    with a much larger one; `full_stored_keys` are the keys of the other engine's full
+    result, in its order. It must hold that:
+    - the LIMIT cut the result, and both full results have the same keys;
+    - both limited results are rows of the full result, with the same key sequence;
+    - the rows above the last row's key are the same in both, and they are exactly as
+      many, with the same keys, as the full result ranks above that key;
+    - more rows share that key in the full result than the LIMIT kept: a real choice.
+    The browser's `tieAtLimit()` (site/graph-db.js) is the same check.
+    """
+    count = len(live)
+    if not count or len(stored) != count or len(full_live) != len(full_stored_keys):
+        return False
+    if len(full_live) <= count:
+        return False
+
+    def key(row: Sequence[Any]) -> str:
+        return _text(list(row[len(row) - keys :]))
+
+    full_keys = [_text(list(k)) for k in full_stored_keys]
+    if _counts(key(r) for r in full_live) != _counts(full_keys):
+        return False
+    if not (_within(live, full_live) and _within(stored, full_live)):
+        return False
+    if [key(r) for r in live] != [key(r) for r in stored]:
+        return False
+    boundary = key(live[-1])
+    above_live = [unordered(r) for r in live if key(r) != boundary]
+    above_stored = [unordered(r) for r in stored if key(r) != boundary]
+    ranked_above = full_keys.index(boundary)
+    if len(above_live) != ranked_above or not same_multiset(above_live, above_stored):
+        return False
+    if _counts(key(r) for r in live if key(r) != boundary) != _counts(full_keys[:ranked_above]):
+        return False
+    return full_keys.count(boundary) > count - ranked_above
 
 
 # --- Building the export (pure functions) ---------------------------------------------------
@@ -479,6 +646,7 @@ def build_prepared(
     answers: Iterable[Mapping[str, Any]],
     results: Mapping[str, Any],
     neo4j_rows: Mapping[str, Rows],
+    ties: Mapping[str, TieEvidence | None] | None = None,
 ) -> list[PreparedQuestion]:
     """One prepared question per stored answer whose generated query ran."""
     scores = {q["id"]: q.get("correctness") or {} for q in results["questions"]}
@@ -495,6 +663,7 @@ def build_prepared(
                 cypher=answer["cypher"],
                 stored_row_count=int(answer.get("cypher_rows") or 0),
                 neo4j=neo4j_rows[qid],
+                tie=(ties or {}).get(qid),
                 answer=answer.get("text") or "",
                 sources=[parse_citation(c) for c in answer.get("citations", [])],
                 model=answer.get("model"),
@@ -502,6 +671,27 @@ def build_prepared(
             )
         )
     return out
+
+
+def tie_evidence(cypher: str, run: Callable[[str], Rows]) -> TieEvidence | None:
+    """A prepared query's tie evidence from one engine (`run`); None when its LIMIT cut
+    nothing, or its order can't be read (`order_keys()`)."""
+    keyed = order_keys(cypher)
+    if keyed is None:
+        return None
+    limited = run(keyed.cypher)
+    full_cypher = with_final_limit(keyed.cypher, FULL_ROWS)
+    full = run(full_cypher)
+    if len(full.rows) <= len(limited.rows):
+        return None
+    keys = len(keyed.order_by)
+    return TieEvidence(
+        order_by=keyed.order_by,
+        cypher=keyed.cypher,
+        full_cypher=full_cypher,
+        neo4j=limited,
+        neo4j_full_keys=[row[len(row) - keys :] for row in full.rows],
+    )
 
 
 def time_parameters(now: datetime) -> dict[str, datetime]:
@@ -576,13 +766,18 @@ def main(argv: list[str] | None = None) -> int:
     with GraphDatabase.driver(uri, auth=auth) as driver:
         nodes, relationships, now = read_graph(driver)
         params = time_parameters(now)
+        answer_cypher = {a["question_id"]: a["cypher"] for a in answers}
         neo4j_rows = {
             a["question_id"]: run_neo4j(driver, a["cypher"], params)
             for a in answers
             if a.get("cypher_ran") and a.get("cypher")
         }
+        ties = {
+            qid: tie_evidence(answer_cypher[qid], lambda q: run_neo4j(driver, q, params))
+            for qid in neo4j_rows
+        }
     steps, cleanup, datetimes, counts = build_load(nodes, relationships)
-    prepared = build_prepared(answers, results, neo4j_rows)
+    prepared = build_prepared(answers, results, neo4j_rows, ties)
     for question in prepared:
         if len(question.neo4j.rows) != question.stored_row_count:
             logger.warning(
