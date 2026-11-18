@@ -269,6 +269,7 @@ async function search(event) {
 // 2. Entity view ------------------------------------------------------------------------------
 async function showEntity(key) {
   const box = $("graph-entity");
+  $("graph-entity-section").hidden = false; // hidden until an entity is picked
   box.replaceChildren(el("p", { class: "muted" }, "Reading the graph..."));
   try {
     const [entity] = objects(await client.named("ENTITIES_BY_KEY", { keys: [key] }));
