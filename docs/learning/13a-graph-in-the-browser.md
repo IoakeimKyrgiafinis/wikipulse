@@ -22,17 +22,17 @@ npm: @relate/relate-wasm 1.1.0 ─── scripts/vendor_relate.py ─► site/ve
 
 | File | What it does |
 |------|--------------|
-| `scripts/export_graph.py` | Reads the snapshot and writes `site/data/graph.json` (1.1 MB): the statements that rebuild the graph (`build_load()`), the 18 non-vector queries of `wikipulse/qa/graph.py` (`shipped_queries()`, with `relate_fulltext()`), the graph's clock (`time_parameters()`), and the 25 questions of the 12a run with the LLM's Cypher, Neo4j's rows (`canonical()` form) and the stored answer (`build_prepared()`). Also the comparison rules (`compare_rows()`, `tie_column()`, `unordered()`) and `bind_times()`. |
+| `scripts/export_graph.py` | Reads the snapshot and writes `site/data/graph.json` (1.2 MB): the statements that rebuild the graph (`build_load()`), the 18 non-vector queries of `wikipulse/qa/graph.py` (`shipped_queries()`, with `relate_fulltext()`), the graph's clock (`time_parameters()`), and the 25 questions of the 12a run with the LLM's Cypher, Neo4j's rows (`canonical()` form) and the stored answer (`build_prepared()`). Also the comparison rules (`compare_rows()`, `unordered()`), the tie proof (`order_keys()`, `with_final_limit()`, `tie_at_limit()`, `tie_evidence()`) and `bind_times()`. |
 | `scripts/vendor_relate.py` | Downloads the pinned npm tarball, checks its integrity hash and each file's SHA-256, extracts four files plus the licence into `site/vendor/relate/`. Standard library only. |
 | `scripts/vendor/relate-wasm-LICENSE.txt` | The Apache-2.0 text (the npm package ships none; copied from the same project's `relate-db` wheel). |
-| `site/cypher-check.js` | A line-by-line JavaScript port of `validate_cypher()`, plus `bindTimes()` and `luceneTerms()`. |
-| `site/graph-db.js` | `GraphDb`: loads `graph.json` into a `RelateDb`, runs named queries and visitor Cypher (validated, row-capped); `canonical()` and `compareRows()` (the same rules as the Python ones). No DOM, so Node can run it. |
+| `site/cypher-check.js` | A line-by-line JavaScript port of `validate_cypher()` that reads Unicode text the way Python's regular expressions do, plus `bindTimes()` and `luceneTerms()`. |
+| `site/graph-db.js` | `GraphDb`: loads `graph.json` into a `RelateDb`, runs named queries (`runNamed()`, datetime parameters as ISO text), visitor Cypher (validated, row-capped) and prepared questions with their comparison (`runPrepared()`); `canonical()`, `compareRows()` and `tieAtLimit()` (the same rules as the Python ones). No DOM, so Node can run it. |
 | `site/graph-worker.js` | The module Web Worker: `init()` the WebAssembly, fetch `graph.json`, load, answer messages. |
-| `site/explore.js` | The section's UI and `GraphClient`: one query at a time, a 5 s limit per query, terminate-and-reload when it runs out. |
+| `site/explore.js` | The section's UI and `GraphClient`: one query at a time, a 5 s limit per query, terminate-and-reload when it runs out (and a clear error if that reload fails). |
 | `site/index.html`, `style.css` | The "Explore the graph" section; the CSP gains `'wasm-unsafe-eval'`; result tables become one block per row on phones. |
-| `.github/workflows/pages.yml` | Vendors and verifies Relate, runs the Node checks, then uploads; the deploy job runs only on `main`. |
-| Tests | `tests/test_demo_graph.py` (17: schema, privacy, the rewrite, the shipped queries are the constants, comparison rules), `tests/qa/test_cypher_cases.py` (80: the shared validator cases in Python), `tests/test_demo_graph_js.py` (2: the same cases in JavaScript; the page's database with the real WebAssembly), `tests/test_vendor_relate.py` (5), `tests/test_demo_graph_neo4j.py` (4, integration: Neo4j vs Relate), updates in `tests/test_demo_site.py` and `tests/test_cicd.py`. |
-| Fixtures | `tests/fixtures/cypher_cases.json` (79 validator cases, 5 time-binding cases), `tests/js/*.mjs` (the Node runners). |
+| `.github/workflows/pages.yml` | Vendors and verifies Relate, runs the Node checks on a pinned Node (24.21.0), then uploads; the deploy job runs only on `main`. |
+| Tests | `tests/test_demo_graph.py` (21: schema, privacy, the rewrite, the shipped queries are the constants, the bounds and tie evidence, comparison and tie rules), `tests/qa/test_cypher_cases.py` (148: the shared validator cases in Python), `tests/test_demo_graph_relate.py` (13: each refused GQL write really writes in Relate), `tests/test_demo_graph_js.py` (2: the same cases in JavaScript; the page's database with the real WebAssembly), `tests/test_vendor_relate.py` (6), `tests/test_demo_graph_neo4j.py` (4, integration: Neo4j vs Relate), updates in `tests/test_demo_site.py` and `tests/test_cicd.py`. |
+| Fixtures | `tests/fixtures/cypher_cases.json` (147 validator cases, 5 time-binding cases), `tests/js/*.mjs` (the Node runners). |
 
 ## Key concepts
 
@@ -88,8 +88,16 @@ the policy says `'wasm-unsafe-eval'`. That keyword allows *only* WebAssembly com
 not JavaScript's `eval()` (that would be `'unsafe-eval'`). It is the only change to the
 policy; `tests/test_demo_site.py` checks that `script-src` is exactly
 `'self' 'wasm-unsafe-eval'` and nothing else says "unsafe". Workers have no `worker-src`,
-so they fall back to `script-src 'self'`: only our own worker file can run. The `.wasm`
-file is fetched from this site (`connect-src 'self'`), never from a CDN.
+so the *page's* policy falls back to `script-src 'self'` to decide which worker file may
+start: only our own. But the page's `<meta>` policy does **not** govern what happens
+*inside* the worker. A dedicated worker loaded from a URL gets its policy from the HTTP
+headers of its own response, and GitHub Pages sends no CSP header, so inside
+`graph-worker.js` there is no `connect-src 'self'`: it could fetch any origin. Today
+nothing a visitor types can make it do so (`LOAD CSV` and `CALL` are refused, and the
+worker's own code fetches only `data/graph.json` and the `.wasm` from this site, which the
+headless check confirmed: no request to another origin). A host that can set headers
+would let us give the worker its own policy; Pages can't. The `.wasm` file is fetched
+from this site, never from a CDN.
 
 **Why a worker.** WebAssembly has no statement timeout and no cancel: a query like
 `MATCH (a:Entity), (b:Entity), (c:Entity) RETURN count(*)` (2 billion combinations) would
@@ -134,6 +142,11 @@ treats it as untrusted until proven otherwise:
   package declares Apache-2.0 but contains no LICENSE file, so the text is committed
   (`scripts/vendor/relate-wasm-LICENSE.txt`, "Copyright 2026 The Relate Authors", from the
   same project's `relate-db` wheel) and copied next to the files; the footer links it.
+  Its SHA-256 is pinned too (`LICENSE_SHA256`), so `--check` fails on a changed licence,
+  as on any other changed file. The `.wasm` also contains third-party Rust crates
+  compiled in. The `relate-db` wheel ships a software bill of materials (SBOM) listing
+  them, but the npm package ships no notices for them, so there was nothing more to copy.
+  If the human publishes the demo widely, linking that SBOM is the honest next step.
 
 `@relate/relate-wasm` is therefore *not* an npm dependency: the project has no
 `package.json`, no `node_modules`, no build step (a test enforces that). `relate-db` (the
@@ -152,7 +165,8 @@ running the same queries on both engines over the same data and comparing result
 2. runs all 18 shipped queries with 78 parameter sets taken from the snapshot (the 12
    most connected entities, the 12 biggest events, Santiago Peña and Ueno Bank, ...) and
    the 25 prepared questions on both;
-3. compares with `export_graph.compare_rows()`.
+3. compares with `export_graph.compare_rows()`, and proves every tie with `prove_tie()`
+   (both engines, keyed queries, with and without the LIMIT).
 
 Both engines' values first go through `canonical()`: nodes become `{labels, properties}`,
 datetimes UTC ISO text with six fraction digits (Neo4j writes
@@ -170,16 +184,43 @@ levels:
 | identical | same rows, same order | most queries |
 | other order | same multiset of rows | q24 (no `ORDER BY`) |
 | list order | same rows once lists inside them are sorted | q16 (`collect(DISTINCT ...)` without an order), `EVENTS` (pages ordered by `po.score`, with ties) |
-| tie | rows agree except those tied with the last row on a sorted column | q01, q18 (`pages`), q19 (`story_count`) |
-| limit tie | (shipped queries) both limited results are subsets of the same full result | `ENTITY_RELATIONS` (sorted by `confidence`, not returned), `PATHS` limit 3 |
+| tie | only rows tied at the LIMIT's cut-off differ, **proved** with the ORDER BY keys and the full results | q01, q18 (`ev.page_count`), q19 (`story_count`), `ENTITY_RELATIONS` (`r.confidence`, not returned), `PATHS` (no ORDER BY: every path ties) |
 | different | anything else: a failure, unless listed | |
 
-The "tie" check (`tie_column()`, and `tieColumn()` in the browser) needs no knowledge of
-the query: it looks for a returned column that is sorted in both results, whose last
-value is the same, with at least two rows at that value, and checks that everything
-*above* the cut-off agrees. For shipped queries the stronger "limit tie" check runs the
-query again with `limit: 10000` on both engines, requires the full results to agree, and
-both limited results to come from them.
+**How a tie is proved.** The first version guessed: it looked for any returned column
+that was sorted in both results and checked the rows above its last value. The review
+showed why that is too weak: a column that happens to be constant (`['x','a'],['x','b']`
+against `['x','c'],['x','d']`) is "sorted", every row ties on it, and two completely
+different results passed as a tie. A tie is a claim about the query's **ORDER BY key**,
+not about whichever column looks sorted, and about rows the LIMIT **cut off**, which the
+limited result alone can't show. So now:
+
+1. `compare_rows()` / `compareRows()` never say "tie". They stop at "different".
+2. `order_keys()` rewrites the query so that it also returns its final ORDER BY keys as
+   extra columns: `RETURN ev.key AS k, ev.page_count AS pages ORDER BY pages DESC LIMIT 25`
+   becomes `RETURN ev.key AS k, ev.page_count AS pages, ev.page_count AS _order_key0
+   ORDER BY pages DESC LIMIT 25` (an alias is replaced by its expression, because RETURN
+   can't see its own aliases). Without an ORDER BY no key is added: then every row ties,
+   which is exactly what an unordered LIMIT means. When the order can't be read (a
+   UNION, or an ORDER BY before the final RETURN, like q05's) there is no proof, so no
+   tie.
+3. That keyed query runs on **both engines** twice: with its own LIMIT, and with a much
+   larger one (`with_final_limit(..., 10000)` for prepared questions, `limit: 10000` for
+   shipped ones).
+4. `tie_at_limit()` / `tieAtLimit()` accept the difference only if: the LIMIT really cut
+   the result; both full results have the same keys (and, in the integration test, the
+   same rows); both limited results are rows of the full result with the same key
+   sequence; the rows above the last row's key are the same in both and exactly as many,
+   with the same keys, as the full result ranks above it; and more rows share that last
+   key in the full result than the LIMIT kept, so there was a real choice to make.
+
+The browser has only one engine, so `graph.json` carries Neo4j's half of the evidence
+for the six prepared questions whose LIMIT cut Neo4j's result (`tie` in each question:
+the keyed query, its wide version, Neo4j's keyed rows and the keys of Neo4j's full
+result, about 55 KB). `GraphDb.runPrepared()` runs the question in the worker, and when
+the rows differ it runs the keyed query with and without the LIMIT and calls
+`tieAtLimit()`. The integration test checks that this evidence is still Neo4j's current
+answer, and that every tie it proves is one the browser can prove too.
 
 Approximate vector search would be a second reason: Neo4j's vector index is approximate
 (HNSW, quantised), Relate's search exact, so scores differ in the third decimal and
@@ -190,10 +231,11 @@ in the browser), so that question doesn't arise here.
 
 **Neo4j vs Relate** (`uv run pytest -m integration tests/test_demo_graph_neo4j.py`):
 
-- 78 shipped query runs: 49 identical, 22 other order, 2 list order, 4 limit tie, and
-  **1 known difference**.
+- 78 shipped query runs: 49 identical, 22 other order, 2 list order, 4 proved ties, and
+  **1 known difference**. (Re-run after the review with the strict tie proof: the same
+  four, all proved.)
 - 25 prepared questions: 20 identical, q24 other order, q16 list order, q01, q18 and q19
-  tie at the LIMIT. All 25 also give exactly the row count the 12a run recorded.
+  proved ties at the LIMIT (on both engines; in Node and in the browser too). All 25 also give exactly the row count the 12a run recorded.
 - The known difference, checked by `test_the_known_difference_is_only_the_tokenizer`:
   searching `california OR governor`, Relate also finds "California's death row".
   Lucene's standard tokenizer keeps "california's" as one token, so in Neo4j the word
@@ -212,13 +254,21 @@ in the browser), so that question doesn't arise here.
 |---------|--------|
 | Graph section usable (button to "Ready") | **1.1 to 1.6 s** over 4 runs (Chrome 1.1, 1.3, 1.6 s; Edge 1.3 s); reload after a stopped query 1.1 to 1.3 s |
 | Load alone, in Node with the same WebAssembly | 0.8 to 1.3 s (`load_ms` of `graph_check.mjs`) |
-| Downloaded by the graph section | **8.31 MB**: `relate_bg.wasm` 7.13 MB, `graph.json` 1.15 MB, JavaScript 40 KB. Compressed with gzip it would be 2.77 MB, if the host compresses (GitHub Pages compresses text; whether it compresses `application/wasm` I could not check without deploying). |
+| Downloaded by the graph section | **8.39 MB**: `relate_bg.wasm` 7.13 MB, `graph.json` 1.21 MB (1.15 MB before the tie evidence), JavaScript 49 KB. Compressed with gzip it would be 2.77 MB, if the host compresses (GitHub Pages compresses text; whether it compresses `application/wasm` I could not check without deploying). |
 | Downloaded by the page before the button | 756 KB (as before plus 40 KB of new JavaScript) |
 | Queries | search and entity view a few ms each, the Peña to Ueno Bank path 8 ms, a prepared question about 20 ms, "busiest entities" 50 to 70 ms |
-| Committed `site/` | 1.91 MB (cap 3 MB); vendored files 7.17 MB (own limit 8 MB) |
+| Committed `site/` | 1.97 MB (cap 3 MB); vendored files 7.17 MB (own limit 8 MB) |
 
 On a laptop with a fast connection the 8.3 MB add their transfer time to that (about
 1.3 s at 50 Mbit/s uncompressed), which keeps the section usable within 3 s.
+
+**After the review fixes** (headless Chrome, cold, the same way): ready in 1.1 s; "Run all
+and compare" reports 25 of 25 (20 identical, 2 same rows in another order, 3 proved
+ties); the review's `INSERT` and a `NEXT ... INSERT` are refused and nothing was
+inserted; "A slow one" stops after 5 s (6.2 s with the reload) and the next query
+works; with `Worker` replaced by one that can't start, a slow query ends with "could not
+restart: reload the page", the status says so, and the next query answers at once with
+that error; no console errors, no request to another origin.
 
 **How it was checked.** No interactive browser pane was available to me, so a throwaway
 script outside the repository drove headless Chrome and Edge over the DevTools protocol
@@ -278,6 +328,63 @@ the page is exactly 375 px wide (no horizontal scrolling).
 - **Not done here:** the branch run of `pages.yml` and the deploy. They need a push, which
   the coordinator does after the owner approves.
 
+## Changes after the review
+
+The independent review (`docs/reviews/13a-graph-in-the-browser.md`) found one high and two
+medium problems, and several low ones. What changed:
+
+- **GQL writes (high).** Relate speaks GQL, the ISO graph query language, as well as
+  Cypher, and GQL has its own write and chaining words. `MATCH (n) INSERT (:X) RETURN n`
+  passed both validators and wrote to the visitor's graph. I ran candidate keywords
+  unchecked in `relate-db` 1.1.0, one by one, on a small graph:
+  - `INSERT` writes (alone, after `WITH`, `FOR`, `LET`, in `OPTIONAL CALL { }`, after a
+    `UNION`): **refused**.
+  - `NEXT` chains a second statement onto the first (`... RETURN a NEXT INSERT ...`, or
+    `NEXT MATCH (m) DETACH DELETE m`): **refused**, like `;`.
+  - `NODETACH DELETE` deletes (DELETE was already refused): **refused** too, for clarity.
+  - `LET`, `FILTER`, `FOR` and `FINISH` only read: **allowed**. Relate rejects `UPSERT`,
+    `REPLACE`, `COMMIT`, `ROLLBACK`, `SELECT`, `CLEAR`, `TRUNCATE`, `COPY`, `ATTACH`,
+    `IMPORT`, `EXPORT`, `SESSION` and `BEGIN` as syntax errors, and writes inside
+    `COUNT { }`, `EXISTS { }` and `COLLECT { }` ("writes are not allowed in subquery
+    expressions").
+
+  The change is in **both** validators, so the server's text-to-Cypher refuses these
+  words too. On the server, Neo4j's READ transaction would have stopped such a write
+  anyway; in the browser the validator is the only layer. None of the 75 stored
+  LLM-written queries uses these words, and every test in `tests/qa` still passes. The
+  shared fixture marks the 12 write cases `relate_writes`, and
+  `tests/test_demo_graph_relate.py` runs each one *unchecked* in Relate and checks that
+  the graph changed, so every refusal guards against a real write. One fixture case had
+  to target an unconnected node: `NODETACH DELETE` correctly refuses to delete a node
+  that still has relationships.
+- **Ties (medium).** Proved, not guessed: see "How a tie is proved" above. The unit test
+  that expected the old rule to call a tie from the rows alone now expects "different"
+  for those rows, and new tests cover `tie_at_limit()` (the review's constant-column
+  example included) and `order_keys()`.
+- **Unicode in the JavaScript port (medium).** Python's `re` is Unicode-aware: `\w`,
+  `\d`, `\s` and `\b` cover every script, `IGNORECASE` lets "ı" and "İ" match "i", "ſ"
+  match "s" and the Kelvin sign "K" match "k", `int()` reads "７" or "٣" as digits,
+  `str.strip()` knows other spaces than JavaScript's `trim()`, and `len()` counts code
+  points, not UTF-16 units. `cypher-check.js` now spells all of that out (`WORD_CHAR`,
+  `DIGIT`, `SPACE`, `keyword()`, `digitsValue()`, `strip()`, `codePoints()`). I compared
+  the character classes over all 1.1 million code points: they are identical for every
+  character Python 3.12 knows (Unicode 15.0). Node 24 knows Unicode 17, so only
+  characters added since then can still be read differently. 50 non-ASCII cases, with
+  the Python validator's output as the expected value, joined the shared fixture; the old
+  port failed 26 of them. Along the way the Python validator turned out to **crash** on
+  `LIMIT ²` (`isdigit()` accepts "²", `int()` doesn't); it now uses `isdecimal()`.
+- **Low ones:** `MAX_HOPS` and `MAX_ROWS` are read from `RetrievalConfig.max_hops` and the
+  `qa_cypher_max_rows` default instead of copied; `canonical()` keeps only the exported
+  properties of a whole node or relationship in the prepared rows; `runNamed()` wraps
+  `$start`, `$end` and `$since` in `datetime()` (`EVENTS_BETWEEN` returned 0 rows with ISO
+  text, now 15); a failed reload no longer leaves the page on "Running..."; `pages.yml`
+  pins Node and also runs when the licence, `tests/js/` or the shared cases change; the
+  licence text is checked by its hash; the CSP paragraph above now says plainly that the
+  worker isn't covered by the page's policy.
+- **Not changed:** the review's problem 8 (`relate_fulltext()` assumes nothing filters
+  between `YIELD` and `RETURN`) was not in the list of fixes I was given. The branch run
+  of `pages.yml` still needs a push, which the coordinator does.
+
 ## Questions to test your understanding
 
 1. The page refuses `SET` with the validator, but the database is an in-memory copy in
@@ -286,7 +393,7 @@ the page is exactly 375 px wide (no horizontal scrolling).
 2. Why can't the page simply cancel a slow query, and what does terminating the worker
    cost?
 3. q18 returns different events from Neo4j and from Relate. Why is that not a bug, and
-   how does the test tell it apart from one?
+   how do the test and the page prove it rather than assume it?
 
 <details>
 <summary>Answers</summary>
@@ -294,7 +401,8 @@ the page is exactly 375 px wide (no horizontal scrolling).
 1. It would change only that visitor's copy of the graph, in their own tab, until they
    reload: no one else is affected, and nothing is sent anywhere. The page still refuses
    writes with WikiPulse's own validator (`cypher-check.js`, the port of
-   `validate_cypher()`), so it behaves like WikiPulse's text-to-Cypher and never shows a
+   `validate_cypher()`, which also knows GQL's `INSERT` and `NEXT`, since Relate runs
+   both), so it behaves like WikiPulse's text-to-Cypher and never shows a
    graph the visitor has changed while it claims to be the 5 November snapshot. The
    shared cases file makes sure the port refuses exactly what the Python validator does.
 
@@ -306,9 +414,12 @@ the page is exactly 375 px wide (no horizontal scrolling).
 
 3. q18 asks for the 25 biggest events by `page_count`. Many events have 1 page, so the
    last places tie; the query doesn't say which tied events to keep, and each engine
-   keeps different ones. `tie_column()` finds a returned column (`pages`) sorted in both
-   results with the same last value, and checks that every row *above* that value is
-   identical in both. A real bug (a wrong row above the cut-off, a different count) fails
-   that check.
+   keeps different ones. `order_keys()` makes the query also return its ORDER BY key
+   (`ev.page_count AS _order_key0`), and it runs with and without the LIMIT on both
+   engines. `tie_at_limit()` then requires the full results to agree, both limited
+   results to be rows of it with the same keys, the rows above the last key to match,
+   and more 1-page events in the full result than the LIMIT kept. A real bug (a wrong
+   row above the cut-off, a row that isn't in the answer at all) fails it, and so does a
+   column that only *looks* sorted, because the key comes from the ORDER BY.
 
 </details>

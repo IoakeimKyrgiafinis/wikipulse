@@ -1,6 +1,6 @@
 # Spec 13a: The knowledge graph, live in the browser
 
-Status: done
+Status: done, except one acceptance step: the Pages branch run (`workflow_dispatch`) is pending; the coordinator runs it after pushing the branch
 Stage: 13. Showcase
 Owner: agent
 Depends on: 10, 12a
