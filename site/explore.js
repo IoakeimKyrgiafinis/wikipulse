@@ -147,7 +147,7 @@ class GraphClient {
           await this.start();
         } catch (error) {
           this.broken = `the graph database could not restart (${error.message}); reload the page to try again`;
-          this.onStatus(`The ${this.broken}.`, "error");
+          this.onStatus(`${this.broken[0].toUpperCase()}${this.broken.slice(1)}.`, "error");
           return { ...reply, elapsed, restartFailed: true };
         }
         this.onStatus(readyText(this.meta, "Graph reloaded"), "ready");
