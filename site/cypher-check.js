@@ -9,30 +9,76 @@
 // write and admin clauses, CALL, several statements, and paths without an upper bound
 // of at most MAX_HOPS; and they force a final LIMIT on every branch of a UNION.
 //
+// Python's regular expressions are Unicode-aware: \w, \d, \s and \b match letters, digits
+// and spaces of every script, and IGNORECASE lets "ı" match "i". JavaScript's \w, \d and
+// \b are ASCII-only, so the patterns below spell out Python's classes (WORD_CHAR, DIGIT,
+// SPACE, keyword()) and read digits with digitsValue(), like Python's int(). Only
+// characters added to Unicode after Python's own Unicode version (15.0 for Python 3.12)
+// can still be read differently.
+//
 // Also here: bindTimes() (the $now, $today_start, $week_start parameters, which JSON
 // can't carry as datetimes) and luceneTerms() (the search box's full-text query).
 
 export const MAX_QUERY_CHARS = 3000;
 export const MAX_HOPS = 6;
+// GQL's INSERT, NODETACH and NEXT included: Relate runs them, and INSERT writes.
 export const FORBIDDEN_WORDS = [
-  "CREATE", "MERGE", "DELETE", "DETACH", "SET", "REMOVE", "DROP", "FOREACH", "LOAD",
+  "CREATE", "INSERT", "MERGE", "DELETE", "DETACH", "SET", "REMOVE", "DROP", "FOREACH", "LOAD",
   "CALL", "USE", "ALTER", "GRANT", "DENY", "REVOKE", "SHOW", "TERMINATE", "START", "STOP",
-  "ENABLE", "RENAME",
+  "ENABLE", "RENAME", "NODETACH", "NEXT",
 ];
 export const READ_STARTS = ["MATCH", "OPTIONAL", "WITH", "UNWIND", "RETURN"];
 
-// Python's \w on text is a letter, a number or "_" from any script.
+// Python's classes, for patterns with the u flag: \w is a letter, a number or "_" from
+// any script; \d a decimal digit of any script; \s these characters (str.isspace()).
+const WORD_CHAR = String.raw`\p{L}\p{N}_`;
+const DIGIT = String.raw`\p{Nd}`;
+const SPACE = String.raw`\t\n\v\f\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000`;
+const S = `[${SPACE}]`;
+const D = `[${DIGIT}]`;
+// Python's \bWORD\b with IGNORECASE: also "İ" and "ı" match "i", "ſ" "s", and the Kelvin
+// sign "K" "k".
+const CASE_EXTRAS = { I: "\u0130\u0131", S: "\u017f", K: "\u212a" };
+const keyword = (word) => [...word].map((c) => `[${c}${c.toLowerCase()}${CASE_EXTRAS[c] || ""}]`).join("");
+const bounded = (body) => `(?<![${WORD_CHAR}])(?:${body})(?![${WORD_CHAR}])`;
+const pattern = (source, flags = "") => () => new RegExp(source, `u${flags}`);
+
 const COMMENT_OR_TEXT = () =>
   /\/\/[^\n]*|\/\*[\s\S]*?\*\/|'(?:\\[\s\S]|[^'\\])*'|"(?:\\[\s\S]|[^"\\])*"|`[^`]*`/g;
-const WORD = () => /(?<![.\p{L}\p{N}_$])([A-Za-z]+)(?![\p{L}\p{N}_])/gu;
-const REL_PATTERN = () => /-\s*\[([^\]]*)\]/g;
-const HOPS = /\*\s*(\d*)\s*(\.\.\s*(\d*))?/;
-const QUANTIFIER = () => /[-)>]\s*(\{\s*(\d*)\s*(,\s*(\d*))?\s*\}|\+|\*)/g;
-const RELATIONSHIP = /-\s*-|-\s*\[|\]\s*-|-\s*>|<\s*-/;
-const LIMIT = () => /\bLIMIT\b/gi;
-const UNION = () => /\bUNION(\s+ALL)?\b/gi;
-const CLAUSE = /\b(MATCH|OPTIONAL|WITH|UNWIND|RETURN|WHERE|ORDER|SKIP|OFFSET|UNION)\b/i;
-const FENCE = /^```[a-zA-Z]*\s*|\s*```$/g;
+const WORD = pattern(`(?<![.${WORD_CHAR}$])([A-Za-z]+)(?![${WORD_CHAR}])`, "g");
+const REL_PATTERN = pattern(String.raw`-${S}*\[([^\]]*)\]`, "g");
+const HOPS = pattern(String.raw`\*${S}*(${D}*)${S}*(\.\.${S}*(${D}*))?`);
+const QUANTIFIER = pattern(String.raw`[\-)>]${S}*(\{${S}*(${D}*)${S}*(,${S}*(${D}*))?${S}*\}|\+|\*)`, "g");
+const RELATIONSHIP = pattern(String.raw`-${S}*-|-${S}*\[|\]${S}*-|-${S}*>|<${S}*-`);
+const LIMIT = pattern(bounded(keyword("LIMIT")), "g");
+const UNION = pattern(bounded(`${keyword("UNION")}(${S}+${keyword("ALL")})?`), "g");
+const CLAUSES = ["MATCH", "OPTIONAL", "WITH", "UNWIND", "RETURN", "WHERE", "ORDER", "SKIP", "OFFSET", "UNION"];
+const CLAUSE = pattern(bounded(CLAUSES.map(keyword).join("|")));
+const FENCE = pattern(`^\`\`\`[a-zA-Z]*${S}*|${S}*\`\`\`$`, "g");
+const LEADING_SPACE = pattern(`^${S}+`);
+const TRAILING_SPACE = pattern(`${S}+$`);
+const DECIMAL = pattern(`^${D}+$`);
+const IS_DIGIT = pattern(`^${D}$`);
+
+// Python's str.rstrip() and str.strip() (JavaScript's trim() knows other spaces).
+const stripEnd = (text) => text.replace(TRAILING_SPACE(), "");
+const strip = (text) => stripEnd(text).replace(LEADING_SPACE(), "");
+// Python's len(): code points, not UTF-16 units.
+const codePoints = (text) => [...text].length;
+
+// Python's int() on decimal digits of any script ("７" is 7, "٣" is 3). Unicode encodes
+// each script's digits as a run 0 to 9 in order, and every unbroken stretch of decimal
+// digits is made of whole runs, so a digit's value is its distance from the start of
+// its stretch, modulo 10.
+function digitValue(char) {
+  let start = char.codePointAt(0);
+  while (start > 0 && IS_DIGIT().test(String.fromCodePoint(start - 1))) start -= 1;
+  return (char.codePointAt(0) - start) % 10;
+}
+
+export function digitsValue(text) {
+  return [...text].reduce((total, char) => total * 10 + digitValue(char), 0);
+}
 // Characters Neo4j's parser also takes as the "-", "<" and ">" of a relationship.
 const ARROW_CHARS = new Map([
   ..."\u00ad\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe58\ufe63\uff0d".split("").map((c) => [c, "-"]),
@@ -90,7 +136,7 @@ function isArithmetic(skeleton, found) {
   if (skeleton[found.index] !== ")") return false;
   const start = groupStart(skeleton, found.index);
   if (start === null) return false;
-  return !RELATIONSHIP.test(skeleton.slice(start, found.index + 1));
+  return !RELATIONSHIP().test(skeleton.slice(start, found.index + 1));
 }
 
 function checkQuantifiers(skeleton) {
@@ -100,11 +146,11 @@ function checkQuantifiers(skeleton) {
     const limit = symbol === "+" || symbol === "*" ? null : comma !== undefined ? upper : lower;
     if (!limit) {
       throw new UnsafeCypherError(
-        `quantified path pattern '${found[0].trim()}' needs an upper bound ` +
+        `quantified path pattern '${strip(found[0])}' needs an upper bound ` +
           `(at most ${MAX_HOPS}, e.g. {1,3})`,
       );
     }
-    if (Number(limit) > MAX_HOPS) {
+    if (digitsValue(limit) > MAX_HOPS) {
       throw new UnsafeCypherError(`quantified path pattern longer than ${MAX_HOPS} hops`);
     }
   }
@@ -112,17 +158,17 @@ function checkQuantifiers(skeleton) {
 
 function checkHops(skeleton) {
   for (const [, pattern] of skeleton.matchAll(REL_PATTERN())) {
-    const hops = pattern.match(HOPS);
+    const hops = pattern.match(HOPS());
     if (hops === null) continue;
     const [, lower, dots, upper] = hops;
     const limit = dots === undefined ? lower : upper;
     if (!limit) {
       throw new UnsafeCypherError(
-        `variable-length pattern [${pattern.trim()}] needs an upper bound ` +
+        `variable-length pattern [${strip(pattern)}] needs an upper bound ` +
           `(at most ${MAX_HOPS}, e.g. *1..3)`,
       );
     }
-    if (Number(limit) > MAX_HOPS) {
+    if (digitsValue(limit) > MAX_HOPS) {
       throw new UnsafeCypherError(`variable-length pattern longer than ${MAX_HOPS} hops`);
     }
   }
@@ -149,14 +195,14 @@ function limitBranch(text, masked, maxRows) {
   const last = limits.length ? limits[limits.length - 1] : null;
   if (last !== null) {
     const end = last.index + last[0].length;
-    if (!CLAUSE.test(masked.slice(end))) {
-      const value = masked.slice(end).trim();
-      if (/^\d+$/.test(value) && Number(value) <= maxRows) return text;
-      const trailing = text.slice(text.trimEnd().length);
+    if (!CLAUSE().test(masked.slice(end))) {
+      const value = strip(masked.slice(end));
+      if (DECIMAL().test(value) && digitsValue(value) <= maxRows) return text;
+      const trailing = text.slice(stripEnd(text).length);
       return text.slice(0, last.index) + `LIMIT ${maxRows}` + trailing;
     }
   }
-  const body = text.trimEnd();
+  const body = stripEnd(text);
   return body + `\nLIMIT ${maxRows}` + text.slice(body.length);
 }
 
@@ -175,9 +221,9 @@ function stripSemicolons(text) {
 
 // The query ready to run, or UnsafeCypherError saying why it can't run.
 export function validateCypher(query, maxRows = 25) {
-  query = stripSemicolons(query.trim().replace(FENCE, "").trim()).trim();
+  query = strip(stripSemicolons(strip(strip(query).replace(FENCE(), ""))));
   if (!query) throw new UnsafeCypherError("empty query");
-  if (query.length > MAX_QUERY_CHARS) {
+  if (codePoints(query) > MAX_QUERY_CHARS) {
     throw new UnsafeCypherError(`query longer than ${MAX_QUERY_CHARS} characters`);
   }
   const skeleton = blankOut(query);
@@ -218,6 +264,6 @@ export function bindTimes(query, names = TIME_PARAMETERS) {
 // The search box's words as a full-text query: like wikipulse.qa.graph.lucene_terms()
 // (words of two or more letters, lower case, each once, joined by OR).
 export function luceneTerms(text) {
-  const terms = (text.match(/[\p{L}\p{N}_]+/gu) || []).map((t) => t.toLowerCase());
-  return [...new Set(terms.filter((t) => t.length > 1))].join(" OR ");
+  const terms = (text.match(new RegExp(`[${WORD_CHAR}]+`, "gu")) || []).map((t) => t.toLowerCase());
+  return [...new Set(terms.filter((t) => codePoints(t) > 1))].join(" OR ");
 }

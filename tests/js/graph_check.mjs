@@ -72,8 +72,18 @@ for (const question of data.prepared) {
 // 5. Read-only: a write is refused before it reaches the database.
 const write = graph.runCypher("MATCH (n:Entity {name: 'Ueno Bank'}) SET n.name = 'Nobody' RETURN n.name");
 expect(Boolean(write.refused), "a write is refused", { write });
+// GQL's INSERT and NEXT: Relate would run both (tests/test_demo_graph_relate.py).
+for (const gql of [
+  "MATCH (n:Entity {name: 'Ueno Bank'}) INSERT (:Entity {name: 'Injected by visitor'}) RETURN n.name",
+  "MATCH (n:Entity) RETURN n.name AS a NEXT INSERT (:Entity {name: 'Injected by visitor'}) RETURN 1 AS b",
+]) {
+  const refused = graph.runCypher(gql);
+  expect(Boolean(refused.refused), "a GQL write is refused", { gql, refused });
+}
 const still = graph.runCypher("MATCH (n:Entity {name: 'Ueno Bank'}) RETURN count(n) AS n");
 expect(still.rows?.[0]?.[0] === 1, "the graph is unchanged", { still });
+const injected = graph.runCypher("MATCH (n:Entity {name: 'Injected by visitor'}) RETURN count(n) AS n");
+expect(injected.rows?.[0]?.[0] === 0, "nothing was inserted", { injected });
 
 // 6. The row cap.
 const many = graph.runCypher("MATCH (n) RETURN n.name AS name");
