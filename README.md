@@ -15,8 +15,8 @@ runs on a laptop, for free.
 replays the recorded 5 November 2026 in your browser (a static page from `site/`, no
 server; see `scripts/export_demo.py`). Its "Explore the graph" section runs that day's
 knowledge graph live in the browser, on Relate compiled to WebAssembly: search, entity
-views, how two entities are connected, the evaluation's LLM-written Cypher run and
-compared with Neo4j's answers, and your own read-only Cypher
+views, how two entities are connected, example questions with the LLM-written Cypher
+behind their answers, and your own read-only Cypher
 ([13a](docs/learning/13a-graph-in-the-browser.md)).
 
 ![The live page while the quickstart replays 5 November 2026](docs/images/quickstart.gif)

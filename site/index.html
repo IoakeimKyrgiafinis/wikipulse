@@ -126,8 +126,8 @@
     </p>
     <p class="muted">
       No LLM and no embeddings run here, so there are no free-form questions: those need
-      WikiPulse's local LLM. You can run the Cypher queries the LLM wrote for the evaluation's
-      questions, and your own.
+      WikiPulse's local LLM. You can see example questions with WikiPulse's answers and run
+      the Cypher behind them, or write your own.
     </p>
     <button type="button" id="graph-start">Start the graph database</button>
     <p id="graph-status" class="graph-status" role="status" aria-live="polite"></p>
@@ -165,15 +165,11 @@
       </section>
 
       <section aria-labelledby="prepared-heading">
-        <h3 id="prepared-heading">The evaluation's questions, live</h3>
+        <h3 id="prepared-heading">Example questions</h3>
         <p class="muted">
-          For each of the 25 questions of the question-answering evaluation (run 12a), the LLM
-          wrote a Cypher query. "Run it" runs that query here and compares the rows with the
-          ones Neo4j returned; the stored answer and the judges' scores are shown with it.
-        </p>
-        <p class="actions">
-          <button type="button" id="prepared-run-all">Run all and compare</button>
-          <span id="prepared-summary" class="muted" aria-live="polite"></span>
+          Questions asked of this day's graph. For each, WikiPulse's local LLM wrote a Cypher
+          query and answered from its rows; independent LLM judges scored the answer. "Run it"
+          runs that query here, live in your browser.
         </p>
         <div id="prepared-list" class="prepared"></div>
       </section>

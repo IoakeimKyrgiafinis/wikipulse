@@ -385,6 +385,24 @@ medium problems, and several low ones. What changed:
   between `YIELD` and `RETURN`) was not in the list of fixes I was given. The branch run
   of `pages.yml` still needs a push, which the coordinator does.
 
+## Changes after release (19 November 2026)
+
+The owner's feedback on the live page led to two changes:
+
+- **The page no longer compares answers with Neo4j.** That comparison shows the engines
+  agree, which matters to whoever builds WikiPulse, not to a visitor. The section is now
+  "Example questions": each shows the question, WikiPulse's answer with the judges'
+  scores, and the Cypher behind it. "Run it" runs that Cypher through the same path as
+  "Try your own Cypher" (`runPrepared()` in `site/explore.js` sends the `cypher` operation
+  with the evaluation's row cap). The "Run all and compare" button and the stored Neo4j
+  rows are gone from the page. The comparison itself stays as a test:
+  `GraphDb.runPrepared()` is still checked by `tests/js/graph_check.mjs` and the
+  integration test.
+- **"Connect from here" and "Connect to here" now act.** Before, they only filled a field
+  and scrolled, which looked like nothing happened. Now `setPathEnd()` fills that end and
+  searches at once when the other end names a different entity; otherwise it empties the
+  other end and puts the cursor there.
+
 ## Questions to test your understanding
 
 1. The page refuses `SET` with the validator, but the database is an in-memory copy in
