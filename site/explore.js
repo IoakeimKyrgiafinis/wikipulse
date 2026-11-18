@@ -353,9 +353,20 @@ function entityNodes(entity, events, relations, neighbours) {
 }
 
 // 3. Connection finder ------------------------------------------------------------------------
+// "Connect from/to here": fill one end, then search straight away if the other end names a
+// different entity; otherwise empty it and put the cursor there for the visitor to type.
 function setPathEnd(id, name) {
+  const otherId = id === "path-from" ? "path-to" : "path-from";
   $(id).value = name;
-  $("path-form").scrollIntoView({ behavior: "smooth", block: "center" });
+  $("path-heading").scrollIntoView({ behavior: "smooth", block: "start" });
+  const other = $(otherId);
+  if (other.value.trim() && fold(other.value) !== fold(name)) {
+    $("path-form").requestSubmit();
+    return;
+  }
+  other.value = "";
+  other.placeholder = "Type a name, then Find connections";
+  other.focus({ preventScroll: true });
 }
 
 async function resolveEntity(name) {
@@ -435,18 +446,12 @@ function renderPrepared(prepared) {
         el("pre", {}, el("code", {}, q.cypher)),
         el("p", { class: "actions" }, button("Run it", () => runPrepared(q), { class: "run" })),
         live,
-        el("h5", {}, "The stored answer"),
+        el("h5", {}, "WikiPulse's answer"),
         el("p", { class: "answer-text" }, q.answer),
         q.sources.length
           ? el("ol", { class: "sources" }, ...q.sources.map((s) => el("li", {}, s.url ? link(s.url, s.title) : s.title)))
           : null,
         el("p", { class: "muted" }, `Answered by ${(q.model || "no model").replace("ollama:", "")}. Judges: ${judged}.`),
-        el(
-          "details",
-          { class: "stored" },
-          el("summary", {}, `Rows Neo4j returned (${q.neo4j.rows.length})`),
-          table(q.neo4j.columns, q.neo4j.rows),
-        ),
       );
     }),
   );
@@ -455,47 +460,20 @@ function renderPrepared(prepared) {
 async function runPrepared(q) {
   const box = $(`live-${q.id}`);
   box.replaceChildren(el("p", { class: "muted" }, "Running..."));
-  // The worker runs it and compares it with Neo4j's rows (GraphDb.runPrepared); a
-  // difference at the LIMIT is a "tie" only when the worker proves it.
-  const reply = await client.run({ op: "prepared", question: q.id });
+  // The same check and row cap as "Try your own Cypher". The comparison with Neo4j's
+  // rows (GraphDb.runPrepared) is a developer test (tests/js/graph_check.mjs), not shown.
+  const reply = await client.run({ op: "cypher", text: q.cypher, maxRows: client.meta.max_rows });
   const outcome = cypherOutcome(reply);
+  box.dataset.outcome = outcome.ok ? "rows" : "error";
   if (!outcome.ok) {
     box.replaceChildren(outcome.node);
-    box.dataset.verdict = "error";
-    return "error";
+    return;
   }
-  const result = reply.result;
-  const { comparison } = result;
-  const note = comparison.note;
-  box.dataset.verdict = comparison.verdict;
+  const { columns, rows } = reply.result;
   box.replaceChildren(
-    el(
-      "p",
-      { class: comparison.same ? "match" : "error" },
-      comparison.same ? "Matches Neo4j. " : "Differs from Neo4j. ",
-      el("span", { class: "muted" }, note),
-    ),
-    el("p", { class: "muted" }, `${result.rows.length} rows in ${Math.round(reply.elapsed)} ms, live in your browser:`),
-    table(result.columns, result.rows),
+    el("p", { class: "muted" }, `${rows.length} row${rows.length === 1 ? "" : "s"} in ${Math.round(reply.elapsed)} ms, live in your browser:`),
+    table(columns, rows),
   );
-  return comparison.verdict;
-}
-
-async function runAllPrepared() {
-  const summary = $("prepared-summary");
-  const prepared = client.meta.prepared;
-  const counts = {};
-  for (const [i, q] of prepared.entries()) {
-    summary.textContent = `Running ${i + 1} of ${prepared.length}...`;
-    const verdict = await runPrepared(q);
-    counts[verdict] = (counts[verdict] || 0) + 1;
-  }
-  const same = prepared.length - (counts.different || 0) - (counts.error || 0);
-  summary.textContent =
-    `${same} of ${prepared.length} match Neo4j's rows: ${counts.identical || 0} identical, ` +
-    `${counts["same rows"] || 0} the same rows in another order, ${counts.tie || 0} differ only ` +
-    "among rows tied at the LIMIT (proved by running them without it). Open a question to see its rows.";
-  summary.dataset.done = JSON.stringify(counts);
 }
 
 // 5. Your own Cypher --------------------------------------------------------------------------
@@ -550,7 +528,6 @@ function setUp() {
   $("graph-search-form").addEventListener("submit", search);
   $("path-form").addEventListener("submit", findPath);
   $("cypher-form").addEventListener("submit", runOwn);
-  $("prepared-run-all").addEventListener("click", runAllPrepared);
   for (const node of document.querySelectorAll("[data-example]")) {
     node.addEventListener("click", () => {
       $("cypher-text").value = EXAMPLES[node.dataset.example];

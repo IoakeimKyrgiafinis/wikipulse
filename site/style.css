@@ -240,7 +240,6 @@ button:disabled { opacity: 0.6; cursor: progress; }
 }
 .prepared details { border-top: 1px solid var(--line); padding: 0.4rem 0; }
 .prepared summary { cursor: pointer; }
-.prepared details.stored { border: 0; }
 
 /* Result rows: a table, and on narrow screens one block per row, so nothing scrolls sideways. */
 table.rows { border-collapse: collapse; width: 100%; font-size: 0.82rem; margin: 0.3rem 0; }
